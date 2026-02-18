@@ -31,7 +31,10 @@ export const useProjectData = () => {
                     projectUrl: data.projectUrl || '',
                     priceRange: data.priceRange || data.maxPrice ? `AED ${Number(data.minPrice || 0).toLocaleString()} - ${Number(data.maxPrice).toLocaleString()}` : 'Enquire',
                     description: data.description || data.enPropertyOverView || '',
-                    images: data.generalImages?.map((img: any) => img.imageURL) || [],
+                    images: [
+                        ...(data.featuredImages?.map((img: any) => img.imageURL) || []),
+                        ...(data.generalImages?.map((img: any) => img.imageURL) || [])
+                    ],
                     bedrooms: data.availableBedrooms ? data.availableBedrooms.map((b: any) => b.noOfBedroom).join(', ') : 'N/A',
                     bathrooms: 'N/A', // Data might not have explicit bathrooms count at top level, check unitModels if needed
                     builtupArea: data.builtupArea_SQFT || 0,
