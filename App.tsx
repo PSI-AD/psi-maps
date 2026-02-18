@@ -61,6 +61,7 @@ const App: React.FC = () => {
         onMarkerClick={handleMarkerClick} onLandmarkClick={handleLandmarkClick}
         selectedProjectId={selectedProjectId} setHoveredProjectId={setHoveredProjectId} setHoveredLandmarkId={setHoveredLandmarkId}
         selectedLandmark={selectedLandmark} selectedProject={selectedProject} hoveredProject={hoveredProject}
+        projects={filteredProjects}
       />
     </MainLayout>
   );

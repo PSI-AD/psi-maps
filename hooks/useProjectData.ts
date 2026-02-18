@@ -23,8 +23,9 @@ export const useProjectData = () => {
                 projects.push({
                     id: doc.id,
                     name: data.name || 'Untitled Project',
-                    latitude: parseFloat(data.latitude),
-                    longitude: parseFloat(data.longitude),
+                    // User check: API often returns mapLatitude/mapLongitude as strings
+                    latitude: parseFloat(data.latitude || data.mapLatitude),
+                    longitude: parseFloat(data.longitude || data.mapLongitude),
                     type: data.type || 'apartment',
                     thumbnailUrl: data.thumbnailUrl || (data.generalImages && data.generalImages[0]?.imageURL) || '',
                     developerName: data.developerName || data.masterDeveloper || 'Unknown Developer',

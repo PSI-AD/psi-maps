@@ -9,9 +9,9 @@ export const useMapState = (filteredProjects: Project[]) => {
     const drawRef = useRef<MapboxDraw | null>(null);
 
     const [viewState, setViewState] = useState({
-        longitude: 54.436,
-        latitude: 24.543,
-        zoom: 13,
+        longitude: 54.8,
+        latitude: 24.84,
+        zoom: 7.5,
         pitch: 0,
         bearing: 0
     });
