@@ -85,9 +85,15 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
     selectedLandmark, selectedProject, hoveredProject, projects = []
 }) => {
 
+    const validMapProjects = projects.filter(p => {
+        const lat = p.latitude;
+        const lng = p.longitude;
+        return !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
+    });
+
     const geoJsonData = {
         type: 'FeatureCollection',
-        features: projects.map(p => ({
+        features: validMapProjects.map(p => ({
             type: 'Feature',
             properties: { ...p, cluster: false },
             geometry: {
