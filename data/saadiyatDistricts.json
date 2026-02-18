@@ -1,0 +1,139 @@
+
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "cultural",
+      "properties": {
+        "name": "Saadiyat Cultural District"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [54.3882, 24.5287],
+            [54.4082, 24.5267],
+            [54.4122, 24.5387],
+            [54.3922, 24.5427],
+            [54.3882, 24.5287]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "beach",
+      "properties": {
+        "name": "Saadiyat Beach"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [54.4122, 24.5387],
+            [54.4322, 24.5487],
+            [54.4522, 24.5587],
+            [54.4322, 24.5687],
+            [54.4122, 24.5387]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "marina",
+      "properties": {
+        "name": "Saadiyat Marina District"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [54.4082, 24.5267],
+            [54.4282, 24.5227],
+            [54.4322, 24.5347],
+            [54.4122, 24.5387],
+            [54.4082, 24.5267]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "reserve",
+      "properties": {
+        "name": "Saadiyat Reserve"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [54.4322, 24.5347],
+            [54.4522, 24.5447],
+            [54.4582, 24.5547],
+            [54.4322, 24.5487],
+            [54.4322, 24.5347]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "lagoons",
+      "properties": {
+        "name": "Saadiyat Lagoons"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [54.4522, 24.5447],
+            [54.4822, 24.5487],
+            [54.4882, 24.5647],
+            [54.4582, 24.5547],
+            [54.4522, 24.5447]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "retreat",
+      "properties": {
+        "name": "Saadiyat Retreat"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [54.4582, 24.5547],
+            [54.4882, 24.5647],
+            [54.4782, 24.5787],
+            [54.4522, 24.5687],
+            [54.4582, 24.5547]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "promenade",
+      "properties": {
+        "name": "Saadiyat Promenade"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [54.4282, 24.5227],
+            [54.4582, 24.5247],
+            [54.4622, 24.5387],
+            [54.4322, 24.5347],
+            [54.4282, 24.5227]
+          ]
+        ]
+      }
+    }
+  ]
+}

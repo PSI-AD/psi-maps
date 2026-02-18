@@ -1,0 +1,18 @@
+{
+  "name": "crm-proxy-server",
+  "version": "1.0.0",
+  "description": "Proxy and cache server for UAE Real Estate CRM",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "http-proxy-middleware": "^2.0.6",
+    "apicache": "^1.6.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3"
+  }
+}

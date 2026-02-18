@@ -1,0 +1,7 @@
+{
+  "name": "UAE Real Estate Explorer",
+  "description": "A high-performance interactive real estate map of the UAE focused on Palm Jumeirah, featuring deep spatial visualization and AI-powered property insights.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
