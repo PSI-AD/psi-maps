@@ -5,6 +5,7 @@ import { db } from '../utils/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { generateCleanId } from '../utils/helpers';
 import { Database, RefreshCw } from 'lucide-react';
+import rawApiData from '../data/master_projects.json';
 
 interface AdminDashboardProps {
   onClose: () => void;
