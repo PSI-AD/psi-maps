@@ -1,6 +1,10 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Project } from '../types';
+import { db } from '../utils/firebase';
+import { doc, setDoc } from 'firebase/firestore';
+import { generateCleanId } from '../utils/helpers';
+import { Database, RefreshCw } from 'lucide-react';
 
 interface AdminDashboardProps {
   onClose: () => void;
@@ -13,20 +17,21 @@ type TabType = 'general' | 'location' | 'media';
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, liveProjects, setLiveProjects }) => {
   const [masterApiList, setMasterApiList] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-  
+  const [isSyncing, setIsSyncing] = useState(false);
+
   // Auto-complete Engine State
   const [searchTerm, setSearchTerm] = useState('');
   const [suggestions, setSuggestions] = useState<Project[]>([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  
+
   // Tab State
   const [activeTab, setActiveTab] = useState<TabType>('general');
-  
+
   const [stagedProject, setStagedProject] = useState<any | null>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
   const filteredList = useMemo(() => {
-    return masterApiList.filter(p => 
+    return masterApiList.filter(p =>
       p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.developerName?.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -68,7 +73,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, liveProjects, 
     setSearchTerm(value);
 
     if (value.length > 1) {
-      const filtered = masterApiList.filter(p => 
+      const filtered = masterApiList.filter(p =>
         p.name?.toLowerCase().includes(value.toLowerCase())
       ).slice(0, 10);
       setSuggestions(filtered);
@@ -113,6 +118,38 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, liveProjects, 
     }
   };
 
+  const syncApiToFirebase = async () => {
+    try {
+      setIsSyncing(true);
+      const response = await fetch('https://www.psinv.net/api/external/allprojects');
+      if (!response.ok) throw new Error('Failed to fetch from PSI API');
+      const data = await response.json();
+
+      if (!Array.isArray(data)) throw new Error('Invalid API response format');
+
+      let count = 0;
+      for (const project of data) {
+        if (!project.name) continue;
+        const cleanId = generateCleanId(project);
+        // Ensure we preserve ALL fields by spreading project
+        await setDoc(doc(db, 'projects', cleanId), {
+          ...project,
+          id: cleanId, // Enforce clean ID in document data too
+          lastSynced: new Date().toISOString()
+        }, { merge: true });
+        count++;
+      }
+
+      alert(`Successfully synced ${count} projects to Firestore!`);
+      // Refresh local list if needed, or just let the user know
+    } catch (error) {
+      console.error('Sync Error:', error);
+      alert('Failed to sync master database. Check console for details.');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const renderField = (label: string, key: string, type: 'text' | 'number' | 'textarea' = 'text') => {
     const value = stagedProject ? stagedProject[key] : '';
     return (
@@ -147,14 +184,25 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, liveProjects, 
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">Super Admin Dashboard</h1>
           <p className="text-slate-500 font-medium">Internal Property Moderation & Spatial CMS</p>
         </div>
-        <button 
-          onClick={onClose}
-          className="p-3 bg-white hover:bg-slate-100 text-slate-400 hover:text-slate-900 rounded-full border border-slate-200 shadow-sm transition-all"
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={syncApiToFirebase}
+            disabled={isSyncing}
+            className={`flex items-center px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${isSyncing ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-100 active:scale-95'}`}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+            {isSyncing ? 'Syncing Database...' : 'Sync Master DB'}
+          </button>
+
+          <button
+            onClick={onClose}
+            className="p-3 bg-white hover:bg-slate-100 text-slate-400 hover:text-slate-900 rounded-full border border-slate-200 shadow-sm transition-all"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       <div className="w-full max-w-7xl space-y-12">
@@ -163,8 +211,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, liveProjects, 
           <h2 className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] mb-4">1. Asset Discovery</h2>
           <div className="relative" ref={searchContainerRef}>
             <div className="relative flex items-center">
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={searchTerm}
                 onChange={handleSearch}
                 onFocus={() => searchTerm.length > 1 && setIsDropdownOpen(true)}
@@ -178,7 +226,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, liveProjects, 
               )}
               {loading && !searchTerm && (
                 <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                   <svg className="animate-spin h-6 w-6 text-blue-500" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                  <svg className="animate-spin h-6 w-6 text-blue-500" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                 </div>
               )}
             </div>
@@ -215,11 +263,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, liveProjects, 
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`pb-4 text-[11px] font-black uppercase tracking-[0.2em] transition-all border-b-2 ${
-                    activeTab === tab 
-                      ? 'border-blue-600 text-blue-600' 
+                  className={`pb-4 text-[11px] font-black uppercase tracking-[0.2em] transition-all border-b-2 ${activeTab === tab
+                      ? 'border-blue-600 text-blue-600'
                       : 'border-transparent text-slate-400 hover:text-slate-600'
-                  }`}
+                    }`}
                 >
                   {tab === 'general' ? 'General Info' : tab === 'location' ? 'Location Data' : 'Media & Assets'}
                 </button>
@@ -258,9 +305,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, liveProjects, 
                     </div>
                     {stagedProject.thumbnailUrl && (
                       <div className="w-full md:w-48 h-32 rounded-xl overflow-hidden border border-slate-100 bg-slate-50 shadow-inner shrink-0">
-                        <img 
-                          src={stagedProject.thumbnailUrl} 
-                          alt="Preview" 
+                        <img
+                          src={stagedProject.thumbnailUrl}
+                          alt="Preview"
                           className="w-full h-full object-cover"
                           onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1582407947304-fd86f028f716?auto=format&fit=crop&w=800&q=80'; }}
                         />
@@ -279,7 +326,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, liveProjects, 
               )}
             </div>
 
-            <button 
+            <button
               onClick={handleDeploy}
               className="mt-12 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-6 rounded-2xl shadow-xl shadow-emerald-100 transition-all active:scale-[0.98] uppercase text-sm tracking-[0.2em] flex items-center justify-center gap-3"
             >
