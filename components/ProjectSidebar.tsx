@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Project } from '../types';
+import { X, MapPin, BedDouble, Bath, Square, Calendar, ArrowRight, Activity, Building, LayoutTemplate } from 'lucide-react';
 
 interface ProjectSidebarProps {
   project: Project | null;
@@ -24,41 +25,42 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({ project, onClose, onDis
   const displayImage = activeImage || images[0] || project.thumbnailUrl;
 
   return (
-    <div className="h-full flex flex-col bg-white text-slate-800 font-sans shadow-2xl relative">
+    <div className="h-full flex flex-col bg-white text-slate-800 font-sans shadow-2xl relative border-l border-slate-200">
 
       {/* 1. Hero Image Section */}
-      <div className="relative h-72 w-full shrink-0 bg-slate-100 group">
+      <div className="relative h-80 w-full shrink-0 bg-slate-100 group">
         <img
           src={displayImage}
           alt={project.name}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+          className="w-full h-full object-cover transition-transform duration-1000 ease-in-out group-hover:scale-105"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/40 to-transparent pointer-events-none" />
 
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 bg-white/20 hover:bg-white/40 backdrop-blur-md text-white p-2 rounded-full transition-all"
+          className="absolute top-6 right-6 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white p-2 rounded-full transition-all border border-white/20 hover:border-white/50"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          <X className="w-5 h-5" />
         </button>
 
-        <div className="absolute bottom-4 left-4 text-white">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2 py-0.5 bg-blue-600/90 text-[10px] font-bold uppercase tracking-widest rounded-sm">{project.type}</span>
-            <span className="px-2 py-0.5 bg-emerald-600/90 text-[10px] font-bold uppercase tracking-widest rounded-sm">{project.status}</span>
+        <div className="absolute bottom-6 left-6 right-6 text-white text-shadow-lg">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="px-3 py-1 bg-amber-600/90 text-[10px] font-bold uppercase tracking-widest rounded-sm shadow-sm backdrop-blur-sm">{project.type}</span>
+            <span className="px-3 py-1 bg-slate-800/80 text-[10px] font-bold uppercase tracking-widest rounded-sm shadow-sm backdrop-blur-sm border border-slate-700">{project.status}</span>
           </div>
-          <h1 className="text-2xl font-black tracking-tight leading-none drop-shadow-md">{project.name}</h1>
+          <h1 className="text-3xl font-black tracking-tight leading-tight mb-1">{project.name}</h1>
+          <p className="text-slate-300 font-medium text-sm tracking-wide">{project.developerName}</p>
         </div>
       </div>
 
       {/* 2. Horizontal Gallery */}
       {images.length > 1 && (
-        <div className="flex gap-2 p-3 overflow-x-auto bg-slate-50 border-b border-slate-100 custom-scrollbar shrink-0">
+        <div className="flex gap-3 p-4 overflow-x-auto bg-slate-50 border-b border-slate-200 custom-scrollbar shrink-0">
           {images.map((img, idx) => (
             <button
               key={idx}
               onClick={() => setActiveImage(img)}
-              className={`relative w-24 h-16 shrink-0 rounded-lg overflow-hidden border-2 transition-all ${activeImage === img ? 'border-blue-600 ring-2 ring-blue-100' : 'border-transparent opacity-80 hover:opacity-100'}`}
+              className={`relative w-28 h-20 shrink-0 rounded-lg overflow-hidden border-2 transition-all shadow-sm ${activeImage === img ? 'border-amber-600 ring-2 ring-amber-100 opacity-100' : 'border-transparent opacity-70 hover:opacity-100 hover:border-slate-300'}`}
             >
               <img src={img} alt="" className="w-full h-full object-cover" />
             </button>
@@ -67,70 +69,79 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({ project, onClose, onDis
       )}
 
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto px-6 py-8 space-y-8 custom-scrollbar bg-white">
 
         {/* 3. Header & Location */}
-        <div>
-          <div className="flex justify-between items-start mb-2">
-            <div>
-              <h2 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-0.5">{project.developerName}</h2>
-              <div className="flex items-center text-slate-400 text-xs font-medium">
-                <span>{project.city}</span>
-                <svg className="w-3 h-3 mx-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                <span>{project.community}</span>
-                {project.subCommunity && (
-                  <>
-                    <svg className="w-3 h-3 mx-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                    <span>{project.subCommunity}</span>
-                  </>
-                )}
-              </div>
+        <div className="flex justify-between items-end border-b border-slate-100 pb-6">
+          <div>
+            <div className="flex items-center text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">
+              <MapPin className="w-3.5 h-3.5 mr-1.5 text-amber-600" />
+              <span>{project.city}</span>
+              <span className="mx-2 text-slate-300">/</span>
+              <span className="text-slate-700">{project.community}</span>
             </div>
-            <div className="text-right">
-              <p className="text-xs text-slate-400 font-bold uppercase">Starting From</p>
-              <p className="text-xl font-black text-blue-600">{project.priceRange ? project.priceRange.split('-')[0] : 'Enquire'}</p>
-            </div>
+            <p className="text-3xl font-black text-slate-900 mt-1">{project.priceRange ? project.priceRange.split('-')[0].trim() : 'Enquire'}</p>
+            <p className="text-xs text-slate-400 font-bold uppercase mt-1">Starting Price</p>
           </div>
         </div>
 
-        {/* 4. Data Grid */}
+        {/* 4. Data Grid (Vector Icons) */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl">
-            <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">Bedrooms</p>
-            <p className="font-bold text-slate-800">{project.bedrooms || 'Studio - 3'}</p>
+          <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3 hover:border-slate-200 transition-colors">
+            <BedDouble className="w-5 h-5 text-amber-600 mt-0.5" />
+            <div>
+              <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Bedrooms</p>
+              <p className="font-bold text-slate-800 text-sm">{project.bedrooms || 'Studio - 3'}</p>
+            </div>
           </div>
-          <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl">
-            <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">Bathrooms</p>
-            <p className="font-bold text-slate-800">{project.bathrooms || '1 - 4'}</p>
+          <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3 hover:border-slate-200 transition-colors">
+            <Bath className="w-5 h-5 text-amber-600 mt-0.5" />
+            <div>
+              <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Bathrooms</p>
+              <p className="font-bold text-slate-800 text-sm">{project.bathrooms || '1 - 4'}</p>
+            </div>
           </div>
-          <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl">
-            <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">Completion</p>
-            <p className="font-bold text-slate-800">{project.completionDate || 'Ready'}</p>
+          <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3 hover:border-slate-200 transition-colors">
+            <Calendar className="w-5 h-5 text-amber-600 mt-0.5" />
+            <div>
+              <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Completion</p>
+              <p className="font-bold text-slate-800 text-sm">{project.completionDate || 'Ready'}</p>
+            </div>
           </div>
-          <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl">
-            <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">Built-up Area</p>
-            <p className="font-bold text-slate-800">{project.builtupArea ? `${Number(project.builtupArea).toLocaleString()} sqft` : 'N/A'}</p>
+          <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3 hover:border-slate-200 transition-colors">
+            <Square className="w-5 h-5 text-amber-600 mt-0.5" />
+            <div>
+              <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Built-up Area</p>
+              <p className="font-bold text-slate-800 text-sm">{project.builtupArea ? `${Number(project.builtupArea).toLocaleString()} sqft` : 'N/A'}</p>
+            </div>
           </div>
         </div>
 
         {/* 5. Description */}
         <div>
-          <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-3 border-b border-slate-100 pb-2">About {project.name}</h3>
+          <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
+            <Activity className="w-4 h-4 mr-2 text-amber-600" />
+            About The Project
+          </h3>
           <div
-            className="text-sm text-slate-600 leading-relaxed space-y-2 prose-sm"
-            dangerouslySetInnerHTML={{ __html: project.description || 'No description available.' }}
+            className="text-sm text-slate-600 leading-relaxed space-y-4 prose-sm prose-p:mb-2 prose-strong:text-slate-900"
+            dangerouslySetInnerHTML={{ __html: project.description || 'No detailed description available.' }}
           />
         </div>
 
         {/* 6. Amenities */}
         {project.amenities && project.amenities.length > 0 && (
           <div>
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-3 border-b border-slate-100 pb-2">Amenities</h3>
+            <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
+              <LayoutTemplate className="w-4 h-4 mr-2 text-amber-600" />
+              Lifestyle Amenities
+            </h3>
             <div className="flex flex-wrap gap-2">
               {project.amenities.map((amenity, idx) => (
-                <span key={idx} className="px-3 py-1.5 bg-slate-50 text-slate-600 text-[11px] font-bold uppercase tracking-wider border border-slate-100 rounded-md">
+                <div key={idx} className="px-3 py-2 bg-white text-slate-600 text-[11px] font-bold uppercase tracking-wider border border-slate-200 rounded-lg shadow-sm flex items-center gap-2 hover:border-amber-200 transition-colors">
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                   {amenity}
-                </span>
+                </div>
               ))}
             </div>
           </div>
@@ -139,26 +150,27 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({ project, onClose, onDis
       </div>
 
       {/* Footer Actions */}
-      <div className="p-4 bg-white border-t border-slate-100 z-10 shrink-0 space-y-3">
+      <div className="p-6 bg-white border-t border-slate-100 z-10 shrink-0 space-y-3 shadow-[0_-4px_20px_rgba(0,0,0,0.02)]">
         <button
           onClick={handleDiscovery}
           disabled={isDiscovering}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all hover:shadow-lg disabled:opacity-70 flex items-center justify-center gap-2"
+          className="w-full bg-slate-900 hover:bg-slate-800 text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest transition-all hover:shadow-xl hover:shadow-slate-200 active:scale-[0.99] disabled:opacity-70 flex items-center justify-center gap-3"
         >
           {isDiscovering ? (
             <>
-              <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-              <span>Analyzing Location...</span>
+              <svg className="animate-spin h-5 w-5 text-amber-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+              <span className="text-amber-50">Analyzing Location...</span>
             </>
           ) : (
             <>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+              <MapPin className="w-4 h-4 text-amber-500" />
               <span>Explore Neighborhood</span>
             </>
           )}
         </button>
-        <a href={project.projectUrl} target="_blank" rel="noopener noreferrer" className="block w-full text-center py-3 border border-slate-200 hover:border-slate-800 text-slate-800 font-bold text-xs uppercase tracking-widest rounded-xl transition-all">
-          Register Interest
+        <a href={project.projectUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center w-full py-4 border border-slate-200 hover:border-amber-600 text-slate-800 hover:text-amber-700 bg-slate-50 hover:bg-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all gap-2 group">
+          <span>Request Floor Plans</span>
+          <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
         </a>
       </div>
     </div>
