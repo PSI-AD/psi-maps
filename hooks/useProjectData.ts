@@ -23,21 +23,21 @@ export const useProjectData = () => {
                 projects.push({
                     id: doc.id,
                     name: data.name || 'Untitled Project',
-                    // User check: API often returns mapLatitude/mapLongitude as strings
+                    // User check: API often returns mapLatitude/mapLongitude as strings, ensure float parsing
                     latitude: parseFloat(data.latitude || data.mapLatitude),
                     longitude: parseFloat(data.longitude || data.mapLongitude),
                     type: data.type || 'apartment',
                     thumbnailUrl: data.thumbnailUrl || (data.generalImages && data.generalImages[0]?.imageURL) || '',
                     developerName: data.developerName || data.masterDeveloper || 'Unknown Developer',
                     projectUrl: data.projectUrl || '',
-                    priceRange: data.priceRange || data.maxPrice ? `AED ${Number(data.minPrice || 0).toLocaleString()} - ${Number(data.maxPrice).toLocaleString()}` : 'Enquire',
+                    priceRange: data.priceRange || (data.maxPrice ? `AED ${Number(data.minPrice || 0).toLocaleString()} - ${Number(data.maxPrice).toLocaleString()}` : 'Enquire'),
                     description: data.description || data.enPropertyOverView || '',
                     images: [
                         ...(data.featuredImages?.map((img: any) => img.imageURL) || []),
                         ...(data.generalImages?.map((img: any) => img.imageURL) || [])
                     ],
                     bedrooms: data.availableBedrooms ? data.availableBedrooms.map((b: any) => b.noOfBedroom).join(', ') : 'N/A',
-                    bathrooms: 'N/A', // Data might not have explicit bathrooms count at top level, check unitModels if needed
+                    bathrooms: 'N/A', // Data might not have explicit bathrooms count at top level
                     builtupArea: data.builtupArea_SQFT || 0,
                     plotArea: data.plotArea_SQFT || 0,
                     completionDate: data.completionDate || 'Ready',
@@ -48,60 +48,51 @@ export const useProjectData = () => {
                     subCommunity: data.subCommunity
                 } as Project);
             });
-        } as Project);
-    });
-    console.log("🔥 FIRESTORE FETCH SUCCESS. Total Projects:", projects.length);
-    setLiveProjects(projects);
-    setIsRefreshing(false);
-}, (error) => {
-    console.error("Error fetching projects:", error);
-    setIsRefreshing(false);
-});
 
-return () => unsubscribe();
-    }, []);
+            return () => unsubscribe();
+        }, []);
 
-const loadInitialData = useCallback(async () => {
-    // No-op for now as we have a listener, or could trigger a manual refresh/re-sub if needed.
-    // For compatibility with UI button:
-    setIsRefreshing(true);
-    setTimeout(() => setIsRefreshing(false), 500);
-}, []);
+        const loadInitialData = useCallback(async () => {
+            // No-op for now as we have a listener, or could trigger a manual refresh/re-sub if needed.
+            // For compatibility with UI button:
+            setIsRefreshing(true);
+            setTimeout(() => setIsRefreshing(false), 500);
+        }, []);
 
-const filteredProjects = useMemo(() => {
-    if (!filterPolygon) return liveProjects;
+        const filteredProjects = useMemo(() => {
+            if (!filterPolygon) return liveProjects;
 
-    const points = turf.featureCollection(
-        liveProjects.map(p => turf.point([p.longitude, p.latitude], { ...p }))
-    ) as any;
+            const points = turf.featureCollection(
+                liveProjects.map(p => turf.point([p.longitude, p.latitude], { ...p }))
+            ) as any;
 
-    const within = turf.pointsWithinPolygon(points, filterPolygon);
-    return within.features.map(f => f.properties as Project);
-}, [liveProjects, filterPolygon]);
+            const within = turf.pointsWithinPolygon(points, filterPolygon);
+            return within.features.map(f => f.properties as Project);
+        }, [liveProjects, filterPolygon]);
 
-const filteredAmenities = useMemo(() => {
-    if (activeAmenities.length === 0) return [];
-    return amenitiesData.filter(amenity => activeAmenities.includes(amenity.category));
-}, [activeAmenities]);
+        const filteredAmenities = useMemo(() => {
+            if (activeAmenities.length === 0) return [];
+            return amenitiesData.filter(amenity => activeAmenities.includes(amenity.category));
+        }, [activeAmenities]);
 
-const handleToggleAmenity = (category: string) => {
-    setActiveAmenities(prev =>
-        prev.includes(category)
-            ? prev.filter(c => c !== category)
-            : [...prev, category]
-    );
-};
+        const handleToggleAmenity = (category: string) => {
+            setActiveAmenities(prev =>
+                prev.includes(category)
+                    ? prev.filter(c => c !== category)
+                    : [...prev, category]
+            );
+        };
 
-return {
-    liveProjects,
-    setLiveProjects,
-    isRefreshing,
-    loadInitialData,
-    filteredProjects,
-    filteredAmenities,
-    activeAmenities,
-    handleToggleAmenity,
-    filterPolygon,
-    setFilterPolygon
-};
-};
+        return {
+            liveProjects,
+            setLiveProjects,
+            isRefreshing,
+            loadInitialData,
+            filteredProjects,
+            filteredAmenities,
+            activeAmenities,
+            handleToggleAmenity,
+            filterPolygon,
+            setFilterPolygon
+        };
+    };
