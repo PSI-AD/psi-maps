@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Project } from '../types';
 import TopNavBar from './TopNavBar';
 import AdminDashboard from './AdminDashboard';
@@ -7,6 +7,7 @@ import ProjectSidebar from './ProjectSidebar';
 import ProjectBottomCard from './ProjectBottomCard';
 import AmenityFilterBar from './AmenityFilterBar';
 import MapStyleSwitcher from './MapStyleSwitcher';
+import SearchBar from './SearchBar';
 
 interface MainLayoutProps {
     viewMode: 'map' | 'list';
@@ -34,6 +35,7 @@ interface MainLayoutProps {
     children: React.ReactNode; // For MapCanvas
     // Sidebar extras
     onDiscoverNeighborhood: (lat: number, lng: number) => void;
+    onFlyTo: (lat: number, lng: number) => void;
 }
 
 const MainLayout: React.FC<MainLayoutProps> = ({
@@ -42,10 +44,19 @@ const MainLayout: React.FC<MainLayoutProps> = ({
     selectedProject, filteredProjects, isRefreshing, onRefresh,
     onProjectClick, onCloseProject, filterPolygon,
     activeAmenities, onToggleAmenity, isDrawing, onToggleDraw,
-    mapStyle, setMapStyle, children, onDiscoverNeighborhood
+    mapStyle, setMapStyle, children, onDiscoverNeighborhood, onFlyTo
 }) => {
+    const [currentViewLocation, setCurrentViewLocation] = useState('UAE Overview');
+
     const handleImageError = (e: any) => {
         e.currentTarget.src = 'https://images.unsplash.com/photo-1582407947304-fd86f028f716?auto=format&fit=crop&w=800&q=80';
+    };
+
+    const handleSearchSelect = (project: Project) => {
+        onFlyTo(project.latitude, project.longitude);
+        setCurrentViewLocation(project.name);
+        // Optional: Open sidebar or just focus map
+        onProjectClick(project.id);
     };
 
     return (
@@ -55,14 +66,17 @@ const MainLayout: React.FC<MainLayoutProps> = ({
 
             <div className="flex flex-col md:flex-row flex-1 overflow-hidden mt-20 relative">
                 <div className={`${viewMode === 'list' ? 'flex' : 'hidden md:flex'} w-full md:w-[400px] h-full overflow-y-auto bg-slate-50 z-10 md:z-0 border-r border-slate-200 flex-col relative custom-scrollbar`}>
-                    {selectedProject && !isAnalysisOpen ? ( // Wait, existing App.tsx logic: selectedProject triggers ProjectListSidebar(inline) OR default list. logic is: if selectedProject -> ProjectListSidebar.
+                    {selectedProject && !isAnalysisOpen ? (
                         <ProjectListSidebar project={selectedProject} onClose={onCloseProject} onOpenAnalysis={() => setIsAnalysisOpen(true)} isInline={true} />
                     ) : (
                         <div className="flex flex-col h-full">
                             <div className="p-6 border-b border-slate-200 bg-white sticky top-0 z-20">
+                                <div className="mb-6">
+                                    <SearchBar projects={liveProjects} onSelectProject={handleSearchSelect} />
+                                </div>
                                 <div className="flex justify-between items-end mb-1">
                                     <div>
-                                        <h2 className="text-2xl font-black text-slate-900 tracking-tight">Saadiyat Island</h2>
+                                        <h2 className="text-2xl font-black text-slate-900 tracking-tight">{currentViewLocation}</h2>
                                         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{filterPolygon ? `${filteredProjects.length} Filtered Listings` : `${filteredProjects.length} Luxury Listings`}</p>
                                     </div>
                                     <button onClick={onRefresh} disabled={isRefreshing} className={`p-2 rounded-xl border border-slate-100 transition-all ${isRefreshing ? 'bg-blue-50 text-blue-600' : 'bg-white hover:bg-slate-50 text-slate-400'}`}>
@@ -76,7 +90,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                                         <div className="w-full h-56 relative bg-slate-200"><img className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src={project.thumbnailUrl} alt={project.name} onError={handleImageError} /></div>
                                         <div className="p-4 flex flex-col gap-1">
                                             <span className="text-xs font-bold tracking-wider text-blue-600 uppercase">{project.type}</span>
-                                            <p className="text-xl font-extrabold text-slate-800 mt-1">{project.priceRange?.split('-')[0].trim() || 'Enquire'}</p>
+                                            <p className="text-xl font-extrabold text-slate-800 mt-1">{project.priceRange ? project.priceRange.split('-')[0].trim() : 'Enquire'}</p>
                                             <h3 className="text-lg font-bold text-slate-700 leading-tight">{project.name}</h3>
                                             <p className="text-sm text-slate-500 mb-3">{project.developerName}</p>
                                             <button className="bg-blue-700 hover:bg-blue-800 text-white w-full py-2.5 rounded-lg font-bold text-[10px] uppercase tracking-[0.15em] transition-all shadow-lg shadow-blue-50 active:scale-[0.98]">View Details</button>

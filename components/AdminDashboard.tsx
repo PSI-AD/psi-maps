@@ -187,15 +187,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, liveProjects, 
         </div>
         <div className="flex items-center gap-4">
           <button
-            onClick={syncApiToFirebase}
-            disabled={isSyncing}
-            className={`flex items-center px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${isSyncing ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-100 active:scale-95'}`}
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-            {isSyncing ? 'Syncing Database...' : 'Sync Master DB'}
-          </button>
-
-          <button
             onClick={onClose}
             className="p-3 bg-white hover:bg-slate-100 text-slate-400 hover:text-slate-900 rounded-full border border-slate-200 shadow-sm transition-all"
           >

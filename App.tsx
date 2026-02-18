@@ -52,6 +52,7 @@ const App: React.FC = () => {
       onProjectClick={handleMarkerClick} onCloseProject={() => setSelectedProjectId(null)} filterPolygon={filterPolygon}
       activeAmenities={activeAmenities} onToggleAmenity={handleToggleAmenity} isDrawing={isDrawing} onToggleDraw={handleToggleDraw}
       mapStyle={mapStyle} setMapStyle={setMapStyle} onDiscoverNeighborhood={(lat, lng) => fetchNearbyAmenities(lat, lng)}
+      onFlyTo={handleFlyTo}
     >
       <MapCanvas
         mapRef={mapRef} viewState={viewState} setViewState={setViewState} updateBounds={updateBounds} mapStyle={mapStyle} onClick={handleMapClick}

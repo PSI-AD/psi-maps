@@ -23,8 +23,8 @@ export const useProjectData = () => {
                 projects.push({
                     id: doc.id,
                     name: data.name || 'Untitled Project',
-                    latitude: Number(data.latitude || 0), // Ensure numbers
-                    longitude: Number(data.longitude || 0),
+                    latitude: parseFloat(data.latitude),
+                    longitude: parseFloat(data.longitude),
                     type: data.type || 'apartment',
                     thumbnailUrl: data.thumbnailUrl || (data.generalImages && data.generalImages[0]?.imageURL) || '',
                     developerName: data.developerName || data.masterDeveloper || 'Unknown Developer',
@@ -47,7 +47,9 @@ export const useProjectData = () => {
                     subCommunity: data.subCommunity
                 } as Project);
             });
-            setLiveProjects(projects);
+            // CRITICAL: Filter out projects with invalid coordinates to prevent map errors
+            const validProjects = projects.filter(p => !isNaN(p.latitude) && !isNaN(p.longitude) && p.latitude !== 0 && p.longitude !== 0);
+            setLiveProjects(validProjects);
             setIsRefreshing(false);
         }, (error) => {
             console.error("Error fetching projects:", error);
