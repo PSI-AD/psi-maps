@@ -1,7 +1,8 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import * as turf from '@turf/turf';
 import { Project } from '../types';
-import { fetchLiveProperties } from '../utils/apiClient';
+import { collection, onSnapshot, query } from 'firebase/firestore'; // Import Firestore functions
+import { db } from '../utils/firebase'; // Import initialized db instance
 import { amenitiesData } from '../data/seedData';
 
 export const useProjectData = () => {
@@ -10,16 +11,55 @@ export const useProjectData = () => {
     const [activeAmenities, setActiveAmenities] = useState<string[]>([]);
     const [filterPolygon, setFilterPolygon] = useState<any>(null);
 
-    const loadInitialData = useCallback(async () => {
+    // Initial Load - Setup Realtime Listener
+    useEffect(() => {
         setIsRefreshing(true);
-        const data = await fetchLiveProperties();
-        setLiveProjects(data);
-        setIsRefreshing(false);
+        const q = query(collection(db, 'projects'));
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const projects: Project[] = [];
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                projects.push({
+                    id: doc.id,
+                    name: data.name || 'Untitled Project',
+                    latitude: Number(data.latitude || 0), // Ensure numbers
+                    longitude: Number(data.longitude || 0),
+                    type: data.type || 'apartment',
+                    thumbnailUrl: data.thumbnailUrl || (data.generalImages && data.generalImages[0]?.imageURL) || '',
+                    developerName: data.developerName || data.masterDeveloper || 'Unknown Developer',
+                    projectUrl: data.projectUrl || '',
+                    priceRange: data.priceRange || data.maxPrice ? `AED ${Number(data.minPrice || 0).toLocaleString()} - ${Number(data.maxPrice).toLocaleString()}` : 'Enquire',
+                    description: data.description || data.enPropertyOverView || '',
+                    images: data.generalImages?.map((img: any) => img.imageURL) || [],
+                    bedrooms: data.availableBedrooms ? data.availableBedrooms.map((b: any) => b.noOfBedroom).join(', ') : 'N/A',
+                    bathrooms: 'N/A', // Data might not have explicit bathrooms count at top level, check unitModels if needed
+                    builtupArea: data.builtupArea_SQFT || 0,
+                    plotArea: data.plotArea_SQFT || 0,
+                    completionDate: data.completionDate || 'Ready',
+                    status: data.propertyPlan || 'Completed',
+                    amenities: data.aminities?.map((a: any) => a.name) || [],
+                    city: data.city,
+                    community: data.community,
+                    subCommunity: data.subCommunity
+                } as Project);
+            });
+            setLiveProjects(projects);
+            setIsRefreshing(false);
+        }, (error) => {
+            console.error("Error fetching projects:", error);
+            setIsRefreshing(false);
+        });
+
+        return () => unsubscribe();
     }, []);
 
-    useEffect(() => {
-        loadInitialData();
-    }, [loadInitialData]);
+    const loadInitialData = useCallback(async () => {
+        // No-op for now as we have a listener, or could trigger a manual refresh/re-sub if needed.
+        // For compatibility with UI button:
+        setIsRefreshing(true);
+        setTimeout(() => setIsRefreshing(false), 500);
+    }, []);
 
     const filteredProjects = useMemo(() => {
         if (!filterPolygon) return liveProjects;

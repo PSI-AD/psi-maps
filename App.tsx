@@ -31,7 +31,9 @@ const App: React.FC = () => {
   const selectedLandmark = filteredAmenities.find(l => l.id === selectedLandmarkId) || null;
 
   const handleMarkerClick = (id: string) => {
-    setSelectedProjectId(id); setSelectedLandmarkId(null);
+    setSelectedProjectId(id);
+    setSelectedLandmarkId(null);
+    setIsAnalysisOpen(true); // Open the Luxury Sidebar
     const p = filteredProjects.find(pr => pr.id === id);
     if (p) handleFlyTo(p.longitude, p.latitude);
   };
