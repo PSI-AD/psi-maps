@@ -13,16 +13,16 @@ const TopNavBar: React.FC<TopNavBarProps> = ({ onAdminClick }) => {
         <div className="w-11 h-11 relative flex items-center justify-center">
           <svg viewBox="0 0 100 120" className="w-full h-full drop-shadow-md" fill="none" xmlns="http://www.w3.org/2000/svg">
             {/* Elegant Map Pin Base - Navy & Gold */}
-            <path d="M50 115C50 115 92 72 92 46C92 22.804 73.196 4 50 4C26.804 4 8 22.804 8 46C8 72 50 115 50 115Z" fill="#0F172A" stroke="#D4AF37" strokeWidth="2.5"/>
+            <path d="M50 115C50 115 92 72 92 46C92 22.804 73.196 4 50 4C26.804 4 8 22.804 8 46C8 72 50 115 50 115Z" fill="#0F172A" stroke="#D4AF37" strokeWidth="2.5" />
             {/* PSI Monogram Text Inside Pin */}
-            <text 
-              x="50" 
-              y="58" 
-              fill="#D4AF37" 
-              fontFamily="system-ui, -apple-system, sans-serif" 
-              fontWeight="900" 
-              fontSize="24" 
-              textAnchor="middle" 
+            <text
+              x="50"
+              y="58"
+              fill="#D4AF37"
+              fontFamily="system-ui, -apple-system, sans-serif"
+              fontWeight="900"
+              fontSize="24"
+              textAnchor="middle"
               style={{ letterSpacing: '-1px' }}
             >
               PSI
@@ -33,7 +33,10 @@ const TopNavBar: React.FC<TopNavBarProps> = ({ onAdminClick }) => {
         </div>
         <div className="flex flex-col justify-center">
           <span className="text-xl font-black text-slate-900 tracking-tighter uppercase leading-none block">PSI</span>
-          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.4em] mt-0.5 leading-none">Explorer</span>
+          <div className="flex items-center gap-1 mt-0.5 leading-none">
+            <span className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.4em]">PRO Explorer</span>
+            <span className="text-[7px] font-bold text-emerald-500 bg-emerald-50 px-1 py-px rounded border border-emerald-100 uppercase tracking-wide">v2.0</span>
+          </div>
         </div>
       </div>
 
@@ -43,9 +46,9 @@ const TopNavBar: React.FC<TopNavBarProps> = ({ onAdminClick }) => {
           <svg className="w-5 h-5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
-          <input 
-            type="text" 
-            placeholder="City, community or project name" 
+          <input
+            type="text"
+            placeholder="City, community or project name"
             className="bg-transparent w-full text-sm font-medium text-slate-700 placeholder:text-transparent md:placeholder:text-slate-400 outline-none"
           />
         </div>
@@ -57,14 +60,14 @@ const TopNavBar: React.FC<TopNavBarProps> = ({ onAdminClick }) => {
           <div className="relative group cursor-pointer">
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-black text-slate-600 uppercase tracking-widest">Type</span>
-              <svg className="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <svg className="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
             </div>
           </div>
 
           <div className="relative group cursor-pointer">
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-black text-slate-600 uppercase tracking-widest">Status</span>
-              <svg className="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <svg className="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
             </div>
           </div>
         </div>
@@ -72,14 +75,14 @@ const TopNavBar: React.FC<TopNavBarProps> = ({ onAdminClick }) => {
         <button className="bg-blue-700 hover:bg-blue-800 text-white px-4 md:px-8 py-2.5 rounded-xl transition-all shadow-md shadow-blue-100 shrink-0 active:scale-95 flex items-center justify-center">
           <span className="hidden md:inline text-xs font-black uppercase tracking-[0.15em]">Search</span>
           <svg className="w-5 h-5 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         </button>
       </div>
 
       {/* Quick Links / Profile */}
       <div className="flex items-center gap-2 md:gap-4 shrink-0">
-        <button 
+        <button
           onClick={onAdminClick}
           title="Admin Settings"
           className="p-2.5 text-slate-400 hover:text-slate-900 transition-colors bg-slate-50 rounded-xl border border-slate-100"
