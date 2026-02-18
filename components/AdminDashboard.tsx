@@ -121,7 +121,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, liveProjects, 
   const syncApiToFirebase = async () => {
     try {
       setIsSyncing(true);
-      const response = await fetch('https://www.psinv.net/api/external/allprojects');
+      const response = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://www.psinv.net/api/external/allprojects'));
       if (!response.ok) throw new Error('Failed to fetch from PSI API');
       const data = await response.json();
 
@@ -264,8 +264,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, liveProjects, 
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={`pb-4 text-[11px] font-black uppercase tracking-[0.2em] transition-all border-b-2 ${activeTab === tab
-                      ? 'border-blue-600 text-blue-600'
-                      : 'border-transparent text-slate-400 hover:text-slate-600'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-slate-400 hover:text-slate-600'
                     }`}
                 >
                   {tab === 'general' ? 'General Info' : tab === 'location' ? 'Location Data' : 'Media & Assets'}
