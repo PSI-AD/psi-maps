@@ -17,8 +17,6 @@ interface MapCanvasProps {
     onDrawUpdate: (e: any) => void;
     onDrawDelete: () => void;
     filteredAmenities: Landmark[];
-    clusters: any[]; // Deprecated with new Source method
-    supercluster: any; // Deprecated with new Source method
     onMarkerClick: (id: string) => void;
     onLandmarkClick: (l: Landmark) => void;
     selectedProjectId: string | null;
@@ -27,7 +25,10 @@ interface MapCanvasProps {
     selectedLandmark: Landmark | null;
     selectedProject: Project | null;
     hoveredProject: Project | null;
-    projects?: Project[]; // Added for source data
+    projects?: Project[];
+    // Deprecated props (kept for interface compatibility if needed, but unused here)
+    clusters?: any[];
+    supercluster?: any;
 }
 
 const MAPBOX_TOKEN = 'pk.eyJ1IjoicHNpbnYiLCJhIjoiY21scjBzM21xMDZqNzNmc2VmdGt5MW05ZCJ9.VxIEn1jLTzMwLAN8m4B15g';
@@ -134,20 +135,14 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
             className="w-full h-full"
             interactiveLayerIds={['clusters', 'unclustered-point']}
             onClick={(e) => {
-                // Check if we clicked on a cluster or point
                 const features = e.features || [];
                 if (features.length > 0) {
                     handleLayerClick(e);
-                    // Standard map onClick (to clear selection) is handled in App.tsx if this doesn't stop prop.
-                    // If we handled it, we might want to stop prop, but react-map-gl logic is tricky.
-                    // Actually, App.tsx handles generic map click. If we click a feature, we act.
-                    // To prevent clearing, we should probably stop prop if we clicked a feature?
-                    // But here we call onClick prop from parent too? The parent prop handles 'clearing'.
                 } else {
                     onClick(e);
                 }
             }}
-            cursor={hoveredProjectId ? 'pointer' : 'auto'} // Simple cursor logic based on hover state (needs onMouseEnter/Leave on layers)
+            cursor={hoveredProject ? 'pointer' : 'auto'}
             onMouseEnter={(e) => {
                 if (e.features?.[0]?.layer.id === 'unclustered-point') {
                     setHoveredProjectId(e.features[0].properties?.id);
@@ -172,7 +167,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                 <Layer {...unclusteredPointLayer} />
             </Source>
 
-            {/* Amenity Markers (kept separate as custom markers) */}
+            {/* Amenity Markers */}
             {filteredAmenities.map(amenity => (
                 <AmenityMarker key={amenity.id} amenity={amenity} onClick={() => onLandmarkClick(amenity)} onMouseEnter={() => setHoveredLandmarkId(amenity.id)} onMouseLeave={() => setHoveredLandmarkId(null)} />
             ))}
