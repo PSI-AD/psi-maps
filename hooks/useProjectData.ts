@@ -48,51 +48,58 @@ export const useProjectData = () => {
                     subCommunity: data.subCommunity
                 } as Project);
             });
+            console.log("🔥 FIRESTORE FETCH SUCCESS. Total Projects:", projects.length);
+            setLiveProjects(projects);
+            setIsRefreshing(false);
+        }, (error) => {
+            console.error("Error fetching projects:", error);
+            setIsRefreshing(false);
+        });
 
-            return () => unsubscribe();
-        }, []);
+        return () => unsubscribe();
+    }, []);
 
-        const loadInitialData = useCallback(async () => {
-            // No-op for now as we have a listener, or could trigger a manual refresh/re-sub if needed.
-            // For compatibility with UI button:
-            setIsRefreshing(true);
-            setTimeout(() => setIsRefreshing(false), 500);
-        }, []);
+    const loadInitialData = useCallback(async () => {
+        // No-op for now as we have a listener, or could trigger a manual refresh/re-sub if needed.
+        // For compatibility with UI button:
+        setIsRefreshing(true);
+        setTimeout(() => setIsRefreshing(false), 500);
+    }, []);
 
-        const filteredProjects = useMemo(() => {
-            if (!filterPolygon) return liveProjects;
+    const filteredProjects = useMemo(() => {
+        if (!filterPolygon) return liveProjects;
 
-            const points = turf.featureCollection(
-                liveProjects.map(p => turf.point([p.longitude, p.latitude], { ...p }))
-            ) as any;
+        const points = turf.featureCollection(
+            liveProjects.map(p => turf.point([p.longitude, p.latitude], { ...p }))
+        ) as any;
 
-            const within = turf.pointsWithinPolygon(points, filterPolygon);
-            return within.features.map(f => f.properties as Project);
-        }, [liveProjects, filterPolygon]);
+        const within = turf.pointsWithinPolygon(points, filterPolygon);
+        return within.features.map(f => f.properties as Project);
+    }, [liveProjects, filterPolygon]);
 
-        const filteredAmenities = useMemo(() => {
-            if (activeAmenities.length === 0) return [];
-            return amenitiesData.filter(amenity => activeAmenities.includes(amenity.category));
-        }, [activeAmenities]);
+    const filteredAmenities = useMemo(() => {
+        if (activeAmenities.length === 0) return [];
+        return amenitiesData.filter(amenity => activeAmenities.includes(amenity.category));
+    }, [activeAmenities]);
 
-        const handleToggleAmenity = (category: string) => {
-            setActiveAmenities(prev =>
-                prev.includes(category)
-                    ? prev.filter(c => c !== category)
-                    : [...prev, category]
-            );
-        };
-
-        return {
-            liveProjects,
-            setLiveProjects,
-            isRefreshing,
-            loadInitialData,
-            filteredProjects,
-            filteredAmenities,
-            activeAmenities,
-            handleToggleAmenity,
-            filterPolygon,
-            setFilterPolygon
-        };
+    const handleToggleAmenity = (category: string) => {
+        setActiveAmenities(prev =>
+            prev.includes(category)
+                ? prev.filter(c => c !== category)
+                : [...prev, category]
+        );
     };
+
+    return {
+        liveProjects,
+        setLiveProjects,
+        isRefreshing,
+        loadInitialData,
+        filteredProjects,
+        filteredAmenities,
+        activeAmenities,
+        handleToggleAmenity,
+        filterPolygon,
+        setFilterPolygon
+    };
+};
