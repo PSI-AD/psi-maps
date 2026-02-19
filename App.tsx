@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import mapboxgl from 'mapbox-gl';
 import { useProjectData } from './hooks/useProjectData';
 import { useMapState } from './hooks/useMapState';
 import { fetchNearbyAmenities } from './utils/placesClient';
@@ -6,6 +7,10 @@ import MainLayout from './components/MainLayout';
 import MapCanvas from './components/MapCanvas';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
+
+// FIX: Set Mapbox token globally to prevent MapboxDraw plugin crashes
+// Using environment variable to prevent secret scanning issues during push
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN || '';
 
 const App: React.FC = () => {
   const {
@@ -15,8 +20,11 @@ const App: React.FC = () => {
 
   const {
     viewState, setViewState, mapStyle, setMapStyle, bounds, updateBounds,
-    isDrawing, setIsDrawing, mapRef, drawRef, handleFlyTo, clusters, supercluster, handleToggleDraw
+    isDrawing, setIsDrawing, mapRef, drawRef, handleFlyTo, handleToggleDraw
   } = useMapState(filteredProjects);
+
+  // Super Admin Toggles
+  const [mapFeatures, setMapFeatures] = useState({ show3D: false, showAnalytics: true });
 
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
   const [isAdminOpen, setIsAdminOpen] = useState(false);
@@ -25,8 +33,6 @@ const App: React.FC = () => {
   const [hoveredProjectId, setHoveredProjectId] = useState<string | null>(null);
   const [selectedLandmarkId, setSelectedLandmarkId] = useState<string | null>(null);
   const [hoveredLandmarkId, setHoveredLandmarkId] = useState<string | null>(null);
-  const [mapFeatures, setMapFeatures] = useState({ show3D: false, showAnalytics: true });
-
 
   const selectedProject = filteredProjects.find(p => p.id === selectedProjectId) || null;
   const hoveredProject = filteredProjects.find(p => p.id === hoveredProjectId) || null;
@@ -35,11 +41,21 @@ const App: React.FC = () => {
   const handleMarkerClick = (id: string) => {
     setSelectedProjectId(id);
     setSelectedLandmarkId(null);
-    setIsAnalysisOpen(true); // Open the Luxury Sidebar
+    setIsAnalysisOpen(true);
     const p = filteredProjects.find(pr => pr.id === id);
-    if (p) handleFlyTo(p.longitude, p.latitude);
+    if (p && p.latitude && p.longitude && !isNaN(p.latitude) && !isNaN(p.longitude)) {
+      handleFlyTo(p.longitude, p.latitude);
+    }
   };
-  const handleLandmarkClick = (l: any) => { setSelectedLandmarkId(l.id); setSelectedProjectId(null); handleFlyTo(l.longitude, l.latitude); };
+
+  const handleLandmarkClick = (l: any) => {
+    setSelectedLandmarkId(l.id);
+    setSelectedProjectId(null);
+    if (l.latitude && l.longitude && !isNaN(l.latitude) && !isNaN(l.longitude)) {
+      handleFlyTo(l.longitude, l.latitude);
+    }
+  };
+
   const handleMapClick = (e: any) => {
     if (e.originalEvent?.target === mapRef.current?.getMap().getCanvas()) {
       setSelectedProjectId(null); setSelectedLandmarkId(null); setIsAnalysisOpen(false);
@@ -55,20 +71,18 @@ const App: React.FC = () => {
       activeAmenities={activeAmenities} onToggleAmenity={handleToggleAmenity} isDrawing={isDrawing} onToggleDraw={handleToggleDraw}
       mapStyle={mapStyle} setMapStyle={setMapStyle} onDiscoverNeighborhood={(lat, lng) => fetchNearbyAmenities(lat, lng)}
       onFlyTo={handleFlyTo}
-      mapFeatures={mapFeatures}
-      setMapFeatures={setMapFeatures}
+      mapFeatures={mapFeatures} setMapFeatures={setMapFeatures}
     >
       <MapCanvas
         mapRef={mapRef} viewState={viewState} setViewState={setViewState} updateBounds={updateBounds} mapStyle={mapStyle} onClick={handleMapClick}
         drawRef={drawRef} onDrawCreate={e => { setFilterPolygon(e.features[0]); setIsDrawing(false); }} onDrawUpdate={e => setFilterPolygon(e.features[0])} onDrawDelete={() => { setFilterPolygon(null); setIsDrawing(false); }}
-        filteredAmenities={filteredAmenities} clusters={clusters} supercluster={supercluster}
+        filteredAmenities={filteredAmenities}
         onMarkerClick={handleMarkerClick} onLandmarkClick={handleLandmarkClick}
         selectedProjectId={selectedProjectId} setHoveredProjectId={setHoveredProjectId} setHoveredLandmarkId={setHoveredLandmarkId}
         selectedLandmark={selectedLandmark} selectedProject={selectedProject} hoveredProject={hoveredProject}
         projects={filteredProjects}
         mapFeatures={mapFeatures}
       />
-
     </MainLayout>
   );
 };
