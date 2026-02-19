@@ -84,6 +84,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
     setHoveredProjectId, setHoveredLandmarkId,
     selectedLandmark, selectedProject, hoveredProject, projects = []
 }) => {
+    console.log("📍 MAP RENDER CHECK. Total projects passed to map:", projects.length);
 
     const validMapProjects = projects.filter(p => {
         const lat = p.latitude;

@@ -50,6 +50,7 @@ export const useProjectData = () => {
             });
             console.log("🔥 FIRESTORE FETCH SUCCESS. Total Projects:", projects.length);
             setLiveProjects(projects);
+            console.log("🔥 STATE UPDATED. Projects in memory:", projects.length);
             setIsRefreshing(false);
         }, (error) => {
             console.error("Error fetching projects:", error);
