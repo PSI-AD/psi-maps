@@ -77,10 +77,16 @@ const SearchBar: React.FC<SearchBarProps> = ({ projects, onSelectProject }) => {
                                     <div className="w-8 h-8 rounded-lg bg-slate-100 shrink-0 overflow-hidden">
                                         <img src={project.thumbnailUrl} className="w-full h-full object-cover" alt="" />
                                     </div>
-                                    <div className="min-w-0">
-                                        <p className="font-bold text-slate-900 text-sm truncate">{project.name}</p>
-                                        <p className="text-[10px] text-slate-500 uppercase font-medium flex items-center truncate">
-                                            <MapPin className="w-3 h-3 mr-1 inline" />
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex justify-between items-start">
+                                            <p className="font-bold text-slate-900 text-sm truncate">{project.name}</p>
+                                            <span className="text-[9px] font-black text-blue-600 uppercase tracking-wider bg-blue-50 px-1.5 py-0.5 rounded ml-2 whitespace-nowrap">{project.type}</span>
+                                        </div>
+                                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wide truncate mt-0.5">
+                                            {project.developerName || 'Unknown Developer'}
+                                        </p>
+                                        <p className="text-[10px] text-slate-400 font-medium flex items-center truncate mt-0.5">
+                                            <MapPin className="w-3 h-3 mr-0.5 inline" />
                                             {project.community || project.city}
                                         </p>
                                     </div>
