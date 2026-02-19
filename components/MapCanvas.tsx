@@ -6,9 +6,6 @@ import { Project, Landmark } from '../types';
 import DrawControl from './DrawControl';
 import AmenityMarker from './AmenityMarker';
 
-// Fix for React Map GL Access Token issue
-(mapboxgl as any).accessToken = import.meta.env.VITE_MAPBOX_TOKEN || '';
-
 interface MapCanvasProps {
     mapRef: any;
     viewState: any;
@@ -30,26 +27,25 @@ interface MapCanvasProps {
     selectedProject: Project | null;
     hoveredProject: Project | null;
     projects?: Project[];
-    // Deprecated props (kept for interface compatibility if needed, but unused here)
-    clusters?: any[];
-    supercluster?: any;
     mapFeatures?: { show3D: boolean; showAnalytics: boolean };
 }
 
+// FIX: Bulletproof Mapbox Token Initialization
+// Using import.meta.env to satisfy secret scanning while keeping the fallback logic
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || '';
+(mapboxgl as any).accessToken = MAPBOX_TOKEN;
 
-// Cluster Layer Styles
 const clusterLayer: CircleLayer = {
     id: 'clusters',
     type: 'circle',
     source: 'projects',
     filter: ['has', 'point_count'],
     paint: {
-        'circle-color': ['step', ['get', 'point_count'], '#3b82f6', 10, '#2563eb', 50, '#1d4ed8'],
-        'circle-radius': ['step', ['get', 'point_count'], 20, 10, 30, 50, 40],
-        'circle-stroke-width': 2,
-        'circle-stroke-color': '#fff',
-        'circle-opacity': 0.9
+        'circle-color': ['step', ['get', 'point_count'], '#2563eb', 10, '#1d4ed8', 50, '#1e3a8a'],
+        'circle-radius': ['step', ['get', 'point_count'], 20, 10, 25, 50, 35],
+        'circle-stroke-width': 3,
+        'circle-stroke-color': '#ffffff',
+        'circle-opacity': 0.95
     }
 };
 
@@ -78,24 +74,24 @@ const unclusteredPointLayer: CircleLayer = {
         'circle-color': '#0f172a', // Slate 900
         'circle-radius': 8,
         'circle-stroke-width': 2,
-        'circle-stroke-color': '#3b82f6' // Blue 500
+        'circle-stroke-color': '#2563eb' // Blue 600
     }
 };
 
 const MapCanvas: React.FC<MapCanvasProps> = ({
     mapRef, viewState, setViewState, updateBounds, mapStyle, onClick,
     drawRef, onDrawCreate, onDrawUpdate, onDrawDelete,
-    filteredAmenities, onMarkerClick, onLandmarkClick, selectedProjectId,
+    filteredAmenities, onMarkerClick, onLandmarkClick,
     setHoveredProjectId, setHoveredLandmarkId,
-    selectedLandmark, selectedProject, hoveredProject, projects = [],
-    mapFeatures = { show3D: false, showAnalytics: true }
+    selectedLandmark, selectedProject, hoveredProject, projects = [], mapFeatures
 }) => {
-    console.log("📍 MAP RENDER CHECK. Total projects passed to map:", projects.length);
-
-    const validMapProjects = projects.filter(p => {
-        const lat = p.latitude;
-        const lng = p.longitude;
-        return !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
+    // FIX: Bulletproof coordinate parsing to prevent white screen crashes
+    const validMapProjects = (projects || []).filter(p => {
+        if (!p) return false;
+        const lat = Number(p.latitude);
+        const lng = Number(p.longitude);
+        // Ensure coordinates are real numbers and fall within Earth's bounds!
+        return !isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180 && lat !== 0 && lng !== 0;
     });
 
     const geoJsonData = {
@@ -103,10 +99,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
         features: validMapProjects.map(p => ({
             type: 'Feature',
             properties: { ...p, cluster: false },
-            geometry: {
-                type: 'Point',
-                coordinates: [p.longitude, p.latitude]
-            }
+            geometry: { type: 'Point', coordinates: [Number(p.longitude), Number(p.latitude)] }
         }))
     };
 
@@ -121,20 +114,11 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
             const source: any = map.getSource('projects');
             source.getClusterExpansionZoom(clusterId, (err: any, zoom: number) => {
                 if (err) return;
-                map.easeTo({
-                    center: feature.geometry.coordinates,
-                    zoom: zoom,
-                    duration: 800
-                });
+                map.easeTo({ center: feature.geometry.coordinates, zoom: zoom, duration: 800 });
             });
         } else {
-            // Unclustered point click
             onMarkerClick(feature.properties.id);
         }
-    };
-
-    const handleImageError = (e: any) => {
-        e.currentTarget.src = 'https://images.unsplash.com/photo-1582407947304-fd86f028f716?auto=format&fit=crop&w=800&q=80';
     };
 
     return (
@@ -149,11 +133,8 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
             interactiveLayerIds={['clusters', 'unclustered-point']}
             onClick={(e) => {
                 const features = e.features || [];
-                if (features.length > 0) {
-                    handleLayerClick(e);
-                } else {
-                    onClick(e);
-                }
+                if (features.length > 0) handleLayerClick(e);
+                else onClick(e);
             }}
             cursor={hoveredProject ? 'pointer' : 'auto'}
             onMouseEnter={(e) => {
@@ -167,7 +148,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
             <NavigationControl position="bottom-right" />
             <DrawControl position="top-right" onCreate={onDrawCreate} onUpdate={onDrawUpdate} onDelete={onDrawDelete} onReference={(draw) => { drawRef.current = draw; }} />
 
-            {/* 3D Buildings Layer (Experimental Feature) */}
+            {/* 3D Buildings Layer (Toggled via Admin Settings) */}
             {mapFeatures?.show3D && (
                 <Layer
                     id="3d-buildings"
@@ -185,43 +166,49 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                 />
             )}
 
-            <Source
-                id="projects"
-                type="geojson"
-                data={geoJsonData as any}
-                cluster={true}
-                clusterMaxZoom={14}
-                clusterRadius={50}
-            >
+            <Source id="projects" type="geojson" data={geoJsonData as any} cluster={true} clusterMaxZoom={14} clusterRadius={45}>
                 <Layer {...clusterLayer} />
                 <Layer {...clusterCountLayer} />
                 <Layer {...unclusteredPointLayer} />
             </Source>
 
-            {/* Amenity Markers */}
             {filteredAmenities.map(amenity => (
                 <AmenityMarker key={amenity.id} amenity={amenity} onClick={() => onLandmarkClick(amenity)} onMouseEnter={() => setHoveredLandmarkId(amenity.id)} onMouseLeave={() => setHoveredLandmarkId(null)} />
             ))}
 
-            {/* Popups */}
-            {selectedLandmark && (
-                <Popup longitude={selectedLandmark.longitude} latitude={selectedLandmark.latitude} anchor="bottom" offset={25} closeButton={false} closeOnClick={false} className="z-[2500]">
-                    <div className="p-3 bg-white min-w-[180px] shadow-sm">
-                        <h4 className="text-sm font-black text-slate-800 mb-1">{selectedLandmark.name}</h4>
-                        <div className="inline-block px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border bg-slate-50 text-slate-600 border-slate-100">{selectedLandmark.category}</div>
-                    </div>
-                </Popup>
-            )}
-
             <div className="hidden md:block">
                 {(selectedProject || hoveredProject) && (
-                    <Popup longitude={(selectedProject || hoveredProject)!.longitude} latitude={(selectedProject || hoveredProject)!.latitude} closeButton={false} closeOnClick={false} anchor="top" className="z-[200]" maxWidth="300px" offset={15}>
-                        <div className="flex w-64 bg-white rounded-lg overflow-hidden shadow-2xl border border-slate-100">
-                            <div className="w-[70px] h-[70px] shrink-0 bg-slate-100"><img src={(selectedProject || hoveredProject)!.thumbnailUrl} className="w-full h-full object-cover" onError={handleImageError} alt="" /></div>
-                            <div className="p-3 flex-1 flex flex-col justify-center min-w-0">
-                                <h4 className="font-bold text-sm text-slate-800 truncate">{(selectedProject || hoveredProject)!.name}</h4>
-                                <p className="text-[10px] text-slate-500 font-medium truncate">{(selectedProject || hoveredProject)!.developerName}</p>
-                                <div className="flex items-center gap-1.5 mt-1"><span className="text-[9px] font-black text-blue-600 uppercase tracking-tighter">{(selectedProject || hoveredProject)!.type}</span><span className="text-[10px] font-bold text-slate-900">{(selectedProject || hoveredProject)!.priceRange?.split('-')[0].trim()}</span></div>
+                    <Popup
+                        longitude={Number((selectedProject || hoveredProject)!.longitude)}
+                        latitude={Number((selectedProject || hoveredProject)!.latitude)}
+                        closeButton={false}
+                        closeOnClick={false}
+                        anchor="bottom"
+                        offset={25}
+                        className="z-[200]"
+                        maxWidth="320px"
+                    >
+                        <div className="flex w-[280px] bg-white rounded-xl overflow-hidden shadow-2xl border border-slate-100 p-0 m-0">
+                            <div className="w-[100px] h-[100px] shrink-0 bg-slate-100 relative">
+                                <img
+                                    src={(selectedProject || hoveredProject)!.thumbnailUrl}
+                                    className="absolute inset-0 w-full h-full object-cover"
+                                    alt=""
+                                    onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1582407947304-fd86f028f716?auto=format&fit=crop&w=800&q=80'; }}
+                                />
+                            </div>
+                            <div className="p-3 flex-1 flex flex-col justify-center min-w-0 bg-white h-[100px]">
+                                <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1 truncate block">
+                                    {(selectedProject || hoveredProject)!.developerName || 'Developer'}
+                                </span>
+                                <h4 className="font-black text-sm text-slate-900 leading-tight line-clamp-2 mb-2">
+                                    {(selectedProject || hoveredProject)!.name}
+                                </h4>
+                                <div className="mt-auto">
+                                    <span className="text-[10px] font-bold text-slate-700 bg-slate-50 px-2 py-1 rounded border border-slate-100 inline-block">
+                                        {(selectedProject || hoveredProject)!.priceRange?.split('-')[0].trim() || 'Enquire'}
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </Popup>
