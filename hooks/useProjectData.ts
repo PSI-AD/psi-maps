@@ -17,14 +17,23 @@ export const useProjectData = () => {
         const unsubscribe = onSnapshot(collection(db, 'projects'), (snapshot) => {
             const projects: Project[] = snapshot.docs.map((doc) => {
                 const data = doc.data();
+
+                const rawName = data.propertyName || data.enMarketingTitle || data.name || data.ProjectName || data.title || 'Untitled Project';
+                const cleanName = rawName !== 'Untitled Project' ? rawName.replace(/[-_]/g, ' ') : rawName;
+
+                const rawDeveloper = data.masterDeveloper || data.developerName || data.Developer || data.developer || 'Unknown Developer';
+
+                const lat = parseFloat(data.mapLatitude || data.latitude || "0");
+                const lng = parseFloat(data.mapLongitude || data.longitude || "0");
+
                 return {
                     id: doc.id,
-                    name: data.name || 'Untitled Project',
-                    latitude: parseFloat(data.latitude || data.mapLatitude),
-                    longitude: parseFloat(data.longitude || data.mapLongitude),
+                    name: cleanName,
+                    latitude: isNaN(lat) ? 0 : lat,
+                    longitude: isNaN(lng) ? 0 : lng,
                     type: data.type || 'apartment',
                     thumbnailUrl: data.thumbnailUrl || (data.generalImages && data.generalImages[0]?.imageURL) || '',
-                    developerName: data.developerName || data.masterDeveloper || 'Unknown Developer',
+                    developerName: rawDeveloper,
                     projectUrl: data.projectUrl || '',
                     priceRange: data.priceRange || (data.maxPrice ? `AED ${Number(data.minPrice || 0).toLocaleString()} - ${Number(data.maxPrice).toLocaleString()}` : 'Enquire'),
                     description: data.description || data.enPropertyOverView || '',

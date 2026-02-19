@@ -33,8 +33,16 @@ export const useMapState = (filteredProjects: Project[]) => {
         updateBounds();
     }, [updateBounds]);
 
+    const validProjects = useMemo(() => {
+        return filteredProjects.filter(p =>
+            p.latitude != null && p.longitude != null &&
+            !isNaN(p.latitude) && !isNaN(p.longitude) &&
+            p.latitude !== 0 && p.longitude !== 0
+        );
+    }, [filteredProjects]);
+
     const points = useMemo(() =>
-        filteredProjects.map(project => ({
+        validProjects.map(project => ({
             type: "Feature",
             properties: { cluster: false, projectId: project.id, category: project.type },
             geometry: {
@@ -42,7 +50,7 @@ export const useMapState = (filteredProjects: Project[]) => {
                 coordinates: [project.longitude, project.latitude]
             }
         })) as any
-        , [filteredProjects]);
+        , [validProjects]);
 
     const { clusters, supercluster } = useSupercluster({
         points,

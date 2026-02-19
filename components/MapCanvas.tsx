@@ -1,9 +1,13 @@
 import React, { useRef } from 'react';
+import mapboxgl from 'mapbox-gl';
 import Map, { AttributionControl, NavigationControl, Source, Layer, Popup } from 'react-map-gl';
 import type { CircleLayer, SymbolLayer } from 'react-map-gl';
 import { Project, Landmark } from '../types';
 import DrawControl from './DrawControl';
 import AmenityMarker from './AmenityMarker';
+
+// Fix for React Map GL Access Token issue
+(mapboxgl as any).accessToken = import.meta.env.VITE_MAPBOX_TOKEN || '';
 
 interface MapCanvasProps {
     mapRef: any;
@@ -162,6 +166,24 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
             <AttributionControl position="bottom-left" />
             <NavigationControl position="bottom-right" />
             <DrawControl position="top-right" onCreate={onDrawCreate} onUpdate={onDrawUpdate} onDelete={onDrawDelete} onReference={(draw) => { drawRef.current = draw; }} />
+
+            {/* 3D Buildings Layer (Experimental Feature) */}
+            {mapFeatures?.show3D && (
+                <Layer
+                    id="3d-buildings"
+                    source="composite"
+                    source-layer="building"
+                    filter={['==', 'extrude', 'true']}
+                    type="fill-extrusion"
+                    minzoom={15}
+                    paint={{
+                        'fill-extrusion-color': '#e2e8f0',
+                        'fill-extrusion-height': ['get', 'height'],
+                        'fill-extrusion-base': ['get', 'min_height'],
+                        'fill-extrusion-opacity': 0.8
+                    }}
+                />
+            )}
 
             <Source
                 id="projects"
