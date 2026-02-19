@@ -5,6 +5,7 @@ import type { CircleLayer, SymbolLayer } from 'react-map-gl';
 import { Project, Landmark } from '../types';
 import DrawControl from './DrawControl';
 import AmenityMarker from './AmenityMarker';
+import { getOptimizedImageUrl } from '../utils/imageHelpers';
 
 interface MapCanvasProps {
     mapRef: any;
@@ -178,9 +179,16 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
             <div className="hidden md:block">
                 {(() => {
                     const activeProject = selectedProject || hoveredProject;
-                    const lng = activeProject ? Number(activeProject.longitude) : NaN;
-                    const lat = activeProject ? Number(activeProject.latitude) : NaN;
-                    const isValid = activeProject && !isNaN(lng) && !isNaN(lat) && lng >= -180 && lng <= 180 && lat >= -90 && lat <= 90 && lng !== 0 && lat !== 0;
+                    if (!activeProject) return null;
+
+                    const lat = Number(activeProject.latitude);
+                    const lng = Number(activeProject.longitude);
+
+                    // Strict coordinate validation preventing crashes
+                    const isValid = Number.isFinite(lat) && Number.isFinite(lng) &&
+                        lat >= -90 && lat <= 90 &&
+                        lng >= -180 && lng <= 180 &&
+                        lat !== 0 && lng !== 0;
 
                     if (!isValid) return null;
 
@@ -197,18 +205,22 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                         >
                             <div className="flex w-[280px] h-[100px] bg-white rounded-xl overflow-hidden shadow-2xl border border-slate-100 p-0 m-[-10px]">
                                 <div className="w-[100px] h-full shrink-0 bg-slate-100 relative">
-                                    <img src={activeProject!.thumbnailUrl} className="absolute inset-0 w-full h-full object-cover" alt="" />
+                                    <img
+                                        src={getOptimizedImageUrl(activeProject.thumbnailUrl, 200, 200)}
+                                        className="absolute inset-0 w-full h-full object-cover"
+                                        alt=""
+                                    />
                                 </div>
                                 <div className="p-3 flex-1 flex flex-col justify-center min-w-0 bg-white">
                                     <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1 truncate">
-                                        {activeProject!.developerName || 'Unknown Developer'}
+                                        {activeProject.developerName || 'Unknown Developer'}
                                     </span>
                                     <h4 className="font-black text-sm text-slate-900 leading-tight line-clamp-2 mb-1">
-                                        {activeProject!.name || 'Premium Property'}
+                                        {activeProject.name || 'Premium Property'}
                                     </h4>
                                     <div className="mt-auto">
                                         <span className="text-[11px] font-bold text-slate-700 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
-                                            {activeProject!.priceRange?.split('-')[0].trim() || 'Enquire'}
+                                            {activeProject.priceRange?.split('-')[0].trim() || 'Enquire'}
                                         </span>
                                     </div>
                                 </div>
