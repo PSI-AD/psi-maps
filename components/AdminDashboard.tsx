@@ -39,42 +39,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, liveProjects, 
   }, [searchTerm, masterApiList]);
 
   useEffect(() => {
-    const fetchMasterList = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch('https://www.psinv.net/api/external/allprojects');
-        if (!response.ok) throw new Error('Failed to fetch from PSI API');
-        const data = await response.json();
-        if (Array.isArray(data)) {
-          setMasterApiList(data);
-        } else {
-          setMasterApiList([]);
-        }
-      } catch (error) {
-        console.error('API Fetch Error:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchMasterList();
-  }, []);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    // Legacy API fetch removed. We now rely strictly on Firestore.
+    setLoading(false);
   }, []);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchTerm(value);
 
+    // Search against liveProjects instead of masterApiList
     if (value.length > 1) {
-      const filtered = masterApiList.filter(p =>
+      const filtered = liveProjects.filter(p =>
         p.name?.toLowerCase().includes(value.toLowerCase())
       ).slice(0, 10);
       setSuggestions(filtered);
@@ -107,49 +82,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, liveProjects, 
     });
   };
 
-  const handleDeploy = () => {
+  const handleDeploy = async () => {
     if (stagedProject) {
-      setLiveProjects(prev => {
-        const filtered = prev.filter(p => p.id !== stagedProject.id);
-        return [stagedProject as Project, ...filtered];
-      });
-      const name = stagedProject.name;
-      handleClearSearch();
-      alert(`${name} is now LIVE on the map.`);
-    }
-  };
-
-  const syncApiToFirebase = async () => {
-    try {
-      setIsSyncing(true);
-      const response = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://www.psinv.net/api/external/allprojects'));
-      if (!response.ok) throw new Error('Failed to fetch from PSI API');
-      const data = await response.json();
-
-      if (!Array.isArray(data)) throw new Error('Invalid API response format');
-
-      let count = 0;
-      for (const project of data) {
-        if (!project.name) continue;
-        const cleanId = generateCleanId(project);
-        // Ensure we preserve ALL fields by spreading project
-        await setDoc(doc(db, 'projects', cleanId), {
-          ...project,
-          id: cleanId, // Enforce clean ID in document data too
-          lastSynced: new Date().toISOString()
-        }, { merge: true });
-        count++;
+      // Just saving to Firestore, since we are already exclusive to Firestore
+      try {
+        await setDoc(doc(db, 'projects', stagedProject.id), stagedProject, { merge: true });
+        const name = stagedProject.name;
+        handleClearSearch();
+        alert(`${name} updated in Firestore.`);
+      } catch (e) {
+        console.error("Update failed", e);
+        alert("Failed to update project.");
       }
-
-      alert(`Successfully synced ${count} projects to Firestore!`);
-      // Refresh local list if needed, or just let the user know
-    } catch (error) {
-      console.error('Sync Error:', error);
-      alert('Failed to sync master database. Check console for details.');
-    } finally {
-      setIsSyncing(false);
     }
   };
+
 
   const renderField = (label: string, key: string, type: 'text' | 'number' | 'textarea' = 'text') => {
     const value = stagedProject ? stagedProject[key] : '';

@@ -14,16 +14,12 @@ export const useProjectData = () => {
     // Initial Load - Setup Realtime Listener
     useEffect(() => {
         setIsRefreshing(true);
-        const q = query(collection(db, 'projects'));
-
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const projects: Project[] = [];
-            snapshot.forEach((doc) => {
+        const unsubscribe = onSnapshot(collection(db, 'projects'), (snapshot) => {
+            const projects: Project[] = snapshot.docs.map((doc) => {
                 const data = doc.data();
-                projects.push({
+                return {
                     id: doc.id,
                     name: data.name || 'Untitled Project',
-                    // User check: API often returns mapLatitude/mapLongitude as strings, ensure float parsing
                     latitude: parseFloat(data.latitude || data.mapLatitude),
                     longitude: parseFloat(data.longitude || data.mapLongitude),
                     type: data.type || 'apartment',
@@ -37,7 +33,7 @@ export const useProjectData = () => {
                         ...(data.generalImages?.map((img: any) => img.imageURL) || [])
                     ],
                     bedrooms: data.availableBedrooms ? data.availableBedrooms.map((b: any) => b.noOfBedroom).join(', ') : 'N/A',
-                    bathrooms: 'N/A', // Data might not have explicit bathrooms count at top level
+                    bathrooms: 'N/A',
                     builtupArea: data.builtupArea_SQFT || 0,
                     plotArea: data.plotArea_SQFT || 0,
                     completionDate: data.completionDate || 'Ready',
@@ -46,14 +42,14 @@ export const useProjectData = () => {
                     city: data.city,
                     community: data.community,
                     subCommunity: data.subCommunity
-                } as Project);
+                } as Project;
             });
-            console.log("🔥 FIRESTORE FETCH SUCCESS. Total Projects:", projects.length);
+
+            console.log("🔥 EXCLUSIVE FIRESTORE DATA LOADED. Count:", projects.length);
             setLiveProjects(projects);
-            console.log("🔥 STATE UPDATED. Projects in memory:", projects.length);
             setIsRefreshing(false);
         }, (error) => {
-            console.error("Error fetching projects:", error);
+            console.error("🔥 FIRESTORE READ ERROR:", error);
             setIsRefreshing(false);
         });
 
