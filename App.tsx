@@ -9,7 +9,6 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 
 // FIX: Set Mapbox token globally to prevent MapboxDraw plugin crashes
-// Using environment variable to prevent secret scanning issues during push
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN || '';
 
 const App: React.FC = () => {

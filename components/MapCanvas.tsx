@@ -31,7 +31,6 @@ interface MapCanvasProps {
 }
 
 // FIX: Bulletproof Mapbox Token Initialization
-// Using import.meta.env to satisfy secret scanning while keeping the fallback logic
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || '';
 (mapboxgl as any).accessToken = MAPBOX_TOKEN;
 
@@ -177,42 +176,46 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
             ))}
 
             <div className="hidden md:block">
-                {(selectedProject || hoveredProject) && (
-                    <Popup
-                        longitude={Number((selectedProject || hoveredProject)!.longitude)}
-                        latitude={Number((selectedProject || hoveredProject)!.latitude)}
-                        closeButton={false}
-                        closeOnClick={false}
-                        anchor="bottom"
-                        offset={25}
-                        className="z-[200]"
-                        maxWidth="320px"
-                    >
-                        <div className="flex w-[280px] bg-white rounded-xl overflow-hidden shadow-2xl border border-slate-100 p-0 m-0">
-                            <div className="w-[100px] h-[100px] shrink-0 bg-slate-100 relative">
-                                <img
-                                    src={(selectedProject || hoveredProject)!.thumbnailUrl}
-                                    className="absolute inset-0 w-full h-full object-cover"
-                                    alt=""
-                                    onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1582407947304-fd86f028f716?auto=format&fit=crop&w=800&q=80'; }}
-                                />
-                            </div>
-                            <div className="p-3 flex-1 flex flex-col justify-center min-w-0 bg-white h-[100px]">
-                                <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1 truncate block">
-                                    {(selectedProject || hoveredProject)!.developerName || 'Developer'}
-                                </span>
-                                <h4 className="font-black text-sm text-slate-900 leading-tight line-clamp-2 mb-2">
-                                    {(selectedProject || hoveredProject)!.name}
-                                </h4>
-                                <div className="mt-auto">
-                                    <span className="text-[10px] font-bold text-slate-700 bg-slate-50 px-2 py-1 rounded border border-slate-100 inline-block">
-                                        {(selectedProject || hoveredProject)!.priceRange?.split('-')[0].trim() || 'Enquire'}
+                {(() => {
+                    const activeProject = selectedProject || hoveredProject;
+                    const lng = activeProject ? Number(activeProject.longitude) : NaN;
+                    const lat = activeProject ? Number(activeProject.latitude) : NaN;
+                    const isValid = activeProject && !isNaN(lng) && !isNaN(lat) && lng >= -180 && lng <= 180 && lat >= -90 && lat <= 90 && lng !== 0 && lat !== 0;
+
+                    if (!isValid) return null;
+
+                    return (
+                        <Popup
+                            longitude={lng}
+                            latitude={lat}
+                            closeButton={false}
+                            closeOnClick={false}
+                            anchor="bottom"
+                            className="z-[200]"
+                            maxWidth="320px"
+                            offset={20}
+                        >
+                            <div className="flex w-[280px] h-[100px] bg-white rounded-xl overflow-hidden shadow-2xl border border-slate-100 p-0 m-[-10px]">
+                                <div className="w-[100px] h-full shrink-0 bg-slate-100 relative">
+                                    <img src={activeProject!.thumbnailUrl} className="absolute inset-0 w-full h-full object-cover" alt="" />
+                                </div>
+                                <div className="p-3 flex-1 flex flex-col justify-center min-w-0 bg-white">
+                                    <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1 truncate">
+                                        {activeProject!.developerName || 'Unknown Developer'}
                                     </span>
+                                    <h4 className="font-black text-sm text-slate-900 leading-tight line-clamp-2 mb-1">
+                                        {activeProject!.name || 'Premium Property'}
+                                    </h4>
+                                    <div className="mt-auto">
+                                        <span className="text-[11px] font-bold text-slate-700 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
+                                            {activeProject!.priceRange?.split('-')[0].trim() || 'Enquire'}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </Popup>
-                )}
+                        </Popup>
+                    );
+                })()}
             </div>
         </Map>
     );
