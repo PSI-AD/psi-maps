@@ -17,8 +17,8 @@ interface FilterOption {
 }
 
 const options: FilterOption[] = [
-  { 
-    id: 'school', 
+  {
+    id: 'school',
     label: 'Schools',
     tooltip: 'Education & Schools',
     icon: (
@@ -28,8 +28,8 @@ const options: FilterOption[] = [
       </svg>
     )
   },
-  { 
-    id: 'hotel', 
+  {
+    id: 'hotel',
     label: 'Hotels',
     tooltip: 'Luxury Hotels & Resorts',
     icon: (
@@ -38,8 +38,8 @@ const options: FilterOption[] = [
       </svg>
     )
   },
-  { 
-    id: 'culture', 
+  {
+    id: 'culture',
     label: 'Culture',
     tooltip: 'Museums & Cultural Landmarks',
     icon: (
@@ -48,8 +48,8 @@ const options: FilterOption[] = [
       </svg>
     )
   },
-  { 
-    id: 'leisure', 
+  {
+    id: 'leisure',
     label: 'Leisure',
     tooltip: 'Leisure & Beach Clubs',
     icon: (
@@ -58,8 +58,8 @@ const options: FilterOption[] = [
       </svg>
     )
   },
-  { 
-    id: 'retail', 
+  {
+    id: 'retail',
     label: 'Retail',
     tooltip: 'High-end Retail & Shopping',
     icon: (
@@ -77,7 +77,7 @@ const AmenityFilterBar: React.FC<AmenityFilterBarProps> = ({ activeFilters, onTo
       <div className="hidden md:flex px-4 border-r border-slate-200 py-1 shrink-0">
         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Neighborhood</span>
       </div>
-      
+
       {/* Scrollable Button Container */}
       <div className="flex gap-2 px-2 overflow-x-auto whitespace-nowrap hide-scrollbar scroll-smooth items-center">
         {/* Draw Area Button */}
@@ -87,9 +87,9 @@ const AmenityFilterBar: React.FC<AmenityFilterBarProps> = ({ activeFilters, onTo
           className={`
             flex items-center justify-center gap-2.5 transition-all duration-300 border shrink-0
             w-12 h-12 md:w-auto md:h-auto md:px-5 md:py-2.5 rounded-full
-            ${isDrawActive 
-              ? 'bg-amber-600 border-amber-600 text-white shadow-lg shadow-amber-200/50' 
-              : 'bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100'}
+            ${isDrawActive
+              ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200/50'
+              : 'bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100'}
           `}
         >
           <div className="shrink-0">
@@ -114,8 +114,8 @@ const AmenityFilterBar: React.FC<AmenityFilterBarProps> = ({ activeFilters, onTo
               className={`
                 flex items-center justify-center gap-2.5 transition-all duration-300 border shrink-0
                 w-12 h-12 md:w-auto md:h-auto md:px-5 md:py-2.5 rounded-full
-                ${isActive 
-                  ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200/50' 
+                ${isActive
+                  ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200/50'
                   : 'bg-transparent text-slate-500 border-transparent hover:text-slate-900 hover:bg-slate-100/80'}
               `}
             >

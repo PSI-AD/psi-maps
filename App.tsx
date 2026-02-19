@@ -25,6 +25,8 @@ const App: React.FC = () => {
   const [hoveredProjectId, setHoveredProjectId] = useState<string | null>(null);
   const [selectedLandmarkId, setSelectedLandmarkId] = useState<string | null>(null);
   const [hoveredLandmarkId, setHoveredLandmarkId] = useState<string | null>(null);
+  const [mapFeatures, setMapFeatures] = useState({ show3D: false, showAnalytics: true });
+
 
   const selectedProject = filteredProjects.find(p => p.id === selectedProjectId) || null;
   const hoveredProject = filteredProjects.find(p => p.id === hoveredProjectId) || null;
@@ -53,6 +55,8 @@ const App: React.FC = () => {
       activeAmenities={activeAmenities} onToggleAmenity={handleToggleAmenity} isDrawing={isDrawing} onToggleDraw={handleToggleDraw}
       mapStyle={mapStyle} setMapStyle={setMapStyle} onDiscoverNeighborhood={(lat, lng) => fetchNearbyAmenities(lat, lng)}
       onFlyTo={handleFlyTo}
+      mapFeatures={mapFeatures}
+      setMapFeatures={setMapFeatures}
     >
       <MapCanvas
         mapRef={mapRef} viewState={viewState} setViewState={setViewState} updateBounds={updateBounds} mapStyle={mapStyle} onClick={handleMapClick}
@@ -62,7 +66,9 @@ const App: React.FC = () => {
         selectedProjectId={selectedProjectId} setHoveredProjectId={setHoveredProjectId} setHoveredLandmarkId={setHoveredLandmarkId}
         selectedLandmark={selectedLandmark} selectedProject={selectedProject} hoveredProject={hoveredProject}
         projects={filteredProjects}
+        mapFeatures={mapFeatures}
       />
+
     </MainLayout>
   );
 };

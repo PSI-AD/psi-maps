@@ -11,11 +11,15 @@ interface AdminDashboardProps {
   onClose: () => void;
   liveProjects: Project[];
   setLiveProjects: React.Dispatch<React.SetStateAction<Project[]>>;
+  mapFeatures: { show3D: boolean; showAnalytics: boolean };
+  setMapFeatures: React.Dispatch<React.SetStateAction<{ show3D: boolean; showAnalytics: boolean }>>;
 }
 
-type TabType = 'general' | 'location' | 'media';
+type TabType = 'general' | 'location' | 'media' | 'settings';
 
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, liveProjects, setLiveProjects }) => {
+const AdminDashboard: React.FC<AdminDashboardProps> = ({
+  onClose, liveProjects, setLiveProjects, mapFeatures, setMapFeatures
+}) => {
   const [masterApiList, setMasterApiList] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -198,7 +202,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, liveProjects, 
 
             {/* Tab Navigation */}
             <div className="flex gap-8 mb-8 border-b border-slate-50">
-              {(['general', 'location', 'media'] as TabType[]).map((tab) => (
+              {(['general', 'location', 'media', 'settings'] as TabType[]).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -207,7 +211,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, liveProjects, 
                     : 'border-transparent text-slate-400 hover:text-slate-600'
                     }`}
                 >
-                  {tab === 'general' ? 'General Info' : tab === 'location' ? 'Location Data' : 'Media & Assets'}
+                  {tab === 'general' ? 'General Info' : tab === 'location' ? 'Location Data' : tab === 'media' ? 'Media & Assets' : 'System Settings'}
                 </button>
               ))}
             </div>
@@ -260,6 +264,46 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, liveProjects, 
                   <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
                     <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2">Media Verification Note</p>
                     <p className="text-xs text-blue-800 font-medium">Please ensure the thumbnail URL is public and high-resolution. Portals like Unsplash or AWS S3 are recommended.</p>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'settings' && (
+                <div className="space-y-8 animate-in fade-in duration-300 max-w-2xl">
+                  <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-black text-slate-800 uppercase tracking-wider">Enable 3D Building Extrusions</h4>
+                      <p className="text-xs text-slate-500 font-medium mt-1">Render building heights and architectural volume in 3D (Experimental)</p>
+                    </div>
+                    <button
+                      onClick={() => setMapFeatures(prev => ({ ...prev, show3D: !prev.show3D }))}
+                      className={`w-14 h-7 rounded-full p-1 transition-all duration-300 ${mapFeatures.show3D ? 'bg-blue-600' : 'bg-slate-300'}`}
+                    >
+                      <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-300 ${mapFeatures.show3D ? 'translate-x-7' : 'translate-x-0'}`} />
+                    </button>
+                  </div>
+
+                  <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-black text-slate-800 uppercase tracking-wider">Enable Draw Area Analytics</h4>
+                      <p className="text-xs text-slate-500 font-medium mt-1">Show proximity metrics and investment yield overlays for custom polygons</p>
+                    </div>
+                    <button
+                      onClick={() => setMapFeatures(prev => ({ ...prev, showAnalytics: !prev.showAnalytics }))}
+                      className={`w-14 h-7 rounded-full p-1 transition-all duration-300 ${mapFeatures.showAnalytics ? 'bg-blue-600' : 'bg-slate-300'}`}
+                    >
+                      <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-300 ${mapFeatures.showAnalytics ? 'translate-x-7' : 'translate-x-0'}`} />
+                    </button>
+                  </div>
+
+                  <div className="p-6 bg-blue-50 rounded-2xl border border-blue-100 flex gap-4">
+                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">Global Governance</p>
+                      <p className="text-xs text-blue-800 font-medium leading-relaxed">These settings are session-persistent and affect all map render layers. Use caution when enabling 3D features on mobile devices.</p>
+                    </div>
                   </div>
                 </div>
               )}

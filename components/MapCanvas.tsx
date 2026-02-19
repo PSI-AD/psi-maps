@@ -29,9 +29,10 @@ interface MapCanvasProps {
     // Deprecated props (kept for interface compatibility if needed, but unused here)
     clusters?: any[];
     supercluster?: any;
+    mapFeatures?: { show3D: boolean; showAnalytics: boolean };
 }
 
-const MAPBOX_TOKEN = 'pk.eyJ1IjoicHNpbnYiLCJhIjoiY21scjBzM21xMDZqNzNmc2VmdGt5MW05ZCJ9.VxIEn1jLTzMwLAN8m4B15g';
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || '';
 
 // Cluster Layer Styles
 const clusterLayer: CircleLayer = {
@@ -40,7 +41,7 @@ const clusterLayer: CircleLayer = {
     source: 'projects',
     filter: ['has', 'point_count'],
     paint: {
-        'circle-color': ['step', ['get', 'point_count'], '#f59e0b', 10, '#d97706', 50, '#b45309'],
+        'circle-color': ['step', ['get', 'point_count'], '#3b82f6', 10, '#2563eb', 50, '#1d4ed8'],
         'circle-radius': ['step', ['get', 'point_count'], 20, 10, 30, 50, 40],
         'circle-stroke-width': 2,
         'circle-stroke-color': '#fff',
@@ -73,7 +74,7 @@ const unclusteredPointLayer: CircleLayer = {
         'circle-color': '#0f172a', // Slate 900
         'circle-radius': 8,
         'circle-stroke-width': 2,
-        'circle-stroke-color': '#f59e0b' // Amber 500
+        'circle-stroke-color': '#3b82f6' // Blue 500
     }
 };
 
@@ -82,7 +83,8 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
     drawRef, onDrawCreate, onDrawUpdate, onDrawDelete,
     filteredAmenities, onMarkerClick, onLandmarkClick, selectedProjectId,
     setHoveredProjectId, setHoveredLandmarkId,
-    selectedLandmark, selectedProject, hoveredProject, projects = []
+    selectedLandmark, selectedProject, hoveredProject, projects = [],
+    mapFeatures = { show3D: false, showAnalytics: true }
 }) => {
     console.log("📍 MAP RENDER CHECK. Total projects passed to map:", projects.length);
 

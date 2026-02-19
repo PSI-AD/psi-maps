@@ -20,8 +20,7 @@ const TopNavBar: React.FC<TopNavBarProps> = ({ onAdminClick }) => {
         <div className="flex flex-col justify-center">
           <span className="text-xl font-black text-slate-900 tracking-tighter uppercase leading-none block">PSI</span>
           <div className="flex items-center gap-1 mt-1 leading-none">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em]">PRO Explorer</span>
-            {/* VERSION NUMBER HERE */}
+            <span className="text-[10px] font-bold text-blue-600 uppercase tracking-[0.2em]">Maps Pro</span>
             <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">v2.1.0</span>
           </div>
         </div>

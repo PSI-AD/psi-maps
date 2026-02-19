@@ -40,8 +40,8 @@ const FloatingMapTools: React.FC<FloatingMapToolsProps> = ({
                         className={`
               flex items-center gap-3 px-4 py-3 rounded-full shadow-lg backdrop-blur-md border transition-all duration-200
               ${tool.active
-                                ? 'bg-blue-600 text-white border-blue-500 hover:bg-blue-700'
-                                : 'bg-white/90 text-slate-700 border-white/50 hover:bg-white'}
+                                ? 'bg-blue-600 text-white border-blue-500 hover:bg-blue-700 shadow-blue-500/30'
+                                : 'bg-white/95 text-slate-700 border-white hover:bg-slate-50 hover:text-blue-700'}
             `}
                     >
                         {tool.icon}
