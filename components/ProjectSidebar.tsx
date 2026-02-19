@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Project } from '../types';
 import { X, MapPin, BedDouble, Bath, Square, Calendar, ArrowRight, Activity, Building, LayoutTemplate } from 'lucide-react';
+import { getOptimizedImageUrl } from '../utils/imageHelpers';
 
 interface ProjectSidebarProps {
   project: Project | null;
@@ -30,7 +31,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({ project, onClose, onDis
       {/* 1. Hero Image Section */}
       <div className="relative h-80 w-full shrink-0 bg-slate-100 group">
         <img
-          src={displayImage}
+          src={getOptimizedImageUrl(displayImage, 1200, 800)}
           alt={project.name}
           className="w-full h-full object-cover transition-transform duration-1000 ease-in-out group-hover:scale-105"
         />
@@ -62,7 +63,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({ project, onClose, onDis
               onClick={() => setActiveImage(img)}
               className={`relative w-28 h-20 shrink-0 rounded-lg overflow-hidden border-2 transition-all shadow-sm ${activeImage === img ? 'border-blue-600 ring-2 ring-blue-100 opacity-100' : 'border-transparent opacity-70 hover:opacity-100 hover:border-slate-300'}`}
             >
-              <img src={img} alt="" className="w-full h-full object-cover" />
+              <img src={getOptimizedImageUrl(img, 200, 150)} alt="" className="w-full h-full object-cover" />
             </button>
           ))}
         </div>
