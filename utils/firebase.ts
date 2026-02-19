@@ -2,12 +2,12 @@ import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import { getFirestore, Firestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
+  apiKey: "AIzaSyCt5DngU6nykCcp7Lk1m2xUgpzOFLB7KKY",
+  authDomain: "psimaps-pro.firebaseapp.com",
+  projectId: "psimaps-pro",
+  storageBucket: "psimaps-pro.firebasestorage.app",
+  messagingSenderId: "618627128805",
+  appId: "1:618627128805:web:b9a7a3e475f54f590b230c"
 };
 
 let app: FirebaseApp;
