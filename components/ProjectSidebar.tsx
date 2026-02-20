@@ -45,12 +45,22 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({ project, onClose, onDis
         </button>
 
         <div className="absolute bottom-6 left-6 right-6 text-white text-shadow-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="px-3 py-1 bg-blue-600/90 text-[10px] font-bold uppercase tracking-widest rounded-sm shadow-sm backdrop-blur-sm">{project.status}</span>
-            {project.type && <span className="px-3 py-1 bg-slate-800/80 text-[10px] font-bold uppercase tracking-widest rounded-sm shadow-sm backdrop-blur-sm border border-slate-700">{project.type}</span>}
+          <h1 className="text-4xl font-black tracking-tighter leading-tight mb-2 uppercase">{project.name}</h1>
+          <div className="flex items-center text-blue-400 text-sm font-bold uppercase tracking-widest mb-2">
+            <MapPin className="w-4 h-4 mr-2" />
+            <span>{project.community}</span>
           </div>
-          <h1 className="text-3xl font-black tracking-tight leading-tight mb-1">{project.name}</h1>
-          <p className="text-slate-300 font-medium text-sm tracking-wide">{project.developerName}</p>
+          <p className="text-slate-300 font-bold text-base tracking-wide flex items-center gap-2">
+            <Building className="w-4 h-4 text-slate-400" />
+            {project.developerName || 'Unknown Developer'}
+          </p>
+
+          <div className="flex items-center gap-2 mt-4">
+            <span className="px-3 py-1 bg-blue-600/90 text-[10px] font-bold uppercase tracking-widest rounded-sm shadow-sm backdrop-blur-sm">{project.status}</span>
+            {project.type && project.type !== 'N/A' && (
+              <span className="px-3 py-1 bg-slate-800/80 text-[10px] font-bold uppercase tracking-widest rounded-sm shadow-sm backdrop-blur-sm border border-slate-700">{project.type}</span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -72,18 +82,12 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({ project, onClose, onDis
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto px-6 py-8 space-y-8 custom-scrollbar bg-white">
 
-        {/* 3. Header & Location */}
+        {/* 3. Detailed Location & Price */}
         <div className="flex justify-between items-start border-b border-slate-100 pb-6">
           <div className="flex-1">
-            <div className="flex items-center text-blue-600 text-xs font-bold uppercase tracking-widest mb-1.5">
-              <MapPin className="w-3.5 h-3.5 mr-1.5" />
-              <span>{project.community}</span>
-              {project.city && (
-                <>
-                  <span className="mx-2 text-slate-300">/</span>
-                  <span className="text-slate-500">{project.city}</span>
-                </>
-              )}
+            <div className="text-slate-400 text-[10px] font-black uppercase tracking-tighter mb-1">Precise Location</div>
+            <div className="text-slate-900 font-bold text-lg leading-tight">
+              {project.community}, {project.city}
             </div>
           </div>
         </div>
@@ -91,23 +95,25 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({ project, onClose, onDis
         {/* 4. Data Grid (Vector Icons) - Strictly Conditional */}
         <div className="grid grid-cols-2 gap-4">
 
-          {/* Price - Only show if valid */}
-          {project.priceRange && project.priceRange !== '0' && project.priceRange !== '0.00' && (
-            <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3 hover:border-slate-200 transition-colors col-span-2">
-              <Building className="w-5 h-5 text-blue-600 mt-0.5" />
+          {/* Price - Only show if valid and moved down from header */}
+          {project.priceRange && project.priceRange !== '0' && project.priceRange !== '0.00' && project.priceRange !== 'N/A' && (
+            <div className="p-5 bg-blue-50/50 border border-blue-100/50 rounded-2xl flex items-start gap-4 hover:border-blue-200 transition-colors col-span-2 shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shrink-0 shadow-lg shadow-blue-200">
+                <Building className="w-5 h-5 text-white" />
+              </div>
               <div>
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Starting Price</p>
-                <p className="font-bold text-slate-900 text-lg">AED {project.priceRange.split('-')[0].trim()}</p>
+                <p className="text-[10px] text-blue-600/70 font-black uppercase tracking-wider mb-0.5">Investment Starting From</p>
+                <p className="font-black text-slate-900 text-2xl tracking-tight">AED {project.priceRange.split('-')[0].trim()}</p>
               </div>
             </div>
           )}
 
-          {project.bedrooms && project.bedrooms !== 'N/A' && (
+          {project.bedrooms && project.bedrooms !== 'N/A' && project.bedrooms !== '0' && (
             <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3 hover:border-slate-200 transition-colors">
               <BedDouble className="w-5 h-5 text-blue-600 mt-0.5" />
               <div>
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Bedrooms</p>
-                <p className="font-bold text-slate-800 text-sm">{project.bedrooms}</p>
+                <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Configuration</p>
+                <p className="font-bold text-slate-800 text-sm">{project.bedrooms} Bedrooms</p>
               </div>
             </div>
           )}
@@ -116,27 +122,27 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({ project, onClose, onDis
             <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3 hover:border-slate-200 transition-colors">
               <Bath className="w-5 h-5 text-blue-600 mt-0.5" />
               <div>
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Bathrooms</p>
-                <p className="font-bold text-slate-800 text-sm">{project.bathrooms}</p>
+                <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Bathooms</p>
+                <p className="font-bold text-slate-800 text-sm">{project.bathrooms} Units</p>
               </div>
             </div>
           )}
 
-          {project.completionDate && (
+          {project.completionDate && project.completionDate !== 'N/A' && (
             <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3 hover:border-slate-200 transition-colors">
               <Calendar className="w-5 h-5 text-blue-600 mt-0.5" />
               <div>
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Completion</p>
+                <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Project Status</p>
                 <p className="font-bold text-slate-800 text-sm">{project.completionDate}</p>
               </div>
             </div>
           )}
 
-          {project.builtupArea && project.builtupArea !== 0 && (
+          {project.builtupArea && project.builtupArea !== 0 && project.builtupArea.toString() !== '0' && (
             <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3 hover:border-slate-200 transition-colors">
               <Square className="w-5 h-5 text-blue-600 mt-0.5" />
               <div>
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Built-up Area</p>
+                <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Total Area</p>
                 <p className="font-bold text-slate-800 text-sm">{Number(project.builtupArea).toLocaleString()} sqft</p>
               </div>
             </div>
