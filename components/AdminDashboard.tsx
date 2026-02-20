@@ -4,7 +4,8 @@ import { db } from '../utils/firebase';
 import { doc, setDoc, addDoc, collection, deleteDoc, writeBatch, updateDoc } from 'firebase/firestore';
 import { generateCleanId } from '../utils/helpers';
 import { fetchAndSaveBoundary } from '../utils/boundaryService';
-import { Database, RefreshCw, Plus, Edit2, Trash2, MapPin, Search, Eye, EyeOff } from 'lucide-react';
+import { Database, RefreshCw, Plus, Edit2, Trash2, MapPin, Search, Eye, EyeOff, ImageIcon, Zap } from 'lucide-react';
+import { optimizeAndUploadImage } from '../utils/imageOptimizer';
 
 interface AdminDashboardProps {
   onClose: () => void;
@@ -32,6 +33,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
   const [stagedLandmark, setStagedLandmark] = useState<Partial<Landmark> | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isHydrating, setIsHydrating] = useState(false);
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [optimizeProgress, setOptimizeProgress] = useState<{ current: number; total: number; optimized: number; failed: number } | null>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
   // Nearbys CMS Filters
@@ -49,6 +52,54 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
       return true;
     });
   }, [liveLandmarks, nearbysCategoryFilter, nearbysCommunityFilter]);
+
+  const handleOptimizeMedia = async () => {
+    setIsOptimizing(true);
+    const BATCH_SIZE = 10;
+    const unoptimized = liveProjects
+      .filter(p => {
+        const url = p.image || p.thumbnailUrl;
+        return url && !url.includes('optimized_properties') && !url.includes('firebasestorage');
+      })
+      .slice(0, BATCH_SIZE);
+
+    setOptimizeProgress({ current: 0, total: unoptimized.length, optimized: 0, failed: 0 });
+
+    let optimizedCount = 0;
+    let failedCount = 0;
+
+    for (let i = 0; i < unoptimized.length; i++) {
+      const project = unoptimized[i];
+      const originalUrl = (project.image || project.thumbnailUrl)!;
+      setOptimizeProgress({ current: i + 1, total: unoptimized.length, optimized: optimizedCount, failed: failedCount });
+
+      const newUrl = await optimizeAndUploadImage(originalUrl, project.id, 0);
+      if (newUrl) {
+        try {
+          await updateDoc(doc(db, 'projects', project.id), {
+            image: newUrl,
+            thumbnailUrl: newUrl,
+            originalImage: originalUrl,
+          });
+          optimizedCount++;
+        } catch (e) {
+          console.error('Firestore update failed:', e);
+          failedCount++;
+        }
+      } else {
+        failedCount++;
+      }
+    }
+
+    setOptimizeProgress({ current: unoptimized.length, total: unoptimized.length, optimized: optimizedCount, failed: failedCount });
+    setIsOptimizing(false);
+
+    if (unoptimized.length === 0) {
+      alert('All projects are already optimized!');
+    } else {
+      alert(`Done! ✓ ${optimizedCount} optimized · ✗ ${failedCount} failed.`);
+    }
+  };
 
   const handleSyncBoundaries = async () => {
     setIsSyncing(true);
@@ -290,9 +341,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                         <td className="px-6 py-4 font-bold text-slate-900">{l.name}</td>
                         <td className="px-6 py-4">
                           <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${l.category === 'School' ? 'bg-amber-50 text-amber-700' :
-                              l.category === 'Retail' ? 'bg-purple-50 text-purple-700' :
-                                l.category === 'Hospital' ? 'bg-rose-50 text-rose-700' :
-                                  'bg-blue-50 text-blue-700'
+                            l.category === 'Retail' ? 'bg-purple-50 text-purple-700' :
+                              l.category === 'Hospital' ? 'bg-rose-50 text-rose-700' :
+                                'bg-blue-50 text-blue-700'
                             }`}>{l.category}</span>
                         </td>
                         <td className="px-6 py-4 text-sm font-medium text-slate-600">{l.community || '—'}</td>
@@ -374,6 +425,76 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                 </div>
               </div>
             </div>
+          )}
+
+          {activeTab === 'media' && (
+            <section className="animate-in fade-in duration-300 space-y-6">
+              {/* Header */}
+              <div>
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight">Media Optimizer</h2>
+                <p className="text-slate-500 font-medium text-sm mt-1">Compress external images to WebP via Canvas and store them in Firebase Storage.</p>
+              </div>
+
+              {/* Warning Banner */}
+              <div className="flex gap-4 items-start p-5 bg-amber-50 border border-amber-200 rounded-2xl">
+                <Zap className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-black text-amber-800 text-sm">Important: Do Not Close This Tab</p>
+                  <p className="text-amber-700 text-xs font-medium mt-1">Optimization runs in-browser and requires an active connection. Each batch processes 10 projects. Run multiple times to optimize the full database.</p>
+                </div>
+              </div>
+
+              {/* Stats Row */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Projects</p>
+                  <p className="text-3xl font-black text-slate-900">{liveProjects.length}</p>
+                </div>
+                <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Already Optimized</p>
+                  <p className="text-3xl font-black text-emerald-600">
+                    {liveProjects.filter(p => (p.image || p.thumbnailUrl || '').includes('firebasestorage')).length}
+                  </p>
+                </div>
+                <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Pending</p>
+                  <p className="text-3xl font-black text-amber-600">
+                    {liveProjects.filter(p => { const u = p.image || p.thumbnailUrl; return u && !u.includes('firebasestorage'); }).length}
+                  </p>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              {optimizeProgress && (
+                <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                  <div className="flex justify-between items-center mb-3">
+                    <p className="text-sm font-black text-slate-800">
+                      Processing {optimizeProgress.current} / {optimizeProgress.total}
+                    </p>
+                    <div className="flex gap-3">
+                      <span className="text-xs font-bold text-emerald-600">{optimizeProgress.optimized} ✓</span>
+                      {optimizeProgress.failed > 0 && <span className="text-xs font-bold text-rose-500">{optimizeProgress.failed} ✗</span>}
+                    </div>
+                  </div>
+                  <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                    <div
+                      className="h-full bg-blue-600 rounded-full transition-all duration-500"
+                      style={{ width: `${optimizeProgress.total > 0 ? (optimizeProgress.current / optimizeProgress.total) * 100 : 0}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Action Button */}
+              <button
+                onClick={handleOptimizeMedia}
+                disabled={isOptimizing}
+                className="w-full py-5 flex items-center justify-center gap-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] shadow-xl shadow-blue-100 transition-all"
+              >
+                <ImageIcon className="w-5 h-5" />
+                {isOptimizing ? 'Compressing & Uploading...' : 'Optimize Next 10 Properties'}
+              </button>
+            </section>
           )}
 
           {activeTab === 'general' && !stagedProject && (
