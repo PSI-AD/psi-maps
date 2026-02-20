@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Project, Landmark, LandmarkCategory } from '../types';
 import { db } from '../utils/firebase';
-import { doc, setDoc, addDoc, collection, deleteDoc, writeBatch } from 'firebase/firestore';
+import { doc, setDoc, addDoc, collection, deleteDoc, writeBatch, updateDoc } from 'firebase/firestore'; // Added updateDoc
 import { generateCleanId } from '../utils/helpers';
 import { Database, RefreshCw, Plus, Edit2, Trash2, MapPin, Search, School, ShoppingBag, Theater } from 'lucide-react';
 
@@ -320,9 +320,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                       <tr key={l.id} className="hover:bg-slate-50 transition-all group">
                         <td className="px-6 py-4">
                           <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${l.category === 'school' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
-                              l.category === 'retail' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                                l.category === 'culture' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                                  'bg-slate-50 text-slate-600 border-slate-100'
+                            l.category === 'retail' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                              l.category === 'culture' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                'bg-slate-50 text-slate-600 border-slate-100'
                             }`}>
                             {l.category === 'school' && <School className="w-3 h-3" />}
                             {l.category === 'retail' && <ShoppingBag className="w-3 h-3" />}
@@ -370,7 +370,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                     <button onClick={() => setStagedProject(null)} className="text-xs font-black text-rose-400 uppercase hover:text-rose-600 transition-colors">Discard</button>
                   </div>
 
-                  {/* Reuse Field Rendering from previous version or simplify */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                     <div className="space-y-4">
                       <div className="flex flex-col gap-1.5">
@@ -380,6 +379,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                       <div className="flex flex-col gap-1.5">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Developer</label>
                         <input className="h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-slate-800 font-medium" value={stagedProject.developerName} onChange={(e) => setStagedProject({ ...stagedProject, developerName: e.target.value })} />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">City</label>
+                          <input className="h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-slate-800 font-medium" value={stagedProject.city || ''} onChange={(e) => setStagedProject({ ...stagedProject, city: e.target.value })} />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Community</label>
+                          <input className="h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-slate-800 font-medium" value={stagedProject.community || ''} onChange={(e) => setStagedProject({ ...stagedProject, community: e.target.value })} />
+                        </div>
                       </div>
                     </div>
                     <div className="space-y-4">

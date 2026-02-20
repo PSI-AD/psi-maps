@@ -170,7 +170,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({ project, onClose, onDis
                 About The Project
               </h3>
               <div
-                className="text-sm text-slate-600 leading-relaxed space-y-4 prose-sm prose-p:mb-2 prose-strong:text-slate-900"
+                className="prose prose-sm text-slate-600 leading-relaxed max-w-none prose-p:mb-2 prose-strong:text-slate-900"
                 dangerouslySetInnerHTML={{ __html: project.description }}
               />
             </div>

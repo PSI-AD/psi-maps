@@ -32,6 +32,9 @@ export const useProjectData = () => {
                 const lat = parseFloat(data.mapLatitude || data.latitude || "0");
                 const lng = parseFloat(data.mapLongitude || data.longitude || "0");
 
+                const rawDesc = data.enPropertyOverView || data.description || '';
+                const cleanDesc = rawDesc.replace(/&nbsp;/g, ' ').replace(/\s{2,}/g, ' ').trim();
+
                 return {
                     id: doc.id,
                     name: cleanName,
@@ -42,7 +45,7 @@ export const useProjectData = () => {
                     developerName: rawDeveloper,
                     projectUrl: data.projectUrl || '',
                     priceRange: data.priceRange || (data.maxPrice ? `AED ${Number(data.minPrice || 0).toLocaleString()} - ${Number(data.maxPrice).toLocaleString()}` : 'Enquire'),
-                    description: data.description || data.enPropertyOverView || '',
+                    description: cleanDesc,
                     images: [
                         ...(data.featuredImages?.map((img: any) => img.imageURL) || []),
                         ...(data.generalImages?.map((img: any) => img.imageURL) || [])

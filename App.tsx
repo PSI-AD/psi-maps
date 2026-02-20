@@ -79,9 +79,25 @@ const App: React.FC = () => {
     setSelectedLandmarkId(null);
     setIsAnalysisOpen(true);
     const p = filteredProjects.find(pr => pr.id === id);
-    if (p && p.latitude && p.longitude && !isNaN(p.latitude) && !isNaN(p.longitude)) {
-      handleFlyTo(p.longitude, p.latitude);
+    if (p) {
+      // Sync Breadcrumbs on click
+      setSelectedCity(p.city || '');
+      setSelectedCommunity(p.community || '');
+
+      if (p.latitude && p.longitude && !isNaN(p.latitude) && !isNaN(p.longitude)) {
+        handleFlyTo(p.longitude, p.latitude);
+      }
     }
+  };
+
+  const handleSearchSelect = (project: Project) => {
+    handleFlyTo(project.longitude, project.latitude, 16);
+    setSelectedProjectId(project.id);
+    setSelectedLandmarkId(null);
+    setIsAnalysisOpen(true);
+    // Sync Breadcrumbs on select
+    setSelectedCity(project.city || '');
+    setSelectedCommunity(project.community || '');
   };
 
   const handleLandmarkClick = (l: any) => {

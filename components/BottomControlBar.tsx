@@ -139,7 +139,10 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
         const city = e.target.value;
         setSelectedCity(city);
         setSelectedCommunity('');
-        handleLocationSelect(city);
+        // Restricted borders to Communities only
+        if (!city) {
+            handleLocationSelect('');
+        }
     };
 
     const handleCommunityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -231,17 +234,17 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                 </div>
             </div>
 
-            {/* Filter Modal */}
+            {/* Filter Modal (Side Panel) */}
             {isFilterModalOpen && (
-                <div className="fixed inset-0 z-[7000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
+                <div className="fixed inset-0 z-[7000] bg-slate-900/60 backdrop-blur-sm flex justify-end animate-in fade-in duration-300">
                     <div
                         className="absolute inset-0"
                         onClick={() => setIsFilterModalOpen(false)}
                     />
-                    <div className="relative bg-white rounded-3xl p-8 shadow-2xl w-full max-w-sm animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
-                        <div className="flex items-center justify-between mb-6 sticky top-0 bg-white z-10 py-2">
+                    <div className="relative h-full w-full max-w-sm bg-white shadow-2xl p-8 overflow-y-auto animate-in slide-in-from-right duration-300">
+                        <div className="flex items-center justify-between mb-8">
                             <div>
-                                <h3 className="text-xl font-black text-slate-900 tracking-tight">Project Filters</h3>
+                                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Project Filters</h3>
                                 <p className="text-slate-500 text-xs font-medium mt-1">Refine your search results</p>
                             </div>
                             <button
@@ -252,15 +255,15 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                             </button>
                         </div>
 
-                        {/* Spatial Tools - Draw Area moved here */}
-                        <div className="mb-8 p-4 bg-blue-50 rounded-2xl border border-blue-100">
-                            <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] mb-3">Spatial Tools</h4>
+                        {/* Spatial Tools */}
+                        <div className="mb-10 p-5 bg-blue-50 rounded-2xl border border-blue-100">
+                            <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] mb-4">Spatial Tools</h4>
                             <button
                                 onClick={() => {
                                     onToggleDraw();
                                     setIsFilterModalOpen(false);
                                 }}
-                                className={`w-full py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${isDrawing ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-slate-700 border border-blue-200 hover:border-blue-400'}`}
+                                className={`w-full py-4 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-3 transition-all ${isDrawing ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-slate-700 border border-blue-200 hover:border-blue-400'}`}
                             >
                                 <Pencil className="w-4 h-4" />
                                 <span>{isDrawing ? 'Cancel Custom Area' : 'Draw Custom Area'}</span>
@@ -268,9 +271,9 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                         </div>
 
                         {/* Status Filter */}
-                        <div className="mb-8">
-                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Construction Status</h4>
-                            <div className="flex gap-2 p-1 bg-slate-100 rounded-2xl">
+                        <div className="mb-10">
+                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-5">Construction Status</h4>
+                            <div className="flex gap-2 p-1.5 bg-slate-100 rounded-2xl">
                                 {['All', 'Off-Plan', 'Completed'].map((status) => (
                                     <button
                                         key={status}
@@ -284,12 +287,12 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                         </div>
 
                         {/* Developer Filter */}
-                        <div className="mb-8">
-                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Preferred Developer</h4>
+                        <div className="mb-10">
+                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-5">Preferred Developer</h4>
                             <select
                                 value={developerFilter}
                                 onChange={(e) => setDeveloperFilter(e.target.value)}
-                                className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-4 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer"
+                                className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer shadow-sm"
                             >
                                 <option value="All">All Developers</option>
                                 {developerOptions.filter(d => d.name !== 'All').map(dev => (
@@ -299,15 +302,15 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                         </div>
 
                         {/* Property Type Filter */}
-                        <div className="mb-8">
-                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Asset Type</h4>
-                            <div className="grid grid-cols-1 gap-2">
+                        <div className="mb-10">
+                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-5">Asset Type</h4>
+                            <div className="space-y-2.5">
                                 {propertyTypeOptions.map(option => (
                                     <button
                                         key={option.name}
                                         onClick={() => setPropertyType(option.name)}
                                         className={`
-                                            w-full p-4 rounded-2xl border flex items-center justify-between transition-all font-bold text-sm
+                                            w-full p-5 rounded-2xl border flex items-center justify-between transition-all font-bold text-sm
                                             ${propertyType === option.name
                                                 ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-200'
                                                 : 'bg-slate-50 border-slate-100 text-slate-600 hover:bg-white hover:border-blue-200'}
@@ -320,12 +323,15 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                             </div>
                         </div>
 
-                        <button
-                            onClick={() => setIsFilterModalOpen(false)}
-                            className="w-full mt-2 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] shadow-xl hover:bg-slate-800 transition-all"
-                        >
-                            Apply Filters
-                        </button>
+                        <div className="sticky bottom-0 pt-6 bg-white border-t border-slate-50">
+                            <button
+                                onClick={() => setIsFilterModalOpen(false)}
+                                className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] shadow-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
+                            >
+                                Apply
+                                <span>{projects.length} Results</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
