@@ -29,6 +29,7 @@ interface MapCanvasProps {
     hoveredProject: Project | null;
     projects?: Project[];
     mapFeatures?: { show3D: boolean; showAnalytics: boolean };
+    activeBoundary?: any;
 }
 
 // 🚨 PERMANENT FIX: Hardcoded Token. No environment variables allowed.
@@ -82,9 +83,10 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
     mapRef, viewState, setViewState, updateBounds, mapStyle, onClick,
     drawRef, onDrawCreate, onDrawUpdate, onDrawDelete,
     filteredAmenities, onMarkerClick, onLandmarkClick,
-    selectedProjectId, // Fix missing destructuring
+    selectedProjectId,
     setHoveredProjectId, setHoveredLandmarkId,
-    selectedLandmark, selectedProject, hoveredProject, projects = [], mapFeatures
+    selectedLandmark, selectedProject, hoveredProject, projects = [], mapFeatures,
+    activeBoundary
 }) => {
 
     // Safety check for valid GPS coordinates
@@ -165,6 +167,21 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                         'fill-extrusion-opacity': 0.8
                     }}
                 />
+            )}
+
+            {activeBoundary && (
+                <Source id="location-boundary" type="geojson" data={activeBoundary}>
+                    <Layer
+                        id="boundary-fill"
+                        type="fill"
+                        paint={{ 'fill-color': '#2563eb', 'fill-opacity': 0.05 }}
+                    />
+                    <Layer
+                        id="boundary-line"
+                        type="line"
+                        paint={{ 'line-color': '#2563eb', 'line-width': 2, 'line-dasharray': [2, 2] }}
+                    />
+                </Source>
             )}
 
             <Source id="projects" type="geojson" data={geoJsonData as any} cluster={true} clusterMaxZoom={14} clusterRadius={45}>

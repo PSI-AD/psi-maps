@@ -15,6 +15,7 @@ export const useProjectData = () => {
     const [statusFilter, setStatusFilter] = useState<string>('All');
     const [selectedCity, setSelectedCity] = useState<string>('');
     const [selectedCommunity, setSelectedCommunity] = useState<string>('');
+    const [activeBoundary, setActiveBoundary] = useState<any>(null);
 
     // Projects Listener
     useEffect(() => {
@@ -164,6 +165,8 @@ export const useProjectData = () => {
         selectedCity,
         setSelectedCity,
         selectedCommunity,
-        setSelectedCommunity
+        setSelectedCommunity,
+        activeBoundary,
+        setActiveBoundary
     };
 };

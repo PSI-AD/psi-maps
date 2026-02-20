@@ -23,6 +23,7 @@ interface BottomControlBarProps {
     handleFitBounds: (projects: Project[]) => void;
     isDrawing: boolean;
     onToggleDraw: () => void;
+    handleLocationSelect: (locationName: string) => void;
 }
 
 const uaeEmirates = ['abu dhabi', 'dubai', 'sharjah', 'ajman', 'umm al quwain', 'ras al khaimah', 'fujairah'];
@@ -46,7 +47,8 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
     setSelectedCommunity,
     handleFitBounds,
     isDrawing,
-    onToggleDraw
+    onToggleDraw,
+    handleLocationSelect
 }) => {
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
@@ -137,27 +139,13 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
         const city = e.target.value;
         setSelectedCity(city);
         setSelectedCommunity('');
-        if (!city) {
-            handleFitBounds(projects);
-            return;
-        }
-        const cityProjects = projects.filter(p => p.city?.toLowerCase() === city.toLowerCase());
-        handleFitBounds(cityProjects);
+        handleLocationSelect(city);
     };
 
     const handleCommunityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const community = e.target.value;
         setSelectedCommunity(community);
-        if (!community) {
-            if (selectedCity) {
-                handleFitBounds(projects.filter(p => p.city?.toLowerCase() === selectedCity.toLowerCase()));
-            } else {
-                handleFitBounds(projects);
-            }
-            return;
-        }
-        const commProjects = projects.filter(p => p.community === community);
-        handleFitBounds(commProjects);
+        handleLocationSelect(community || selectedCity);
     };
 
     const isAnyFilterActive = propertyType !== 'All' || developerFilter !== 'All' || statusFilter !== 'All';
@@ -191,7 +179,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                     <select
                         value={selectedCity}
                         onChange={handleCityChange}
-                        className="bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer min-w-[150px]"
+                        className="bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-50/20 transition-all cursor-pointer min-w-[150px]"
                     >
                         <option value="">All Emirates</option>
                         {cityOptions.map(city => (
@@ -202,7 +190,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                     <select
                         value={selectedCommunity}
                         onChange={handleCommunityChange}
-                        className="bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer min-w-[170px] disabled:opacity-50"
+                        className="bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-50/20 transition-all cursor-pointer min-w-[170px] disabled:opacity-50"
                         disabled={!selectedCity}
                     >
                         <option value="">Select Community</option>

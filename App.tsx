@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import mapboxgl from 'mapbox-gl';
+import * as turf from '@turf/turf';
 import { useProjectData } from './hooks/useProjectData';
 import { useMapState } from './hooks/useMapState';
 import { fetchNearbyAmenities } from './utils/placesClient';
+import { fetchLocationBoundary } from './utils/boundaryFetcher';
 import MainLayout from './components/MainLayout';
 import MapCanvas from './components/MapCanvas';
 import { Project } from './types';
@@ -20,7 +22,8 @@ const App: React.FC = () => {
     developerFilter, setDeveloperFilter,
     statusFilter, setStatusFilter,
     selectedCity, setSelectedCity,
-    selectedCommunity, setSelectedCommunity
+    selectedCommunity, setSelectedCommunity,
+    activeBoundary, setActiveBoundary
   } = useProjectData();
 
   const {
@@ -50,6 +53,25 @@ const App: React.FC = () => {
     if (!lats.length || !lngs.length) return;
     const bbox: [number, number, number, number] = [Math.min(...lngs), Math.min(...lats), Math.max(...lngs), Math.max(...lats)];
     mapRef.current.getMap().fitBounds(bbox, { padding: 120, duration: 1200, maxZoom: 15 });
+  };
+
+  const handleLocationSelect = async (locationName: string) => {
+    if (!locationName) {
+      setActiveBoundary(null);
+      // Fallback to UAE safe bounds if cleared
+      mapRef.current?.getMap().fitBounds([[51.5, 22.5], [56.5, 26.0]], { padding: 50, duration: 1000 });
+      return;
+    }
+
+    const geojson = await fetchLocationBoundary(locationName);
+    if (geojson) {
+      setActiveBoundary(geojson);
+      // Use Turf.js to calculate the exact bounding box of the polygon
+      const bbox = turf.bbox(geojson) as [number, number, number, number];
+      mapRef.current?.getMap().fitBounds(bbox, { padding: 100, duration: 1500 });
+    } else {
+      setActiveBoundary(null);
+    }
   };
 
   const handleMarkerClick = (id: string) => {
@@ -98,6 +120,7 @@ const App: React.FC = () => {
       selectedCity={selectedCity} setSelectedCity={setSelectedCity}
       selectedCommunity={selectedCommunity} setSelectedCommunity={setSelectedCommunity}
       handleFitBounds={handleFitBounds}
+      handleLocationSelect={handleLocationSelect}
     >
       <MapCanvas
         mapRef={mapRef} viewState={viewState} setViewState={setViewState} updateBounds={updateBounds} mapStyle={mapStyle} onClick={handleMapClick}
@@ -108,6 +131,7 @@ const App: React.FC = () => {
         selectedLandmark={selectedLandmark} selectedProject={selectedProject} hoveredProject={hoveredProject}
         projects={filteredProjects}
         mapFeatures={mapFeatures}
+        activeBoundary={activeBoundary}
       />
     </MainLayout>
   );
