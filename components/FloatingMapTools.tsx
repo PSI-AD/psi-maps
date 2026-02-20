@@ -6,12 +6,16 @@ interface FloatingMapToolsProps {
     onToggle: (category: string) => void;
     isDrawActive: boolean;
     onToggleDraw: () => void;
+    isOpen?: boolean;
+    onToggleOpen?: () => void;
 }
 
 const FloatingMapTools: React.FC<FloatingMapToolsProps> = ({
-    activeFilters, onToggle, isDrawActive, onToggleDraw
+    activeFilters, onToggle, isDrawActive, onToggleDraw, isOpen: externalIsOpen, onToggleOpen
 }) => {
-    const [isOpen, setIsOpen] = useState(false);
+    const [internalIsOpen, setInternalIsOpen] = useState(false);
+    const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
+    const toggleOpen = onToggleOpen || (() => setInternalIsOpen(!internalIsOpen));
 
     const tools = [
         { id: 'draw', label: 'Draw Area', icon: <PenTool className="w-4 h-4" />, action: onToggleDraw, active: isDrawActive },
@@ -32,7 +36,7 @@ const FloatingMapTools: React.FC<FloatingMapToolsProps> = ({
                 {tools.map((tool) => (
                     <button
                         key={tool.id}
-                        onClick={() => { tool.action(); if (window.innerWidth < 768) setIsOpen(false); }}
+                        onClick={() => { tool.action(); if (window.innerWidth < 768) toggleOpen(); }}
                         className={`
                             flex items-center gap-2 px-4 py-2.5 rounded-full shadow-lg backdrop-blur-md border transition-all duration-200
                             ${tool.active
@@ -46,19 +50,21 @@ const FloatingMapTools: React.FC<FloatingMapToolsProps> = ({
                 ))}
             </div>
 
-            {/* The Main Dock Bar */}
-            <div className="bg-white/90 backdrop-blur-md shadow-2xl border border-slate-200 rounded-full px-2 py-2 flex items-center gap-2">
-                <button
-                    onClick={() => setIsOpen(!isOpen)}
-                    className={`
-                        flex items-center gap-2 px-5 py-3 rounded-full transition-all duration-300 z-50
-                        ${isOpen ? 'bg-slate-100 text-slate-900' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/30'}
-                    `}
-                >
-                    {isOpen ? <X className="w-5 h-5" /> : <Layers className="w-5 h-5" />}
-                    <span className="text-xs font-bold uppercase tracking-widest">{isOpen ? 'Close Tools' : 'Map Tools'}</span>
-                </button>
-            </div>
+            {/* The Main Dock Bar (Hidden if controlled externally by Bottom Bar) */}
+            {externalIsOpen === undefined && (
+                <div className="bg-white/90 backdrop-blur-md shadow-2xl border border-slate-200 rounded-full px-2 py-2 flex items-center gap-2">
+                    <button
+                        onClick={toggleOpen}
+                        className={`
+                            flex items-center gap-2 px-5 py-3 rounded-full transition-all duration-300 z-50
+                            ${isOpen ? 'bg-slate-100 text-slate-900' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/30'}
+                        `}
+                    >
+                        {isOpen ? <X className="w-5 h-5" /> : <Layers className="w-5 h-5" />}
+                        <span className="text-xs font-bold uppercase tracking-widest">{isOpen ? 'Close Tools' : 'Map Tools'}</span>
+                    </button>
+                </div>
+            )}
         </div>
     );
 };

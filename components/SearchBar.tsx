@@ -65,7 +65,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ projects, onSelectProject }) => {
             </div>
 
             {isOpen && suggestions.length > 0 && (
-                <div className="absolute top-full left-0 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 z-[2000]">
+                <div className="absolute bottom-full left-0 w-full mb-4 bg-white border border-slate-100 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 z-[2000]">
                     <div className="py-2">
                         {suggestions.map((project) => (
                             <button

@@ -17,12 +17,13 @@ interface AdminDashboardProps {
 
 type TabType = 'general' | 'location' | 'media' | 'settings';
 
-const AdminDashboard: React.FC<AdminDashboardProps> = ({
-  onClose, liveProjects, setLiveProjects, mapFeatures, setMapFeatures
-}) => {
+const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
+  const { onClose, liveProjects, setLiveProjects, setMapFeatures } = props;
+  const mapFeatures = props.mapFeatures || { show3D: false, showAnalytics: false };
+
   const [masterApiList, setMasterApiList] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isSyncing, setIsSyncing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Auto-complete Engine State
   const [searchTerm, setSearchTerm] = useState('');
@@ -86,17 +87,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     });
   };
 
-  const handleDeploy = async () => {
+  const handleSave = async () => {
     if (stagedProject) {
-      // Just saving to Firestore, since we are already exclusive to Firestore
+      setIsSaving(true);
       try {
         await setDoc(doc(db, 'projects', stagedProject.id), stagedProject, { merge: true });
         const name = stagedProject.name;
         handleClearSearch();
-        alert(`${name} updated in Firestore.`);
+        alert(`${name} updated successfully.`);
       } catch (e) {
         console.error("Update failed", e);
         alert("Failed to update project.");
+      } finally {
+        setIsSaving(false);
       }
     }
   };
@@ -129,7 +132,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[10000] bg-slate-50/98 backdrop-blur-md overflow-y-auto flex flex-col items-center p-6 md:p-12 animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[10000] bg-slate-50/98 backdrop-blur-md overflow-y-auto flex flex-col items-center p-6 md:p-12 animate-in fade-in duration-300 text-slate-900">
       {/* Header */}
       <div className="w-full max-w-7xl flex justify-between items-center mb-10">
         <div>
@@ -310,11 +313,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
 
             <button
-              onClick={handleDeploy}
-              className="mt-12 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-6 rounded-2xl shadow-xl shadow-emerald-100 transition-all active:scale-[0.98] uppercase text-sm tracking-[0.2em] flex items-center justify-center gap-3"
+              onClick={handleSave}
+              disabled={isSaving}
+              className="mt-12 w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800/50 text-white font-black py-6 rounded-2xl shadow-xl shadow-emerald-100 transition-all active:scale-[0.98] uppercase text-sm tracking-[0.2em] flex items-center justify-center gap-3"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
-              Approve & Deploy to Public Map
+              {isSaving ? (
+                <>
+                  <RefreshCw className="w-6 h-6 animate-spin" />
+                  <span>Saving to Firestore...</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                  <span>Save Changes</span>
+                </>
+              )}
             </button>
           </section>
         )}
@@ -336,7 +349,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {(searchTerm ? filteredList : masterApiList.slice(0, 50)).map((p) => {
+                {(searchTerm ? filteredList : liveProjects.slice(0, 50)).map((p) => {
                   const isLive = liveProjects.some(lp => lp.id === p.id);
                   return (
                     <tr key={p.id} className="hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0 group">
@@ -352,7 +365,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <td className="px-8 py-5"><span className="font-bold text-slate-800 block">{p.name}</span></td>
                       <td className="px-8 py-5"><span className="text-sm text-slate-500 font-medium">{p.developerName}</span></td>
                       <td className="px-8 py-5">
-                        <button onClick={() => handleSelectProject(p)} className="text-blue-600 hover:text-blue-800 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all">{isLive ? 'Edit Live' : 'Deploy'}</button>
+                        <button onClick={() => handleSelectProject(p)} className="text-blue-600 hover:text-blue-800 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all">{isLive ? 'Edit Asset' : 'Deploy'}</button>
                       </td>
                     </tr>
                   );
@@ -365,5 +378,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     </div>
   );
 };
+
 
 export default AdminDashboard;
