@@ -117,6 +117,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
     // Helper to generate sorted options with counts for Communities
     const communityOptions = useMemo(() => {
         if (!selectedCity) return [];
+        // CRUCIAL: Filtered by city to show ONLY communities in that city
         const filtered = projects.filter(p => p.city?.toLowerCase() === selectedCity.toLowerCase());
         const stats = filtered.reduce((acc, p) => {
             const community = p.community;

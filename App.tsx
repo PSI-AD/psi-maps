@@ -32,7 +32,7 @@ const App: React.FC = () => {
   } = useMapState(filteredProjects);
 
   // Super Admin Toggles
-  const [mapFeatures, setMapFeatures] = useState({ show3D: false, showAnalytics: true });
+  const [mapFeatures, setMapFeatures] = useState({ show3D: true, showAnalytics: true, showCommunityBorders: true });
 
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
   const [isAdminOpen, setIsAdminOpen] = useState(false);
@@ -52,33 +52,35 @@ const App: React.FC = () => {
     const lngs = projectsToFit.map(p => Number(p.longitude)).filter(n => !isNaN(n) && n !== 0 && n >= -180 && n <= 180);
     if (!lats.length || !lngs.length) return;
     const bbox: [number, number, number, number] = [Math.min(...lngs), Math.min(...lats), Math.max(...lngs), Math.max(...lats)];
-    mapRef.current.getMap().fitBounds(bbox, { padding: 120, duration: 1200, maxZoom: 15 });
+    mapRef.current.getMap().fitBounds(bbox, { padding: 80, duration: 1200, maxZoom: 15 });
   };
 
   const handleLocationSelect = async (locationType: 'city' | 'community', locationName: string, projectsInLocation: Project[]) => {
     if (!locationName) {
       setActiveBoundary(null);
-      handleFitBounds(liveProjects); // Reset to UAE
+      handleFitBounds(liveProjects);
       return;
     }
-
     if (locationType === 'city') {
-      // 1. CITIES: Never draw borders, just fit the camera perfectly to the pins.
       setActiveBoundary(null);
       handleFitBounds(projectsInLocation);
     } else if (locationType === 'community') {
-      // 2. COMMUNITIES: Try to fetch and draw the border.
-      const geojson = await fetchLocationBoundary(locationName);
-      if (geojson) {
-        // Border found! Draw it and zoom to its exact shape.
-        setActiveBoundary(geojson);
-        const bbox = turf.bbox(geojson) as [number, number, number, number];
-        mapRef.current?.getMap().fitBounds(bbox, { padding: 100, duration: 1500 });
-      } else {
-        // 3. FALLBACK: No border found in OSM. Don't draw lines, just zoom to the pins.
-        setActiveBoundary(null);
-        handleFitBounds(projectsInLocation);
+      if (mapFeatures.showCommunityBorders) {
+        try {
+          const query = encodeURIComponent(`${locationName}, United Arab Emirates`);
+          const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${query}&polygon_geojson=1&format=json`);
+          const data = await response.json();
+          const validResult = data.find((item: any) => item.geojson && (item.geojson.type === 'Polygon' || item.geojson.type === 'MultiPolygon'));
+          if (validResult) {
+            setActiveBoundary(validResult.geojson);
+            const bbox = turf.bbox(validResult.geojson) as [number, number, number, number];
+            mapRef.current?.getMap().fitBounds(bbox, { padding: 80, duration: 1500 });
+            return;
+          }
+        } catch (e) { console.error(e); }
       }
+      setActiveBoundary(null);
+      handleFitBounds(projectsInLocation);
     }
   };
 

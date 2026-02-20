@@ -191,7 +191,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                 />
             )}
 
-            {activeBoundary && (
+            {activeBoundary && mapFeatures?.showCommunityBorders && (
                 <Source id="location-boundary" type="geojson" data={activeBoundary}>
                     <Layer
                         id="boundary-fill"

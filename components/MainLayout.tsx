@@ -34,8 +34,8 @@ interface MainLayoutProps {
   children: React.ReactNode;
   onDiscoverNeighborhood: (lat: number, lng: number) => void;
   onFlyTo: (lng: number, lat: number, zoom?: number) => void;
-  mapFeatures: { show3D: boolean; showAnalytics: boolean };
-  setMapFeatures: React.Dispatch<React.SetStateAction<{ show3D: boolean; showAnalytics: boolean }>>;
+  mapFeatures: { show3D: boolean; showAnalytics: boolean; showCommunityBorders: boolean };
+  setMapFeatures: React.Dispatch<React.SetStateAction<{ show3D: boolean; showAnalytics: boolean; showCommunityBorders: boolean }>>;
   propertyType: string;
   setPropertyType: (type: string) => void;
   developerFilter: string;
@@ -51,24 +51,26 @@ interface MainLayoutProps {
   onQuickFilter?: (type: 'community' | 'developer', value: string) => void;
 }
 
-const MainLayout: React.FC<MainLayoutProps> = ({
-  isAdminOpen, setIsAdminOpen,
-  isAnalysisOpen, setIsAnalysisOpen, liveProjects, setLiveProjects,
-  liveLandmarks, setLiveLandmarks,
-  selectedProject, isRefreshing,
-  onProjectClick, onCloseProject,
-  activeAmenities, onToggleAmenity, isDrawing, onToggleDraw,
-  mapStyle, setMapStyle, children, onDiscoverNeighborhood, onFlyTo,
-  mapFeatures, setMapFeatures,
-  propertyType, setPropertyType,
-  developerFilter, setDeveloperFilter,
-  statusFilter, setStatusFilter,
-  selectedCity, setSelectedCity,
-  selectedCommunity, setSelectedCommunity,
-  handleFitBounds,
-  handleLocationSelect,
-  onQuickFilter
-}) => {
+const MainLayout: React.FC<MainLayoutProps> = (props) => {
+  const {
+    isAdminOpen, setIsAdminOpen,
+    isAnalysisOpen, setIsAnalysisOpen, liveProjects, setLiveProjects,
+    liveLandmarks, setLiveLandmarks,
+    selectedProject, isRefreshing,
+    onProjectClick, onCloseProject,
+    activeAmenities, onToggleAmenity, isDrawing, onToggleDraw,
+    mapStyle, setMapStyle, children, onDiscoverNeighborhood, onFlyTo,
+    mapFeatures, setMapFeatures,
+    propertyType, setPropertyType,
+    developerFilter, setDeveloperFilter,
+    statusFilter, setStatusFilter,
+    selectedCity, setSelectedCity,
+    selectedCommunity, setSelectedCommunity,
+    handleFitBounds,
+    handleLocationSelect,
+    onQuickFilter
+  } = props;
+
   const [isNearbyToolsOpen, setIsNearbyToolsOpen] = useState(false);
 
   const handleSearchSelect = (project: Project) => {
@@ -108,27 +110,24 @@ const MainLayout: React.FC<MainLayoutProps> = ({
       <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-slate-900/80 to-transparent pointer-events-none z-40"></div>
 
       {/* Breadcrumbs Navigation */}
-      <div className="absolute top-6 left-6 z-50 pointer-events-auto flex items-center gap-2 text-white text-sm font-bold drop-shadow-md">
-        <button onClick={() => { setSelectedCity(''); setSelectedCommunity(''); onCloseProject(); handleLocationSelect('city', '', []); }} className="hover:text-blue-400 transition-colors">UAE</button>
-
-        {selectedCity && (
+      <div className="absolute top-6 left-6 z-[4000] flex items-center gap-2 text-slate-800 text-sm font-bold bg-white/80 backdrop-blur-md px-4 py-2 rounded-full shadow-sm border border-slate-200">
+        <button onClick={() => { props.setSelectedCity(''); props.setSelectedCommunity(''); props.onCloseProject(); props.handleLocationSelect('city', '', props.liveProjects); }} className="hover:text-blue-600 transition-colors">UAE</button>
+        {props.selectedCity && (
           <>
             <span className="text-slate-400">/</span>
-            <button onClick={() => { setSelectedCommunity(''); onCloseProject(); handleLocationSelect('city', selectedCity, liveProjects.filter(p => p.city === selectedCity)); }} className="hover:text-blue-400 transition-colors capitalize">{selectedCity}</button>
+            <button onClick={() => { props.setSelectedCommunity(''); props.onCloseProject(); props.handleLocationSelect('city', props.selectedCity, props.liveProjects.filter(p => p.city === props.selectedCity)); }} className="hover:text-blue-600 transition-colors capitalize">{props.selectedCity}</button>
           </>
         )}
-
-        {selectedCommunity && (
+        {props.selectedCommunity && (
           <>
             <span className="text-slate-400">/</span>
-            <button onClick={() => { onCloseProject(); handleLocationSelect('community', selectedCommunity, liveProjects.filter(p => p.community === selectedCommunity)); }} className="hover:text-blue-400 transition-colors capitalize">{selectedCommunity}</button>
+            <button onClick={() => { props.onCloseProject(); props.handleLocationSelect('community', props.selectedCommunity, props.liveProjects.filter(p => p.community === props.selectedCommunity)); }} className="hover:text-blue-600 transition-colors capitalize">{props.selectedCommunity}</button>
           </>
         )}
-
         {selectedProject && (
           <>
             <span className="text-slate-400">/</span>
-            <span className="text-blue-400 capitalize">{selectedProject.name}</span>
+            <span className="text-blue-600 capitalize truncate max-w-[150px]">{selectedProject.name}</span>
           </>
         )}
       </div>
