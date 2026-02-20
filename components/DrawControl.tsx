@@ -1,18 +1,21 @@
 
-import MapboxDraw from '@mapbox/mapbox-gl-draw';
+import MapboxDrawImport from '@mapbox/mapbox-gl-draw';
 import { useControl } from 'react-map-gl';
 import type { ControlPosition } from 'react-map-gl';
+
+// Fix CJS interop: In production builds, Vite may wrap the CJS module differently
+const MapboxDraw = (MapboxDrawImport as any).default || MapboxDrawImport;
 
 interface DrawControlProps {
   position?: ControlPosition;
   onCreate?: (evt: { features: object[] }) => void;
   onUpdate?: (evt: { features: object[]; action: string }) => void;
   onDelete?: (evt: { features: object[] }) => void;
-  onReference?: (draw: MapboxDraw) => void;
+  onReference?: (draw: any) => void;
 }
 
 const DrawControl = (props: DrawControlProps) => {
-  const draw = useControl<MapboxDraw>(
+  const draw = useControl<any>(
     () => new MapboxDraw({
       displayControlsDefault: false,
       controls: {
@@ -41,9 +44,9 @@ const DrawControl = (props: DrawControlProps) => {
 };
 
 DrawControl.defaultProps = {
-  onCreate: () => {},
-  onUpdate: () => {},
-  onDelete: () => {}
+  onCreate: () => { },
+  onUpdate: () => { },
+  onDelete: () => { }
 };
 
 export default DrawControl;

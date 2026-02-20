@@ -1,12 +1,15 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { MapRef } from 'react-map-gl';
-import MapboxDraw from '@mapbox/mapbox-gl-draw';
+import MapboxDrawImport from '@mapbox/mapbox-gl-draw';
 import useSupercluster from 'use-supercluster';
 import { Project } from '../types';
 
+// Fix CJS interop: In production builds, Vite may wrap the CJS module differently
+const MapboxDraw = (MapboxDrawImport as any).default || MapboxDrawImport;
+
 export const useMapState = (filteredProjects: Project[]) => {
     const mapRef = useRef<MapRef>(null);
-    const drawRef = useRef<MapboxDraw | null>(null);
+    const drawRef = useRef<any>(null);
 
     const [viewState, setViewState] = useState({
         longitude: 54.8,
