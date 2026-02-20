@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import SearchBar from './SearchBar';
 import { Project } from '../types';
-import { Settings, Filter as FilterIcon, Navigation, Check, X } from 'lucide-react';
+import { Settings, Filter as FilterIcon, Navigation, Check, X, Pencil } from 'lucide-react';
 
 interface BottomControlBarProps {
     projects: Project[];
@@ -16,19 +16,16 @@ interface BottomControlBarProps {
     setDeveloperFilter: (dev: string) => void;
     statusFilter: string;
     setStatusFilter: (stat: string) => void;
+    selectedCity: string;
+    setSelectedCity: (city: string) => void;
+    selectedCommunity: string;
+    setSelectedCommunity: (comm: string) => void;
+    handleFitBounds: (projects: Project[]) => void;
+    isDrawing: boolean;
+    onToggleDraw: () => void;
 }
 
 const uaeEmirates = ['abu dhabi', 'dubai', 'sharjah', 'ajman', 'umm al quwain', 'ras al khaimah', 'fujairah'];
-
-const UAE_CENTERS: Record<string, { lng: number, lat: number, zoom: number }> = {
-    'abu dhabi': { lng: 54.4000, lat: 24.4539, zoom: 10.5 },
-    'dubai': { lng: 55.2708, lat: 25.2048, zoom: 10.5 },
-    'sharjah': { lng: 55.4033, lat: 25.3463, zoom: 11 },
-    'ras al khaimah': { lng: 55.9432, lat: 25.7895, zoom: 11 },
-    'ajman': { lng: 55.4402, lat: 25.4052, zoom: 12 },
-    'fujairah': { lng: 56.3265, lat: 25.1288, zoom: 12 },
-    'umm al quwain': { lng: 55.5753, lat: 25.5647, zoom: 12 }
-};
 
 const BottomControlBar: React.FC<BottomControlBarProps> = ({
     projects,
@@ -42,9 +39,15 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
     developerFilter,
     setDeveloperFilter,
     statusFilter,
-    setStatusFilter
+    setStatusFilter,
+    selectedCity,
+    setSelectedCity,
+    selectedCommunity,
+    setSelectedCommunity,
+    handleFitBounds,
+    isDrawing,
+    onToggleDraw
 }) => {
-    const [selectedCity, setSelectedCity] = useState<string>('');
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
     // Dynamic Property Type calculation
@@ -133,26 +136,28 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
     const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const city = e.target.value;
         setSelectedCity(city);
-        if (!city) return;
-
-        // Use hardcoded coordinates for UAE cities
-        const center = UAE_CENTERS[city.toLowerCase()];
-        if (center) {
-            onFlyTo(center.lng, center.lat, center.zoom);
+        setSelectedCommunity('');
+        if (!city) {
+            handleFitBounds(projects);
+            return;
         }
+        const cityProjects = projects.filter(p => p.city?.toLowerCase() === city.toLowerCase());
+        handleFitBounds(cityProjects);
     };
 
     const handleCommunityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const community = e.target.value;
-        if (!community) return;
-
-        const commProjects = projects.filter(p => p.community === community);
-        if (commProjects.length > 0) {
-            // Use mathematical averages but zoom to 13.5
-            const avgLat = commProjects.reduce((sum: number, p) => sum + Number(p.latitude), 0) / commProjects.length;
-            const avgLng = commProjects.reduce((sum: number, p) => sum + Number(p.longitude), 0) / commProjects.length;
-            onFlyTo(avgLng, avgLat, 13.5);
+        setSelectedCommunity(community);
+        if (!community) {
+            if (selectedCity) {
+                handleFitBounds(projects.filter(p => p.city?.toLowerCase() === selectedCity.toLowerCase()));
+            } else {
+                handleFitBounds(projects);
+            }
+            return;
         }
+        const commProjects = projects.filter(p => p.community === community);
+        handleFitBounds(commProjects);
     };
 
     const isAnyFilterActive = propertyType !== 'All' || developerFilter !== 'All' || statusFilter !== 'All';
@@ -195,6 +200,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                     </select>
 
                     <select
+                        value={selectedCommunity}
                         onChange={handleCommunityChange}
                         className="bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer min-w-[170px] disabled:opacity-50"
                         disabled={!selectedCity}
@@ -255,6 +261,21 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                                 className="p-2 hover:bg-slate-50 text-slate-400 hover:text-slate-900 rounded-full transition-all"
                             >
                                 <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        {/* Spatial Tools - Draw Area moved here */}
+                        <div className="mb-8 p-4 bg-blue-50 rounded-2xl border border-blue-100">
+                            <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] mb-3">Spatial Tools</h4>
+                            <button
+                                onClick={() => {
+                                    onToggleDraw();
+                                    setIsFilterModalOpen(false);
+                                }}
+                                className={`w-full py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${isDrawing ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-slate-700 border border-blue-200 hover:border-blue-400'}`}
+                            >
+                                <Pencil className="w-4 h-4" />
+                                <span>{isDrawing ? 'Cancel Custom Area' : 'Draw Custom Area'}</span>
                             </button>
                         </div>
 

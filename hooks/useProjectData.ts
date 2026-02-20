@@ -13,6 +13,8 @@ export const useProjectData = () => {
     const [propertyType, setPropertyType] = useState<string>('All');
     const [developerFilter, setDeveloperFilter] = useState<string>('All');
     const [statusFilter, setStatusFilter] = useState<string>('All');
+    const [selectedCity, setSelectedCity] = useState<string>('');
+    const [selectedCommunity, setSelectedCommunity] = useState<string>('');
 
     // Initial Load - Setup Realtime Listener
     useEffect(() => {
@@ -134,6 +136,10 @@ export const useProjectData = () => {
         developerFilter,
         setDeveloperFilter,
         statusFilter,
-        setStatusFilter
+        setStatusFilter,
+        selectedCity,
+        setSelectedCity,
+        selectedCommunity,
+        setSelectedCommunity
     };
 };

@@ -5,6 +5,7 @@ import { useMapState } from './hooks/useMapState';
 import { fetchNearbyAmenities } from './utils/placesClient';
 import MainLayout from './components/MainLayout';
 import MapCanvas from './components/MapCanvas';
+import { Project } from './types';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 
@@ -17,7 +18,9 @@ const App: React.FC = () => {
     filteredAmenities, activeAmenities, handleToggleAmenity, filterPolygon, setFilterPolygon,
     propertyType, setPropertyType,
     developerFilter, setDeveloperFilter,
-    statusFilter, setStatusFilter
+    statusFilter, setStatusFilter,
+    selectedCity, setSelectedCity,
+    selectedCommunity, setSelectedCommunity
   } = useProjectData();
 
   const {
@@ -39,6 +42,15 @@ const App: React.FC = () => {
   const selectedProject = filteredProjects.find(p => p.id === selectedProjectId) || null;
   const hoveredProject = filteredProjects.find(p => p.id === hoveredProjectId) || null;
   const selectedLandmark = filteredAmenities.find(l => l.id === selectedLandmarkId) || null;
+
+  const handleFitBounds = (projectsToFit: Project[]) => {
+    if (!mapRef.current || !projectsToFit.length) return;
+    const lats = projectsToFit.map(p => Number(p.latitude)).filter(n => !isNaN(n) && n !== 0 && n >= -90 && n <= 90);
+    const lngs = projectsToFit.map(p => Number(p.longitude)).filter(n => !isNaN(n) && n !== 0 && n >= -180 && n <= 180);
+    if (!lats.length || !lngs.length) return;
+    const bbox: [number, number, number, number] = [Math.min(...lngs), Math.min(...lats), Math.max(...lngs), Math.max(...lats)];
+    mapRef.current.getMap().fitBounds(bbox, { padding: 120, duration: 1200, maxZoom: 15 });
+  };
 
   const handleMarkerClick = (id: string) => {
     setSelectedProjectId(id);
@@ -64,12 +76,17 @@ const App: React.FC = () => {
     }
   };
 
+  const onCloseProject = () => {
+    setSelectedProjectId(null);
+    setIsAnalysisOpen(false);
+  };
+
   return (
     <MainLayout
       viewMode={viewMode} setViewMode={setViewMode} isAdminOpen={isAdminOpen} setIsAdminOpen={setIsAdminOpen}
       isAnalysisOpen={isAnalysisOpen} setIsAnalysisOpen={setIsAnalysisOpen} liveProjects={liveProjects} setLiveProjects={setLiveProjects}
       selectedProject={selectedProject} filteredProjects={filteredProjects} isRefreshing={isRefreshing} onRefresh={loadInitialData}
-      onProjectClick={handleMarkerClick} onCloseProject={() => setSelectedProjectId(null)} filterPolygon={filterPolygon}
+      onProjectClick={handleMarkerClick} onCloseProject={onCloseProject} filterPolygon={filterPolygon}
       activeAmenities={activeAmenities} onToggleAmenity={handleToggleAmenity} isDrawing={isDrawing} onToggleDraw={handleToggleDraw}
       mapStyle={mapStyle} setMapStyle={setMapStyle} onDiscoverNeighborhood={(lat, lng) => fetchNearbyAmenities(lat, lng)}
       onFlyTo={handleFlyTo}
@@ -77,6 +94,9 @@ const App: React.FC = () => {
       propertyType={propertyType} setPropertyType={setPropertyType}
       developerFilter={developerFilter} setDeveloperFilter={setDeveloperFilter}
       statusFilter={statusFilter} setStatusFilter={setStatusFilter}
+      selectedCity={selectedCity} setSelectedCity={setSelectedCity}
+      selectedCommunity={selectedCommunity} setSelectedCommunity={setSelectedCommunity}
+      handleFitBounds={handleFitBounds}
     >
       <MapCanvas
         mapRef={mapRef} viewState={viewState} setViewState={setViewState} updateBounds={updateBounds} mapStyle={mapStyle} onClick={handleMapClick}

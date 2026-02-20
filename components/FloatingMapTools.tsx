@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, School, Coffee, Theater, ShoppingBag, BedDouble, PenTool, Sparkles } from 'lucide-react';
+import { X, School, Coffee, Theater, ShoppingBag, BedDouble, Sparkles } from 'lucide-react';
 
 interface FloatingMapToolsProps {
     activeFilters: string[];
@@ -20,7 +20,6 @@ const FloatingMapTools: React.FC<FloatingMapToolsProps> = ({
     if (!isOpen) return null;
 
     const tools = [
-        { id: 'draw', label: 'Draw Area', icon: <PenTool className="w-5 h-5" />, action: onToggleDraw, active: isDrawActive },
         { id: 'school', label: 'Schools', icon: <School className="w-5 h-5" />, action: () => onToggle('school'), active: activeFilters.includes('school') },
         { id: 'leisure', label: 'Leisure', icon: <Coffee className="w-5 h-5" />, action: () => onToggle('leisure'), active: activeFilters.includes('leisure') },
         { id: 'culture', label: 'Culture', icon: <Theater className="w-5 h-5" />, action: () => onToggle('culture'), active: activeFilters.includes('culture') },

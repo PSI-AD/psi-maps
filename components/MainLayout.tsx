@@ -40,6 +40,11 @@ interface MainLayoutProps {
   setDeveloperFilter: (dev: string) => void;
   statusFilter: string;
   setStatusFilter: (stat: string) => void;
+  selectedCity: string;
+  setSelectedCity: (city: string) => void;
+  selectedCommunity: string;
+  setSelectedCommunity: (comm: string) => void;
+  handleFitBounds: (projects: Project[]) => void;
 }
 
 const MainLayout: React.FC<MainLayoutProps> = ({
@@ -52,7 +57,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   mapFeatures, setMapFeatures,
   propertyType, setPropertyType,
   developerFilter, setDeveloperFilter,
-  statusFilter, setStatusFilter
+  statusFilter, setStatusFilter,
+  selectedCity, setSelectedCity,
+  selectedCommunity, setSelectedCommunity,
+  handleFitBounds
 }) => {
   const [isNearbyToolsOpen, setIsNearbyToolsOpen] = useState(false);
 
@@ -83,8 +91,37 @@ const MainLayout: React.FC<MainLayoutProps> = ({
       )}
 
       {/* Main Map Container - completely flush with the bottom */}
-      <div className="absolute inset-0 top-20 z-0 bg-slate-100">
+      <div className="absolute inset-0 z-0 bg-slate-100">
         {children}
+      </div>
+
+      {/* Top Gradient Overlay */}
+      <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-slate-900/80 to-transparent pointer-events-none z-40"></div>
+
+      {/* Breadcrumbs Navigation */}
+      <div className="absolute top-6 left-6 z-50 pointer-events-auto flex items-center gap-2 text-white text-sm font-bold drop-shadow-md">
+        <button onClick={() => { setSelectedCity(''); setSelectedCommunity(''); onCloseProject(); handleFitBounds(liveProjects); }} className="hover:text-blue-400 transition-colors">UAE</button>
+
+        {selectedCity && (
+          <>
+            <span className="text-slate-400">/</span>
+            <button onClick={() => { setSelectedCommunity(''); onCloseProject(); handleFitBounds(liveProjects.filter(p => p.city?.toLowerCase() === selectedCity.toLowerCase())); }} className="hover:text-blue-400 transition-colors capitalize">{selectedCity}</button>
+          </>
+        )}
+
+        {selectedCommunity && (
+          <>
+            <span className="text-slate-400">/</span>
+            <button onClick={() => { onCloseProject(); handleFitBounds(liveProjects.filter(p => p.community === selectedCommunity)); }} className="hover:text-blue-400 transition-colors capitalize">{selectedCommunity}</button>
+          </>
+        )}
+
+        {selectedProject && (
+          <>
+            <span className="text-slate-400">/</span>
+            <span className="text-blue-400 capitalize">{selectedProject.name}</span>
+          </>
+        )}
       </div>
 
       <FloatingMapTools
@@ -129,6 +166,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({
         setDeveloperFilter={setDeveloperFilter}
         statusFilter={statusFilter}
         setStatusFilter={setStatusFilter}
+        selectedCity={selectedCity}
+        setSelectedCity={setSelectedCity}
+        selectedCommunity={selectedCommunity}
+        setSelectedCommunity={setSelectedCommunity}
+        handleFitBounds={handleFitBounds}
+        isDrawing={isDrawing}
+        onToggleDraw={onToggleDraw}
       />
     </div>
   );
