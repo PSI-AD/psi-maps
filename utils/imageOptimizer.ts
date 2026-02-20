@@ -18,7 +18,7 @@ export const optimizeAndUploadImage = async (
 ): Promise<string | null> => {
     try {
         // Use a reliable CORS proxy to bypass external server restrictions
-        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(originalUrl)}`;
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(originalUrl)}`;
         const response = await fetch(proxyUrl);
         if (!response.ok) throw new Error(`Proxy fetch failed: ${response.status}`);
         const blob = await response.blob();
