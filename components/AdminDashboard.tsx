@@ -254,6 +254,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                         <img
                           src={stagedProject.thumbnailUrl}
                           alt="Preview"
+                          loading="lazy"
+                          decoding="async"
                           className="w-full h-full object-cover"
                           onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1582407947304-fd86f028f716?auto=format&fit=crop&w=800&q=80'; }}
                         />

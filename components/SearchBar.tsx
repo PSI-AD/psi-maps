@@ -75,7 +75,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ projects, onSelectProject }) => {
                             >
                                 <div className="flex items-center gap-3 overflow-hidden">
                                     <div className="w-8 h-8 rounded-lg bg-slate-100 shrink-0 overflow-hidden">
-                                        <img src={project.thumbnailUrl} className="w-full h-full object-cover" alt="" />
+                                        <img src={project.thumbnailUrl} loading="lazy" decoding="async" className="w-full h-full object-cover" alt="" />
                                     </div>
                                     <div className="min-w-0 flex-1">
                                         <div className="flex justify-between items-start">

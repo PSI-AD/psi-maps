@@ -25,6 +25,11 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({ project, onClose, onDis
   const images = project.images && project.images.length > 0 ? project.images : [project.thumbnailUrl];
   const displayImage = activeImage || images[0] || project.thumbnailUrl;
 
+  const hasValidPrice = project.priceRange &&
+    project.priceRange !== '0' &&
+    project.priceRange !== '0.00' &&
+    !project.priceRange.startsWith('AED 0');
+
   return (
     <div className="h-full flex flex-col bg-white text-slate-800 font-sans shadow-2xl relative border-l border-slate-200">
 
@@ -33,6 +38,8 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({ project, onClose, onDis
         <img
           src={getOptimizedImageUrl(displayImage, 1200, 800)}
           alt={project.name}
+          loading="eager"
+          decoding="async"
           className="w-full h-full object-cover transition-transform duration-1000 ease-in-out group-hover:scale-105"
         />
         <button
@@ -52,7 +59,13 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({ project, onClose, onDis
               onClick={() => setActiveImage(img)}
               className={`relative w-28 h-20 shrink-0 rounded-lg overflow-hidden border-2 transition-all shadow-sm ${activeImage === img ? 'border-blue-600 ring-2 ring-blue-100 opacity-100' : 'border-transparent opacity-70 hover:opacity-100 hover:border-slate-300'}`}
             >
-              <img src={getOptimizedImageUrl(img, 200, 150)} alt="" className="w-full h-full object-cover" />
+              <img
+                src={getOptimizedImageUrl(img, 200, 150)}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className="w-full h-full object-cover"
+              />
             </button>
           ))}
         </div>
@@ -86,13 +99,13 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({ project, onClose, onDis
           {/* 4. Data Grid - Strict Hide Rules */}
           <div className="grid grid-cols-2 gap-4">
 
-            {/* Price (Hidden if 0) */}
-            {project.priceRange && project.priceRange !== '0' && project.priceRange !== '0.00' && (
+            {/* Price (Hidden if 0 or invalid) */}
+            {hasValidPrice && (
               <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3 col-span-2">
                 <Building className="w-5 h-5 text-blue-600 mt-0.5" />
                 <div>
                   <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Starting Price</p>
-                  <p className="font-bold text-slate-900 text-lg">AED {project.priceRange.split('-')[0].trim()}</p>
+                  <p className="font-bold text-slate-900 text-lg">AED {project.priceRange?.split('-')[0].trim()}</p>
                 </div>
               </div>
             )}

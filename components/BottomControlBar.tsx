@@ -26,8 +26,6 @@ const UAE_CENTERS: Record<string, { lng: number, lat: number, zoom: number }> = 
     'umm al quwain': { lng: 55.5753, lat: 25.5647, zoom: 12 }
 };
 
-const PROPERTY_TYPES = ['All', 'Apartment', 'Villa', 'Townhouse', 'Penthouse'];
-
 const BottomControlBar: React.FC<BottomControlBarProps> = ({
     projects,
     onSelectProject,
@@ -41,6 +39,25 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
     const [selectedCity, setSelectedCity] = useState<string>('');
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
+    // Dynamic Property Type calculation
+    const propertyTypeOptions = useMemo(() => {
+        const stats = projects.reduce((acc, p) => {
+            const type = p.type ? p.type.charAt(0).toUpperCase() + p.type.slice(1).toLowerCase() : 'Unknown';
+            acc[type] = (acc[type] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
+
+        const types = Object.entries(stats)
+            .filter(([_, count]) => (count as number) > 0)
+            .map(([name, count]) => ({ name, count: count as number }))
+            .sort((a, b) => (b.count as number) - (a.count as number));
+
+        return [
+            { name: 'All', count: projects.length },
+            ...types
+        ];
+    }, [projects]);
+
     // Helper to generate sorted options with counts for Cities
     const cityOptions = useMemo(() => {
         const stats = projects.reduce((acc, p) => {
@@ -52,14 +69,14 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
         }, {} as Record<string, number>);
 
         return Object.entries(stats)
-            .filter(([_, count]) => count > 0)
+            .filter(([_, count]) => (count as number) > 0)
             .map(([id, count]) => ({
                 id,
                 name: id.charAt(0).toUpperCase() + id.slice(1),
-                count,
+                count: count as number,
                 label: `${id.charAt(0).toUpperCase() + id.slice(1)} (${count})`
             }))
-            .sort((a, b) => b.count - a.count);
+            .sort((a, b) => (b.count as number) - (a.count as number));
     }, [projects]);
 
     // Helper to generate sorted options with counts for Communities
@@ -75,13 +92,13 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
         }, {} as Record<string, number>);
 
         return Object.entries(stats)
-            .filter(([_, count]) => count > 0)
+            .filter(([_, count]) => (count as number) > 0)
             .map(([name, count]) => ({
                 name,
-                count,
+                count: count as number,
                 label: `${name} (${count})`
             }))
-            .sort((a, b) => b.count - a.count);
+            .sort((a, b) => (b.count as number) - (a.count as number));
     }, [projects, selectedCity]);
 
     const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -211,23 +228,22 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                         </div>
 
                         <div className="flex flex-col gap-2">
-                            {PROPERTY_TYPES.map(type => (
+                            {propertyTypeOptions.map(option => (
                                 <button
-                                    key={type}
+                                    key={option.name}
                                     onClick={() => {
-                                        setPropertyType(type);
-                                        // Auto close on select or keep open? User says instantly filtering. Let's close for better UX
+                                        setPropertyType(option.name);
                                         setIsFilterModalOpen(false);
                                     }}
                                     className={`
                                         w-full p-4 rounded-2xl border flex items-center justify-between transition-all font-bold text-sm
-                                        ${propertyType === type
+                                        ${propertyType === option.name
                                             ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-200'
                                             : 'bg-slate-50 border-slate-100 text-slate-600 hover:bg-white hover:border-blue-200'}
                                     `}
                                 >
-                                    <span>{type}</span>
-                                    {propertyType === type && <Check className="w-5 h-5" />}
+                                    <span>{option.name} ({option.count})</span>
+                                    {propertyType === option.name && <Check className="w-5 h-5" />}
                                 </button>
                             ))}
                         </div>

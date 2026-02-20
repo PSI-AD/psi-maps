@@ -17,11 +17,10 @@ const ProjectListSidebar: React.FC<ProjectListSidebarProps> = ({ project, onClos
     const themes = ['architecture', 'luxury-interior', 'modern-building', 'penthouse', 'swimming-pool'];
     return [
       project.thumbnailUrl,
-      ...themes.map(theme => `https://images.unsplash.com/photo-${
-        project.id === 'saad-1' ? '1600607687969-b6139b5f40bb' : 
-        project.id === 'saad-2' ? '1512917774080-9991f1c4c750' :
-        '1613490493576-7fde63acd811'
-      }?auto=format&fit=crop&w=800&q=80&sig=${project.id}-${theme}`)
+      ...themes.map(theme => `https://images.unsplash.com/photo-${project.id === 'saad-1' ? '1600607687969-b6139b5f40bb' :
+          project.id === 'saad-2' ? '1512917774080-9991f1c4c750' :
+            '1613490493576-7fde63acd811'
+        }?auto=format&fit=crop&w=800&q=80&sig=${project.id}-${theme}`)
     ].slice(0, 5);
   }, [project]);
 
@@ -41,7 +40,7 @@ const ProjectListSidebar: React.FC<ProjectListSidebarProps> = ({ project, onClos
 
   if (!project) return null;
 
-  const containerClasses = isInline 
+  const containerClasses = isInline
     ? "flex flex-col h-full w-full bg-white overflow-hidden"
     : "fixed top-20 right-0 h-[calc(100vh-80px)] bg-white shadow-[-10px_0_30px_rgba(0,0,0,0.05)] transition-transform duration-500 ease-out z-[3500] w-full sm:w-[450px] flex flex-col border-l border-gray-100 translate-x-0";
 
@@ -49,8 +48,8 @@ const ProjectListSidebar: React.FC<ProjectListSidebarProps> = ({ project, onClos
     <div className={containerClasses}>
       {/* Sidebar Header - Reduced Padding */}
       <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10 shrink-0">
-        <button 
-          onClick={onClose} 
+        <button
+          onClick={onClose}
           className="flex items-center space-x-2 text-slate-400 hover:text-slate-900 transition-colors"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -64,21 +63,23 @@ const ProjectListSidebar: React.FC<ProjectListSidebarProps> = ({ project, onClos
       <div className="flex-1 overflow-y-auto custom-scrollbar">
         {/* Premium Image Gallery - Sleek & Edge-to-edge */}
         <div className="relative w-full h-64 bg-slate-900 group overflow-hidden shrink-0">
-          <div 
-            className="flex transition-transform duration-700 cubic-bezier(0.4, 0, 0.2, 1) h-full" 
+          <div
+            className="flex transition-transform duration-700 cubic-bezier(0.4, 0, 0.2, 1) h-full"
             style={{ transform: `translateX(-${activeImageIndex * 100}%)` }}
           >
             {galleryImages.map((img, idx) => (
-              <img 
-                key={idx} 
-                src={img} 
-                className="w-full h-full object-cover shrink-0 select-none" 
-                alt={`${project.name} view ${idx + 1}`} 
+              <img
+                key={idx}
+                src={img}
+                loading="lazy"
+                decoding="async"
+                className="w-full h-full object-cover shrink-0 select-none"
+                alt={`${project.name} view ${idx + 1}`}
               />
             ))}
           </div>
-          
-          <button 
+
+          <button
             onClick={handlePrev}
             className="absolute left-3 top-1/2 -translate-y-1/2 p-1.5 bg-black/10 hover:bg-black/30 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm"
           >
@@ -86,8 +87,8 @@ const ProjectListSidebar: React.FC<ProjectListSidebarProps> = ({ project, onClos
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          
-          <button 
+
+          <button
             onClick={handleNext}
             className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 bg-black/10 hover:bg-black/30 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm"
           >
@@ -184,13 +185,13 @@ const ProjectListSidebar: React.FC<ProjectListSidebarProps> = ({ project, onClos
 
       {/* Footer Actions - Streamlined */}
       <div className="p-4 bg-slate-50 border-t border-gray-100 flex flex-col gap-2 shrink-0">
-        <button 
+        <button
           onClick={onOpenAnalysis}
           className="w-full bg-white hover:bg-slate-100 text-blue-700 py-3 px-6 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 border border-slate-200 shadow-sm"
         >
           Detailed ROI Analysis
         </button>
-        <button 
+        <button
           className="w-full bg-blue-700 hover:bg-blue-800 text-white py-3 px-6 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-md"
         >
           Register Interest

@@ -213,6 +213,11 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
 
                     if (!isValid) return null;
 
+                    const hasValidPrice = activeProject.priceRange &&
+                        activeProject.priceRange !== '0' &&
+                        activeProject.priceRange !== '0.00' &&
+                        !activeProject.priceRange.startsWith('AED 0');
+
                     return (
                         <Popup
                             longitude={lng}
@@ -228,6 +233,8 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                                 <div className="w-[100px] h-full shrink-0 bg-slate-100 relative overflow-hidden">
                                     <img
                                         src={getOptimizedImageUrl(activeProject.thumbnailUrl, 200, 200)}
+                                        loading="lazy"
+                                        decoding="async"
                                         className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                         alt=""
                                     />
@@ -240,9 +247,9 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                                         {activeProject.name || 'Premium Property'}
                                     </h4>
                                     <div className="mt-auto">
-                                        {activeProject.priceRange && activeProject.priceRange !== '0' && activeProject.priceRange !== '0.00' && (
+                                        {hasValidPrice && (
                                             <span className="text-[11px] font-bold text-slate-800 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100 inline-block">
-                                                {activeProject.priceRange.split('-')[0].trim()}
+                                                {activeProject.priceRange?.split('-')[0].trim()}
                                             </span>
                                         )}
                                     </div>
