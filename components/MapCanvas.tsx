@@ -1,11 +1,13 @@
 import React, { useRef } from 'react';
-import mapboxgl from 'mapbox-gl';
-import Map, { AttributionControl, NavigationControl, Source, Layer, Popup } from 'react-map-gl';
+import ReactMapGL, { AttributionControl, NavigationControl, Source, Layer, Popup } from 'react-map-gl';
 import type { CircleLayer, SymbolLayer } from 'react-map-gl';
 import { Project, Landmark } from '../types';
 import DrawControl from './DrawControl';
 import AmenityMarker from './AmenityMarker';
 import { getOptimizedImageUrl } from '../utils/imageHelpers';
+
+// Safe ESM/CJS interop for react-map-gl
+const Map = (ReactMapGL as any).default || ReactMapGL;
 
 interface MapCanvasProps {
     mapRef: any;
@@ -32,13 +34,12 @@ interface MapCanvasProps {
     activeBoundary?: any;
 }
 
-// 🚨 PERMANENT FIX: Base64 decoded token. No environment variables allowed.
+// 🚨 PERMANENT FIX: Base64 decoded token. Passed only via component prop.
 const getMapboxToken = () => {
     const b64 = 'cGsuZXlKMUlqb2ljSE5wYm5ZaUxDSmhJam9pWTIxc2NqQnpNMjF4TURacU56Tm1jMlZtZEd0NU1XMDVaQ0o5LlZ4SUVuMWpMVHpNd0xBTjhtNEIxNWc=';
     return typeof window !== 'undefined' ? atob(b64) : '';
 };
 const PUBLIC_MAPBOX_TOKEN = getMapboxToken();
-(mapboxgl as any).accessToken = PUBLIC_MAPBOX_TOKEN;
 
 const clusterLayer: CircleLayer = {
     id: 'clusters',

@@ -18,15 +18,6 @@ export default defineConfig(({ mode }) => {
       alias: {
         '@': path.resolve(__dirname, '.'),
       }
-    },
-    optimizeDeps: {
-      include: ['@mapbox/mapbox-gl-draw']
-    },
-    build: {
-      commonjsOptions: {
-        include: [/node_modules/],
-        transformMixedEsModules: true
-      }
     }
   };
 });
