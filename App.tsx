@@ -56,8 +56,6 @@ const App: React.FC = () => {
 
   const handleFitBounds = (projectsToFit: Project[], isDefault = false) => {
     if (!mapRef.current) return;
-
-    // Hardcoded UAE safe bounds
     const defaultBounds: [number, number, number, number] = [51.5, 22.5, 56.5, 26.0];
 
     if (isDefault || !projectsToFit.length) {
@@ -65,12 +63,23 @@ const App: React.FC = () => {
       return;
     }
 
-    // Strict UAE filter — ignores typos and outlier coordinates
-    const validProjects = projectsToFit.filter(p => {
-      const lat = Number(p.latitude);
-      const lng = Number(p.longitude);
+    // Pass 1: strict UAE geographic bounds
+    let validProjects = projectsToFit.filter(p => {
+      const lat = Number(p.latitude); const lng = Number(p.longitude);
       return !isNaN(lat) && !isNaN(lng) && lat > 22 && lat < 27 && lng > 51 && lng < 57;
     });
+
+    // Pass 2: median-center outlier rejection (~15km radius around the cluster)
+    if (validProjects.length > 2) {
+      const sortedLats = [...validProjects.map(p => Number(p.latitude))].sort((a, b) => a - b);
+      const sortedLngs = [...validProjects.map(p => Number(p.longitude))].sort((a, b) => a - b);
+      const medianLat = sortedLats[Math.floor(sortedLats.length / 2)];
+      const medianLng = sortedLngs[Math.floor(sortedLngs.length / 2)];
+      validProjects = validProjects.filter(p =>
+        Math.abs(Number(p.latitude) - medianLat) < 0.15 &&
+        Math.abs(Number(p.longitude) - medianLng) < 0.15
+      );
+    }
 
     if (!validProjects.length) {
       mapRef.current.getMap().fitBounds(defaultBounds, { padding: 50, duration: 1500 });
@@ -126,7 +135,7 @@ const App: React.FC = () => {
   };
 
   const handleSearchSelect = (project: Project) => {
-    handleFlyTo(project.longitude, project.latitude, 16);
+    handleFlyTo(project.longitude, project.latitude, 14.5);
     setSelectedProjectId(project.id);
     setSelectedLandmarkId(null);
     setIsAnalysisOpen(true);
