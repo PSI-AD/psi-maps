@@ -20,10 +20,7 @@ const App: React.FC = () => {
     filteredAmenities, activeAmenities, handleToggleAmenity, filterPolygon, setFilterPolygon,
     propertyType, setPropertyType,
     developerFilter, setDeveloperFilter,
-    statusFilter, setStatusFilter,
-    selectedCity, setSelectedCity,
-    selectedCommunity, setSelectedCommunity,
-    activeBoundary, setActiveBoundary
+    statusFilter, setStatusFilter
   } = useProjectData();
 
   const {
@@ -33,6 +30,10 @@ const App: React.FC = () => {
 
   // Super Admin Toggles
   const [mapFeatures, setMapFeatures] = useState({ show3D: true, showAnalytics: true, showCommunityBorders: true });
+
+  const [selectedCity, setSelectedCity] = useState<string>('');
+  const [selectedCommunity, setSelectedCommunity] = useState<string>('');
+  const [activeBoundary, setActiveBoundary] = useState<any>(null);
 
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
   const [isAdminOpen, setIsAdminOpen] = useState(false);
@@ -160,6 +161,7 @@ const App: React.FC = () => {
       handleFitBounds={handleFitBounds}
       handleLocationSelect={handleLocationSelect}
       onQuickFilter={handleQuickFilter}
+      activeBoundary={activeBoundary}
     >
       <MapCanvas
         mapRef={mapRef} viewState={viewState} setViewState={setViewState} updateBounds={updateBounds} mapStyle={mapStyle} onClick={handleMapClick}

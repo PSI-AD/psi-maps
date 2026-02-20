@@ -28,13 +28,13 @@ interface MapCanvasProps {
     selectedProject: Project | null;
     hoveredProject: Project | null;
     projects?: Project[];
-    mapFeatures?: { show3D: boolean; showAnalytics: boolean };
+    mapFeatures?: { show3D: boolean; showAnalytics: boolean; showCommunityBorders: boolean };
     activeBoundary?: any;
 }
 
 // 🚨 PERMANENT FIX: Hardcoded Token. No environment variables allowed.
 const MAPBOX_TOKEN = 'pk.eyJ1IjoicHNpbnYiLCJhIjoiY21scjBzM21xMDZqNzNmc2VmdGt5MW05ZCJ9.VxIEn1jLTzMwLAN8m4B15g';
-(mapboxgl as any).accessToken = MAPBOX_TOKEN;
+mapboxgl.accessToken = 'pk.eyJ1IjoicHNpbnYiLCJhIjoiY21scjBzM21xMDZqNzNmc2VmdGt5MW05ZCJ9.VxIEn1jLTzMwLAN8m4B15g';
 
 const clusterLayer: CircleLayer = {
     id: 'clusters',

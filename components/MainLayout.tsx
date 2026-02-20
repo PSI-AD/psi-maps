@@ -49,6 +49,7 @@ interface MainLayoutProps {
   handleFitBounds: (projects: Project[]) => void;
   handleLocationSelect: (locationType: 'city' | 'community', locationName: string, projectsInLocation: Project[]) => void;
   onQuickFilter?: (type: 'community' | 'developer', value: string) => void;
+  activeBoundary: any;
 }
 
 const MainLayout: React.FC<MainLayoutProps> = (props) => {
@@ -68,7 +69,8 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
     selectedCommunity, setSelectedCommunity,
     handleFitBounds,
     handleLocationSelect,
-    onQuickFilter
+    onQuickFilter,
+    activeBoundary
   } = props;
 
   const [isNearbyToolsOpen, setIsNearbyToolsOpen] = useState(false);
@@ -124,10 +126,10 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
             <button onClick={() => { props.onCloseProject(); props.handleLocationSelect('community', props.selectedCommunity, props.liveProjects.filter(p => p.community === props.selectedCommunity)); }} className="hover:text-blue-600 transition-colors capitalize">{props.selectedCommunity}</button>
           </>
         )}
-        {selectedProject && (
+        {props.selectedProject && (
           <>
             <span className="text-slate-400">/</span>
-            <span className="text-blue-600 capitalize truncate max-w-[150px]">{selectedProject.name}</span>
+            <span className="text-blue-600 capitalize truncate max-w-[150px]">{props.selectedProject.name}</span>
           </>
         )}
       </div>
