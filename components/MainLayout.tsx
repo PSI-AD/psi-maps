@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Project } from '../types';
+import { Project, Landmark } from '../types';
 import AdminDashboard from './AdminDashboard';
 import ProjectSidebar from './ProjectSidebar';
 import FloatingMapTools from './FloatingMapTools';
@@ -16,6 +16,8 @@ interface MainLayoutProps {
   setIsAnalysisOpen: (isOpen: boolean) => void;
   liveProjects: Project[];
   setLiveProjects: React.Dispatch<React.SetStateAction<Project[]>>;
+  liveLandmarks: Landmark[];
+  setLiveLandmarks: React.Dispatch<React.SetStateAction<Landmark[]>>;
   selectedProject: Project | null;
   filteredProjects: Project[];
   isRefreshing: boolean;
@@ -50,6 +52,7 @@ interface MainLayoutProps {
 const MainLayout: React.FC<MainLayoutProps> = ({
   isAdminOpen, setIsAdminOpen,
   isAnalysisOpen, setIsAnalysisOpen, liveProjects, setLiveProjects,
+  liveLandmarks, setLiveLandmarks,
   selectedProject, isRefreshing,
   onProjectClick, onCloseProject,
   activeAmenities, onToggleAmenity, isDrawing, onToggleDraw,
@@ -77,6 +80,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           onClose={() => setIsAdminOpen(false)}
           liveProjects={liveProjects}
           setLiveProjects={setLiveProjects}
+          liveLandmarks={liveLandmarks}
+          setLiveLandmarks={setLiveLandmarks}
           mapFeatures={mapFeatures}
           setMapFeatures={setMapFeatures}
         />

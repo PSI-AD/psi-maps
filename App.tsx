@@ -14,7 +14,7 @@ mapboxgl.accessToken = 'pk.eyJ1IjoicHNpbnYiLCJhIjoiY21scjBzM21xMDZqNzNmc2VmdGt5M
 
 const App: React.FC = () => {
   const {
-    liveProjects, setLiveProjects, isRefreshing, loadInitialData, filteredProjects,
+    liveProjects, setLiveProjects, liveLandmarks, setLiveLandmarks, isRefreshing, loadInitialData, filteredProjects,
     filteredAmenities, activeAmenities, handleToggleAmenity, filterPolygon, setFilterPolygon,
     propertyType, setPropertyType,
     developerFilter, setDeveloperFilter,
@@ -85,6 +85,7 @@ const App: React.FC = () => {
     <MainLayout
       viewMode={viewMode} setViewMode={setViewMode} isAdminOpen={isAdminOpen} setIsAdminOpen={setIsAdminOpen}
       isAnalysisOpen={isAnalysisOpen} setIsAnalysisOpen={setIsAnalysisOpen} liveProjects={liveProjects} setLiveProjects={setLiveProjects}
+      liveLandmarks={liveLandmarks} setLiveLandmarks={setLiveLandmarks}
       selectedProject={selectedProject} filteredProjects={filteredProjects} isRefreshing={isRefreshing} onRefresh={loadInitialData}
       onProjectClick={handleMarkerClick} onCloseProject={onCloseProject} filterPolygon={filterPolygon}
       activeAmenities={activeAmenities} onToggleAmenity={handleToggleAmenity} isDrawing={isDrawing} onToggleDraw={handleToggleDraw}

@@ -1,12 +1,12 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import * as turf from '@turf/turf';
-import { Project } from '../types';
+import { Project, Landmark } from '../types';
 import { collection, onSnapshot, query } from 'firebase/firestore'; // Import Firestore functions
 import { db } from '../utils/firebase'; // Import initialized db instance
-import { amenitiesData } from '../data/seedData';
 
 export const useProjectData = () => {
     const [liveProjects, setLiveProjects] = useState<Project[]>([]);
+    const [liveLandmarks, setLiveLandmarks] = useState<Landmark[]>([]);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [activeAmenities, setActiveAmenities] = useState<string[]>([]);
     const [filterPolygon, setFilterPolygon] = useState<any>(null);
@@ -16,7 +16,7 @@ export const useProjectData = () => {
     const [selectedCity, setSelectedCity] = useState<string>('');
     const [selectedCommunity, setSelectedCommunity] = useState<string>('');
 
-    // Initial Load - Setup Realtime Listener
+    // Projects Listener
     useEffect(() => {
         setIsRefreshing(true);
         const unsubscribe = onSnapshot(collection(db, 'projects'), (snapshot) => {
@@ -59,20 +59,42 @@ export const useProjectData = () => {
                 } as Project;
             });
 
-            console.log("🔥 EXCLUSIVE FIRESTORE DATA LOADED. Count:", projects.length);
+            console.log("🔥 FIRESTORE PROJECTS LOADED. Count:", projects.length);
             setLiveProjects(projects);
             setIsRefreshing(false);
         }, (error) => {
-            console.error("🔥 FIRESTORE READ ERROR:", error);
+            console.error("🔥 FIRESTORE PROJECTS ERROR:", error);
             setIsRefreshing(false);
         });
 
         return () => unsubscribe();
     }, []);
 
+    // Landmarks Listener
+    useEffect(() => {
+        const unsubscribe = onSnapshot(collection(db, 'landmarks'), (snapshot) => {
+            const landmarks: Landmark[] = snapshot.docs.map((doc) => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    name: data.name || 'Untitled Landmark',
+                    category: data.category || 'culture',
+                    latitude: parseFloat(data.latitude || "0"),
+                    longitude: parseFloat(data.longitude || "0"),
+                    thumbnailUrl: data.thumbnailUrl || ''
+                } as Landmark;
+            });
+
+            console.log("📍 FIRESTORE LANDMARKS LOADED. Count:", landmarks.length);
+            setLiveLandmarks(landmarks);
+        }, (error) => {
+            console.error("📍 FIRESTORE LANDMARKS ERROR:", error);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
     const loadInitialData = useCallback(async () => {
-        // No-op for now as we have a listener, or could trigger a manual refresh/re-sub if needed.
-        // For compatibility with UI button:
         setIsRefreshing(true);
         setTimeout(() => setIsRefreshing(false), 500);
     }, []);
@@ -109,8 +131,8 @@ export const useProjectData = () => {
 
     const filteredAmenities = useMemo(() => {
         if (activeAmenities.length === 0) return [];
-        return amenitiesData.filter(amenity => activeAmenities.includes(amenity.category));
-    }, [activeAmenities]);
+        return liveLandmarks.filter(landmark => activeAmenities.includes(landmark.category));
+    }, [activeAmenities, liveLandmarks]);
 
     const handleToggleAmenity = (category: string) => {
         setActiveAmenities(prev =>
@@ -123,6 +145,8 @@ export const useProjectData = () => {
     return {
         liveProjects,
         setLiveProjects,
+        liveLandmarks,
+        setLiveLandmarks,
         isRefreshing,
         loadInitialData,
         filteredProjects,

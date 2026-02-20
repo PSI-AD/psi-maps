@@ -1,385 +1,451 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Project } from '../types';
+import { Project, Landmark, LandmarkCategory } from '../types';
 import { db } from '../utils/firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, addDoc, collection, deleteDoc, writeBatch } from 'firebase/firestore';
 import { generateCleanId } from '../utils/helpers';
-import { Database, RefreshCw } from 'lucide-react';
-import rawApiData from '../data/master_projects.json';
+import { Database, RefreshCw, Plus, Edit2, Trash2, MapPin, Search, School, ShoppingBag, Theater } from 'lucide-react';
 
 interface AdminDashboardProps {
   onClose: () => void;
   liveProjects: Project[];
   setLiveProjects: React.Dispatch<React.SetStateAction<Project[]>>;
+  liveLandmarks: Landmark[];
+  setLiveLandmarks: React.Dispatch<React.SetStateAction<Landmark[]>>;
   mapFeatures: { show3D: boolean; showAnalytics: boolean };
   setMapFeatures: React.Dispatch<React.SetStateAction<{ show3D: boolean; showAnalytics: boolean }>>;
 }
 
-type TabType = 'general' | 'location' | 'media' | 'settings';
+type TabType = 'general' | 'location' | 'media' | 'settings' | 'nearbys';
 
 const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
-  const { onClose, liveProjects, setLiveProjects, setMapFeatures } = props;
+  const { onClose, liveProjects, setLiveProjects, liveLandmarks, setLiveLandmarks, setMapFeatures } = props;
   const mapFeatures = props.mapFeatures || { show3D: false, showAnalytics: false };
 
-  const [masterApiList, setMasterApiList] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Auto-complete Engine State
+  // Search State
   const [searchTerm, setSearchTerm] = useState('');
-  const [suggestions, setSuggestions] = useState<Project[]>([]);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
-  // Tab State
   const [activeTab, setActiveTab] = useState<TabType>('general');
 
-  const [stagedProject, setStagedProject] = useState<any | null>(null);
+  // Staging State
+  const [stagedProject, setStagedProject] = useState<Project | null>(null);
+  const [stagedLandmark, setStagedLandmark] = useState<Partial<Landmark> | null>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
-  const filteredList = useMemo(() => {
-    return masterApiList.filter(p =>
-      p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.developerName?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [searchTerm, masterApiList]);
+  // Seeding Abu Dhabi Nearbys
+  const seedAbuDhabiNearbys = async () => {
+    if (!window.confirm("This will add 30 premium landmarks to Abu Dhabi. Continue?")) return;
+    setIsSaving(true);
+    const batch = writeBatch(db);
 
-  useEffect(() => {
-    // Legacy API fetch removed. We now rely strictly on Firestore.
-    setLoading(false);
-  }, []);
+    const landmarksToSeed = [
+      // Schools
+      { name: "Cranleigh Abu Dhabi", lat: 24.5440, lng: 54.4180, cat: "school" },
+      { name: "Repton School Abu Dhabi", lat: 24.4984, lng: 54.4069, cat: "school" },
+      { name: "Brighton College Abu Dhabi", lat: 24.4284, lng: 54.4184, cat: "school" },
+      { name: "GEMS American Academy", lat: 24.3639, lng: 54.5439, cat: "school" },
+      { name: "The British School Al Khubairat", lat: 24.4644, lng: 54.3569, cat: "school" },
+      { name: "Raha International School", lat: 24.3939, lng: 54.5839, cat: "school" },
+      { name: "American Community School of Abu Dhabi", lat: 24.4639, lng: 54.3139, cat: "school" },
+      { name: "Al Yasmina Academy", lat: 24.3739, lng: 54.5939, cat: "school" },
+      { name: "Nord Anglia International School", lat: 24.4939, lng: 54.4139, cat: "school" },
+      { name: "Abu Dhabi International School", lat: 24.4639, lng: 54.3839, cat: "school" },
 
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchTerm(value);
+      // Culture
+      { name: "Sheikh Zayed Grand Mosque", lat: 24.4122, lng: 54.4744, cat: "culture" },
+      { name: "Louvre Abu Dhabi", lat: 24.5337, lng: 54.3982, cat: "culture" },
+      { name: "Qasr Al Watan", lat: 24.4627, lng: 54.3040, cat: "culture" },
+      { name: "Emirates Palace", lat: 24.4611, lng: 54.3168, cat: "culture" },
+      { name: "Ferrari World Abu Dhabi", lat: 24.4827, lng: 54.6061, cat: "culture" },
+      { name: "Warner Bros. World Abu Dhabi", lat: 24.4913, lng: 54.5976, cat: "culture" },
+      { name: "Yas Marina Circuit", lat: 24.4697, lng: 54.6050, cat: "culture" },
+      { name: "Etihad Towers", lat: 24.4589, lng: 54.3214, cat: "culture" },
+      { name: "Qasr Al Hosn", lat: 24.4831, lng: 54.3547, cat: "culture" },
+      { name: "National Aquarium Abu Dhabi", lat: 24.4539, lng: 54.4539, cat: "culture" },
 
-    // Search against liveProjects instead of masterApiList
-    if (value.length > 1) {
-      const filtered = liveProjects.filter(p =>
-        p.name?.toLowerCase().includes(value.toLowerCase())
-      ).slice(0, 10);
-      setSuggestions(filtered);
-      setIsDropdownOpen(true);
-    } else {
-      setSuggestions([]);
-      setIsDropdownOpen(false);
+      // Retail
+      { name: "Yas Mall", lat: 24.4886, lng: 54.6078, cat: "retail" },
+      { name: "The Galleria Al Maryah Island", lat: 24.5029, lng: 54.3888, cat: "retail" },
+      { name: "Abu Dhabi Mall", lat: 24.4965, lng: 54.3828, cat: "retail" },
+      { name: "Marina Mall", lat: 24.4764, lng: 54.3214, cat: "retail" },
+      { name: "Al Wahda Mall", lat: 24.4705, lng: 54.3725, cat: "retail" },
+      { name: "Dalma Mall", lat: 24.3414, lng: 54.5165, cat: "retail" },
+      { name: "Deerfields Mall", lat: 24.4527, lng: 54.6647, cat: "retail" },
+      { name: "Khalidiyah Mall", lat: 24.4716, lng: 54.3414, cat: "retail" },
+      { name: "Mushrif Mall", lat: 24.4363, lng: 54.4116, cat: "retail" },
+      { name: "Boutik Mall Reem Island", lat: 24.4939, lng: 54.3989, cat: "retail" }
+    ];
+
+    try {
+      landmarksToSeed.forEach(item => {
+        const docRef = doc(collection(db, 'landmarks'));
+        batch.set(docRef, {
+          name: item.name,
+          latitude: item.lat,
+          longitude: item.lng,
+          category: item.cat,
+          thumbnailUrl: `https://picsum.photos/seed/${item.name.replace(/\s/g, '')}/400/300`
+        });
+      });
+      await batch.commit();
+      alert("Successfully seeded 30 Abu Dhabi Landmarks!");
+    } catch (e) {
+      console.error("Seeding failed", e);
+      alert("Seeding failed");
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const handleClearSearch = () => {
-    setSearchTerm('');
-    setSuggestions([]);
-    setStagedProject(null);
-    setIsDropdownOpen(false);
-  };
-
-  const handleSelectProject = (project: any) => {
-    setStagedProject({ ...project });
-    setSearchTerm(project.name);
-    setIsDropdownOpen(false);
-  };
-
-  const handleInputChange = (key: string, value: any) => {
+  const handleSaveProject = async () => {
     if (!stagedProject) return;
-    const finalValue = (key === 'latitude' || key === 'longitude') ? parseFloat(value) : value;
-    setStagedProject({
-      ...stagedProject,
-      [key]: finalValue
-    });
-  };
-
-  const handleSave = async () => {
-    if (stagedProject) {
-      setIsSaving(true);
-      try {
-        await setDoc(doc(db, 'projects', stagedProject.id), stagedProject, { merge: true });
-        const name = stagedProject.name;
-        handleClearSearch();
-        alert(`${name} updated successfully.`);
-      } catch (e) {
-        console.error("Update failed", e);
-        alert("Failed to update project.");
-      } finally {
-        setIsSaving(false);
-      }
+    setIsSaving(true);
+    try {
+      await setDoc(doc(db, 'projects', stagedProject.id), stagedProject, { merge: true });
+      alert("Project saved successfully.");
+      setStagedProject(null);
+      setSearchTerm('');
+    } catch (e) {
+      console.error("Save failed", e);
+      alert("Failed to save project.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
-
-  const renderField = (label: string, key: string, type: 'text' | 'number' | 'textarea' = 'text') => {
-    const value = stagedProject ? stagedProject[key] : '';
-    return (
-      <div className="space-y-1.5 w-full">
-        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] block ml-1">
-          {label}
-        </label>
-        {type === 'textarea' ? (
-          <textarea
-            value={value || ''}
-            onChange={(e) => handleInputChange(key, e.target.value)}
-            rows={4}
-            className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-slate-800 font-medium outline-none focus:ring-4 focus:ring-blue-50 focus:border-blue-200 transition-all text-sm resize-none"
-          />
-        ) : (
-          <input
-            type={type}
-            value={value || ''}
-            onChange={(e) => handleInputChange(key, e.target.value)}
-            className="w-full h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-slate-800 font-medium outline-none focus:ring-4 focus:ring-blue-50 focus:border-blue-200 transition-all text-sm"
-          />
-        )}
-      </div>
-    );
+  const handleSaveLandmark = async () => {
+    if (!stagedLandmark) return;
+    setIsSaving(true);
+    try {
+      if (stagedLandmark.id) {
+        await setDoc(doc(db, 'landmarks', stagedLandmark.id), stagedLandmark, { merge: true });
+      } else {
+        await addDoc(collection(db, 'landmarks'), stagedLandmark);
+      }
+      alert("Landmark saved successfully.");
+      setStagedLandmark(null);
+    } catch (e) {
+      console.error("Save failed", e);
+      alert("Failed to save landmark.");
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  const handleDeleteLandmark = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this landmark?")) return;
+    try {
+      await deleteDoc(doc(db, 'landmarks', id));
+    } catch (e) {
+      console.error("Delete failed", e);
+    }
+  };
+
+  const filteredLandmarks = useMemo(() => {
+    return liveLandmarks.filter(l =>
+      l.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      l.category.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [liveLandmarks, searchTerm]);
 
   return (
     <div className="fixed inset-0 z-[10000] bg-slate-50/98 backdrop-blur-md overflow-y-auto flex flex-col items-center p-6 md:p-12 animate-in fade-in duration-300 text-slate-900">
       {/* Header */}
       <div className="w-full max-w-7xl flex justify-between items-center mb-10">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Super Admin Dashboard</h1>
-          <p className="text-slate-500 font-medium">Internal Property Moderation & Spatial CMS</p>
-        </div>
         <div className="flex items-center gap-4">
-          <button
-            onClick={onClose}
-            className="p-3 bg-white hover:bg-slate-100 text-slate-400 hover:text-slate-900 rounded-full border border-slate-200 shadow-sm transition-all"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200">
+            <Database className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight">Super Admin Dashboard</h1>
+            <p className="text-slate-500 font-medium">Internal Property Moderation & Spatial CMS</p>
+          </div>
         </div>
+        <button
+          onClick={onClose}
+          className="p-3 bg-white hover:bg-slate-100 text-slate-400 hover:text-slate-900 rounded-full border border-slate-200 shadow-sm transition-all"
+        >
+          <X className="w-6 h-6" />
+        </button>
       </div>
 
-      <div className="w-full max-w-7xl space-y-12">
-        {/* Step 1: Search */}
-        <section className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm overflow-visible">
-          <h2 className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] mb-4">1. Asset Discovery</h2>
-          <div className="relative" ref={searchContainerRef}>
-            <div className="relative flex items-center">
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={handleSearch}
-                onFocus={() => searchTerm.length > 1 && setIsDropdownOpen(true)}
-                placeholder="Search CRM projects to hydrate staging form..."
-                className="w-full h-14 bg-slate-50 border border-slate-100 rounded-xl px-4 pr-12 text-slate-800 font-medium outline-none focus:ring-4 focus:ring-blue-50 transition-all text-lg"
-              />
-              {searchTerm && (
-                <button onClick={handleClearSearch} className="absolute right-4 p-1.5 text-slate-300 hover:text-slate-500 transition-colors">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-              )}
-              {loading && !searchTerm && (
-                <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                  <svg className="animate-spin h-6 w-6 text-blue-500" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                </div>
-              )}
-            </div>
-            {isDropdownOpen && suggestions.length > 0 && (
-              <div className="absolute top-full left-0 w-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden z-[11000] animate-in slide-in-from-top-2">
-                {suggestions.map((p) => (
-                  <button key={p.id} onClick={() => handleSelectProject(p)} className="w-full text-left px-6 py-4 hover:bg-slate-50 flex items-center justify-between transition-colors border-b border-slate-50 last:border-0 group">
-                    <div>
-                      <span className="font-bold text-slate-800 text-sm block">{p.name}</span>
-                      <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{p.developerName}</span>
-                    </div>
-                    <svg className="w-4 h-4 text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Step 2: Tabbed Staging Form */}
-        {stagedProject && (
-          <section className="bg-white p-8 rounded-3xl border border-slate-100 shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex items-center justify-between mb-8 border-b border-slate-50 pb-6">
-              <div>
-                <h2 className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mb-1">2. Staging & Data Sanitization</h2>
-                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Modify Asset: {stagedProject.name}</h3>
-              </div>
-              <button onClick={() => setStagedProject(null)} className="text-xs font-black text-rose-400 uppercase hover:text-rose-600 transition-colors">Discard Staging</button>
-            </div>
-
-            {/* Tab Navigation */}
-            <div className="flex gap-8 mb-8 border-b border-slate-50">
-              {(['general', 'location', 'media', 'settings'] as TabType[]).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`pb-4 text-[11px] font-black uppercase tracking-[0.2em] transition-all border-b-2 ${activeTab === tab
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-slate-400 hover:text-slate-600'
-                    }`}
-                >
-                  {tab === 'general' ? 'General Info' : tab === 'location' ? 'Location Data' : tab === 'media' ? 'Media & Assets' : 'System Settings'}
-                </button>
-              ))}
-            </div>
-
-            {/* Tab Content */}
-            <div className="min-h-[400px]">
-              {activeTab === 'general' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in duration-300">
-                  {renderField('Project Name', 'name')}
-                  {renderField('Developer Name', 'developerName')}
-                  {renderField('Property Type', 'type')}
-                  {renderField('Price Range', 'priceRange')}
-                  {renderField('Handover Date', 'handoverDate')}
-                  <div className="md:col-span-2">
-                    {renderField('Description', 'description', 'textarea')}
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'location' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in duration-300">
-                  {renderField('Latitude', 'latitude', 'number')}
-                  {renderField('Longitude', 'longitude', 'number')}
-                  {renderField('Community', 'community')}
-                  {renderField('Area / District', 'area')}
-                </div>
-              )}
-
-              {activeTab === 'media' && (
-                <div className="space-y-8 animate-in fade-in duration-300">
-                  <div className="flex flex-col md:flex-row gap-6 items-start">
-                    <div className="flex-1 w-full">
-                      {renderField('Thumbnail URL', 'thumbnailUrl')}
-                    </div>
-                    {stagedProject.thumbnailUrl && (
-                      <div className="w-full md:w-48 h-32 rounded-xl overflow-hidden border border-slate-100 bg-slate-50 shadow-inner shrink-0">
-                        <img
-                          src={stagedProject.thumbnailUrl}
-                          alt="Preview"
-                          loading="lazy"
-                          decoding="async"
-                          className="w-full h-full object-cover"
-                          onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1582407947304-fd86f028f716?auto=format&fit=crop&w=800&q=80'; }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {renderField('Video Link 1', 'videoUrl')}
-                    {renderField('Video Link 2', 'videoUrl2')}
-                  </div>
-                  <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
-                    <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2">Media Verification Note</p>
-                    <p className="text-xs text-blue-800 font-medium">Please ensure the thumbnail URL is public and high-resolution. Portals like Unsplash or AWS S3 are recommended.</p>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'settings' && (
-                <div className="space-y-8 animate-in fade-in duration-300 max-w-2xl">
-                  <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 flex items-center justify-between">
-                    <div>
-                      <h4 className="text-sm font-black text-slate-800 uppercase tracking-wider">Enable 3D Building Extrusions</h4>
-                      <p className="text-xs text-slate-500 font-medium mt-1">Render building heights and architectural volume in 3D (Experimental)</p>
-                    </div>
-                    <button
-                      onClick={() => setMapFeatures(prev => ({ ...prev, show3D: !prev.show3D }))}
-                      className={`w-14 h-7 rounded-full p-1 transition-all duration-300 ${mapFeatures.show3D ? 'bg-blue-600' : 'bg-slate-300'}`}
-                    >
-                      <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-300 ${mapFeatures.show3D ? 'translate-x-7' : 'translate-x-0'}`} />
-                    </button>
-                  </div>
-
-                  <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 flex items-center justify-between">
-                    <div>
-                      <h4 className="text-sm font-black text-slate-800 uppercase tracking-wider">Enable Draw Area Analytics</h4>
-                      <p className="text-xs text-slate-500 font-medium mt-1">Show proximity metrics and investment yield overlays for custom polygons</p>
-                    </div>
-                    <button
-                      onClick={() => setMapFeatures(prev => ({ ...prev, showAnalytics: !prev.showAnalytics }))}
-                      className={`w-14 h-7 rounded-full p-1 transition-all duration-300 ${mapFeatures.showAnalytics ? 'bg-blue-600' : 'bg-slate-300'}`}
-                    >
-                      <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-300 ${mapFeatures.showAnalytics ? 'translate-x-7' : 'translate-x-0'}`} />
-                    </button>
-                  </div>
-
-                  <div className="p-6 bg-blue-50 rounded-2xl border border-blue-100 flex gap-4">
-                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">Global Governance</p>
-                      <p className="text-xs text-blue-800 font-medium leading-relaxed">These settings are session-persistent and affect all map render layers. Use caution when enabling 3D features on mobile devices.</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
+      <div className="w-full max-w-7xl">
+        {/* Main Tab Navigation */}
+        <div className="flex gap-4 mb-8 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm sticky top-0 z-[11000]">
+          {(['general', 'location', 'media', 'nearbys', 'settings'] as TabType[]).map((tab) => (
             <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="mt-12 w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800/50 text-white font-black py-6 rounded-2xl shadow-xl shadow-emerald-100 transition-all active:scale-[0.98] uppercase text-sm tracking-[0.2em] flex items-center justify-center gap-3"
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`flex-1 py-3 px-6 text-[11px] font-black uppercase tracking-[0.2em] transition-all rounded-xl flex items-center justify-center gap-2 ${activeTab === tab
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
+                : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
+                }`}
             >
-              {isSaving ? (
-                <>
-                  <RefreshCw className="w-6 h-6 animate-spin" />
-                  <span>Saving to Firestore...</span>
-                </>
-              ) : (
-                <>
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
-                  <span>Save Changes</span>
-                </>
-              )}
+              {tab === 'nearbys' ? <MapPin className="w-4 h-4" /> : null}
+              {tab === 'general' ? 'Projects' : tab === 'location' ? 'Coordinates' : tab === 'media' ? 'Media' : tab === 'nearbys' ? 'Nearbys CMS' : 'Settings'}
             </button>
-          </section>
+          ))}
+        </div>
+
+        {/* Search Bar for Projects / Landmarks */}
+        {activeTab !== 'settings' && (
+          <div className="mb-8 relative">
+            <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
+              <Search className="w-5 h-5 text-slate-400" />
+            </div>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder={activeTab === 'nearbys' ? "Search landmarks by name or category..." : "Search projects..."}
+              className="w-full h-14 bg-white border border-slate-100 rounded-2xl pl-14 pr-6 text-slate-800 font-medium outline-none focus:ring-4 focus:ring-blue-50 transition-all shadow-sm"
+            />
+          </div>
         )}
 
-        {/* Step 3: Asset Directory */}
-        <section className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">3. Live Asset Directory</h2>
-            <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">{liveProjects.length} Deployed Pins</span>
-          </div>
-          <div className="overflow-x-auto -mx-8">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50">
-                  <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Status</th>
-                  <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Project Name</th>
-                  <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Developer</th>
-                  <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(searchTerm ? filteredList : liveProjects.slice(0, 50)).map((p) => {
-                  const isLive = liveProjects.some(lp => lp.id === p.id);
-                  return (
-                    <tr key={p.id} className="hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0 group">
-                      <td className="px-8 py-5">
-                        {isLive ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-widest border border-emerald-100">
-                            <span className="w-1 h-1 rounded-full bg-emerald-600 animate-pulse"></span>Live
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-slate-50 text-slate-400 text-[9px] font-black uppercase tracking-widest border border-slate-100">Staged</span>
-                        )}
-                      </td>
-                      <td className="px-8 py-5"><span className="font-bold text-slate-800 block">{p.name}</span></td>
-                      <td className="px-8 py-5"><span className="text-sm text-slate-500 font-medium">{p.developerName}</span></td>
-                      <td className="px-8 py-5">
-                        <button onClick={() => handleSelectProject(p)} className="text-blue-600 hover:text-blue-800 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all">{isLive ? 'Edit Asset' : 'Deploy'}</button>
-                      </td>
+        {/* Content Sections */}
+        <div className="space-y-8 pb-20">
+          {activeTab === 'nearbys' ? (
+            <section className="animate-in fade-in duration-300">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-black text-slate-900 tracking-tight">Landmarks & Amenities</h2>
+                  <p className="text-slate-500 font-medium text-sm">Manage educational, retail, and cultural points of interest</p>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={seedAbuDhabiNearbys}
+                    disabled={isSaving}
+                    className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-amber-100"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isSaving ? 'animate-spin' : ''}`} />
+                    Seed Abu Dhabi
+                  </button>
+                  <button
+                    onClick={() => setStagedLandmark({ name: '', category: 'school', latitude: 24.4, longitude: 54.4, thumbnailUrl: '' })}
+                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-blue-100"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Landmark
+                  </button>
+                </div>
+              </div>
+
+              {/* Landmark Editor Form */}
+              {stagedLandmark && (
+                <div className="mb-10 p-8 bg-blue-50 border border-blue-100 rounded-3xl animate-in slide-in-from-top-4 duration-500 relative">
+                  <button onClick={() => setStagedLandmark(null)} className="absolute top-6 right-6 text-blue-400 hover:text-blue-900">
+                    <X className="w-6 h-6" />
+                  </button>
+                  <h3 className="text-lg font-black text-blue-900 uppercase tracking-tighter mb-6">
+                    {stagedLandmark.id ? 'Edit Landmark' : 'Create New Landmark'}
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="flex flex-col gap-1.5 lg:col-span-2">
+                      <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest ml-1">Name</label>
+                      <input
+                        type="text"
+                        value={stagedLandmark.name || ''}
+                        onChange={(e) => setStagedLandmark({ ...stagedLandmark, name: e.target.value })}
+                        className="h-12 bg-white border border-blue-200 rounded-xl px-4 text-slate-800 font-medium outline-none focus:ring-4 focus:ring-blue-100"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest ml-1">Category</label>
+                      <select
+                        value={stagedLandmark.category}
+                        onChange={(e) => setStagedLandmark({ ...stagedLandmark, category: e.target.value as LandmarkCategory })}
+                        className="h-12 bg-white border border-blue-200 rounded-xl px-4 text-slate-800 font-medium outline-none focus:ring-4 focus:ring-blue-100"
+                      >
+                        <option value="school">School</option>
+                        <option value="retail">Retail</option>
+                        <option value="culture">Culture</option>
+                        <option value="leisure">Leisure</option>
+                        <option value="hotel">Hotel</option>
+                      </select>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest ml-1">Lat</label>
+                      <input
+                        type="number"
+                        value={stagedLandmark.latitude || ''}
+                        onChange={(e) => setStagedLandmark({ ...stagedLandmark, latitude: parseFloat(e.target.value) })}
+                        className="h-12 bg-white border border-blue-200 rounded-xl px-4 text-slate-800 font-medium outline-none focus:ring-4 focus:ring-blue-100"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest ml-1">Lng</label>
+                      <input
+                        type="number"
+                        value={stagedLandmark.longitude || ''}
+                        onChange={(e) => setStagedLandmark({ ...stagedLandmark, longitude: parseFloat(e.target.value) })}
+                        className="h-12 bg-white border border-blue-200 rounded-xl px-4 text-slate-800 font-medium outline-none focus:ring-4 focus:ring-blue-100"
+                      />
+                    </div>
+                    <div className="lg:col-span-3 flex flex-col gap-1.5">
+                      <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest ml-1">Thumb URL (Optional)</label>
+                      <input
+                        type="text"
+                        value={stagedLandmark.thumbnailUrl || ''}
+                        onChange={(e) => setStagedLandmark({ ...stagedLandmark, thumbnailUrl: e.target.value })}
+                        className="h-12 bg-white border border-blue-200 rounded-xl px-4 text-slate-800 font-medium outline-none focus:ring-4 focus:ring-blue-100"
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <button
+                        onClick={handleSaveLandmark}
+                        className="w-full h-12 bg-blue-700 text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-blue-200"
+                      >
+                        {stagedLandmark.id ? 'Update' : 'Create'} Landmark
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Landmarks Table */}
+              <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+                <table className="w-full text-left">
+                  <thead className="bg-slate-50 border-b border-slate-100">
+                    <tr>
+                      <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Category</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Name</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Map Position</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Actions</th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {filteredLandmarks.map((l) => (
+                      <tr key={l.id} className="hover:bg-slate-50 transition-all group">
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${l.category === 'school' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
+                              l.category === 'retail' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                l.category === 'culture' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                  'bg-slate-50 text-slate-600 border-slate-100'
+                            }`}>
+                            {l.category === 'school' && <School className="w-3 h-3" />}
+                            {l.category === 'retail' && <ShoppingBag className="w-3 h-3" />}
+                            {l.category === 'culture' && <Theater className="w-3 h-3" />}
+                            {l.category}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 font-bold text-slate-900">{l.name}</td>
+                        <td className="px-6 py-4 text-xs font-medium text-slate-500 tracking-tighter">
+                          {l.latitude.toFixed(4)}, {l.longitude.toFixed(4)}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                            <button onClick={() => setStagedLandmark(l)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-white rounded-lg transition-all shadow-sm">
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => handleDeleteLandmark(l.id)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-white rounded-lg transition-all shadow-sm">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {filteredLandmarks.length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="px-6 py-20 text-center">
+                          <p className="text-slate-400 font-medium italic">No landmarks found matching your search.</p>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          ) : (
+            // Projects Management Sections
+            <>
+              {stagedProject ? (
+                <section className="bg-white p-8 rounded-3xl border border-slate-100 shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="flex items-center justify-between mb-8 border-b border-slate-50 pb-6">
+                    <div>
+                      <h2 className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mb-1">Asset Staging</h2>
+                      <h3 className="text-2xl font-black text-slate-900 tracking-tight">{stagedProject.name}</h3>
+                    </div>
+                    <button onClick={() => setStagedProject(null)} className="text-xs font-black text-rose-400 uppercase hover:text-rose-600 transition-colors">Discard</button>
+                  </div>
+
+                  {/* Reuse Field Rendering from previous version or simplify */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div className="space-y-4">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Project Name</label>
+                        <input className="h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-slate-800 font-medium" value={stagedProject.name} onChange={(e) => setStagedProject({ ...stagedProject, name: e.target.value })} />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Developer</label>
+                        <input className="h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-slate-800 font-medium" value={stagedProject.developerName} onChange={(e) => setStagedProject({ ...stagedProject, developerName: e.target.value })} />
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Latitude</label>
+                          <input type="number" className="h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-slate-800 font-medium" value={stagedProject.latitude} onChange={(e) => setStagedProject({ ...stagedProject, latitude: parseFloat(e.target.value) })} />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Longitude</label>
+                          <input type="number" className="h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-slate-800 font-medium" value={stagedProject.longitude} onChange={(e) => setStagedProject({ ...stagedProject, longitude: parseFloat(e.target.value) })} />
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Property Type</label>
+                        <select className="h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-slate-800 font-medium" value={stagedProject.type} onChange={(e) => setStagedProject({ ...stagedProject, type: e.target.value as any })}>
+                          <option value="apartment">Apartment</option>
+                          <option value="villa">Villa</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleSaveProject}
+                    disabled={isSaving}
+                    className="w-full py-6 bg-emerald-600 text-white rounded-2xl font-black uppercase text-sm tracking-widest shadow-xl shadow-emerald-50 flex items-center justify-center gap-3"
+                  >
+                    {isSaving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Database className="w-5 h-5" />}
+                    Confirm & Publish Pin
+                  </button>
+                </section>
+              ) : (
+                <section className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+                  <table className="w-full text-left">
+                    <thead className="bg-slate-50 border-b border-slate-100">
+                      <tr>
+                        <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Project Name</th>
+                        <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Developer</th>
+                        <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {liveProjects.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())).slice(0, 30).map((p) => (
+                        <tr key={p.id} className="hover:bg-slate-50 transition-all group">
+                          <td className="px-8 py-5 font-bold text-slate-800">{p.name}</td>
+                          <td className="px-8 py-5 text-sm text-slate-500 font-medium">{p.developerName}</td>
+                          <td className="px-8 py-5 text-right">
+                            <button onClick={() => setStagedProject(p)} className="text-blue-600 hover:text-blue-800 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all">Edit Asset</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </section>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
 };
 
+const X = ({ className }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+);
 
 export default AdminDashboard;
