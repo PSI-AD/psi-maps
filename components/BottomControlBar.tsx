@@ -116,11 +116,10 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
 
     const availableCommunities = useMemo(() => {
         if (!selectedCity) return [];
-        const inCity = projects.filter(p => p.city === selectedCity && p.community);
+        const safeCity = selectedCity.toLowerCase().trim();
+        const inCity = projects.filter(p => p.city?.toLowerCase().trim() === safeCity && p.community);
         const counts = inCity.reduce((acc, p) => {
-            if (p.community) {
-                acc[p.community] = (acc[p.community] || 0) + 1;
-            }
+            acc[p.community!] = (acc[p.community!] || 0) + 1;
             return acc;
         }, {} as Record<string, number>);
         return Object.entries(counts).sort((a, b) => (b[1] as number) - (a[1] as number));
@@ -131,7 +130,8 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
         setSelectedCity(val);
         setSelectedCommunity('');
         if (handleLocationSelect) {
-            handleLocationSelect('city', val, projects.filter(p => p.city === val));
+            const safeCity = val.toLowerCase().trim();
+            handleLocationSelect('city', val, projects.filter(p => p.city?.toLowerCase().trim() === safeCity));
         }
     };
 

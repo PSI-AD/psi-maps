@@ -276,13 +276,11 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                                         alt=""
                                     />
                                 </div>
-                                <div className="p-3 flex-1 flex flex-col justify-center min-w-0 bg-white text-left">
-                                    {/* H4 with min-h to guarantee 2 lines of space */}
-                                    <h4 className="font-black text-[13px] text-slate-900 leading-tight line-clamp-2 break-words mb-1 min-h-[2rem]" title={activeProject.name}>
+                                <div className="p-2.5 w-48 flex flex-col justify-center bg-white overflow-hidden">
+                                    <h4 className="font-black text-base text-slate-900 leading-tight truncate w-full" title={activeProject.name}>
                                         {activeProject.name || 'Premium Property'}
                                     </h4>
-                                    {/* Developer name strictly in Blue */}
-                                    <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest truncate">
+                                    <span className="text-[11px] font-bold text-blue-600 uppercase tracking-widest truncate w-full mt-0.5" title={activeProject.developerName}>
                                         {activeProject.developerName || 'Exclusive Developer'}
                                     </span>
                                 </div>

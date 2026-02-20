@@ -54,11 +54,31 @@ const App: React.FC = () => {
   const hoveredProject = filteredProjects.find(p => p.id === hoveredProjectId) || null;
   const selectedLandmark = filteredAmenities.find(l => l.id === selectedLandmarkId) || null;
 
-  const handleFitBounds = (projectsToFit: Project[]) => {
-    if (!mapRef.current || !projectsToFit.length) return;
-    const lats = projectsToFit.map(p => Number(p.latitude)).filter(n => !isNaN(n) && n !== 0 && n >= -90 && n <= 90);
-    const lngs = projectsToFit.map(p => Number(p.longitude)).filter(n => !isNaN(n) && n !== 0 && n >= -180 && n <= 180);
-    if (!lats.length || !lngs.length) return;
+  const handleFitBounds = (projectsToFit: Project[], isDefault = false) => {
+    if (!mapRef.current) return;
+
+    // Hardcoded UAE safe bounds
+    const defaultBounds: [number, number, number, number] = [51.5, 22.5, 56.5, 26.0];
+
+    if (isDefault || !projectsToFit.length) {
+      mapRef.current.getMap().fitBounds(defaultBounds, { padding: 50, duration: 1500 });
+      return;
+    }
+
+    // Strict UAE filter — ignores typos and outlier coordinates
+    const validProjects = projectsToFit.filter(p => {
+      const lat = Number(p.latitude);
+      const lng = Number(p.longitude);
+      return !isNaN(lat) && !isNaN(lng) && lat > 22 && lat < 27 && lng > 51 && lng < 57;
+    });
+
+    if (!validProjects.length) {
+      mapRef.current.getMap().fitBounds(defaultBounds, { padding: 50, duration: 1500 });
+      return;
+    }
+
+    const lats = validProjects.map(p => Number(p.latitude));
+    const lngs = validProjects.map(p => Number(p.longitude));
     const bbox: [number, number, number, number] = [Math.min(...lngs), Math.min(...lats), Math.max(...lngs), Math.max(...lats)];
     mapRef.current.getMap().fitBounds(bbox, { padding: 80, duration: 1200, maxZoom: 15 });
   };
@@ -66,7 +86,7 @@ const App: React.FC = () => {
   const handleLocationSelect = async (locationType: 'city' | 'community', locationName: string, projectsInLocation: Project[]) => {
     if (!locationName) {
       setActiveBoundary(null);
-      handleFitBounds(liveProjects);
+      handleFitBounds([], true); // Force default UAE zoom
       return;
     }
     if (locationType === 'city') {
