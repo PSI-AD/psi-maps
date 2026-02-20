@@ -28,40 +28,19 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({ project, onClose, onDis
   return (
     <div className="h-full flex flex-col bg-white text-slate-800 font-sans shadow-2xl relative border-l border-slate-200">
 
-      {/* 1. Hero Image Section */}
-      <div className="relative h-80 w-full shrink-0 bg-slate-100 group">
+      {/* 1. Clean Hero Image */}
+      <div className="relative h-64 w-full shrink-0 bg-slate-100 group">
         <img
           src={getOptimizedImageUrl(displayImage, 1200, 800)}
           alt={project.name}
           className="w-full h-full object-cover transition-transform duration-1000 ease-in-out group-hover:scale-105"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/40 to-transparent pointer-events-none" />
-
         <button
           onClick={onClose}
-          className="absolute top-6 right-6 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white p-2 rounded-full transition-all border border-white/20 hover:border-white/50"
+          className="absolute top-6 right-6 bg-slate-900/40 hover:bg-slate-900/80 backdrop-blur-md text-white p-2 rounded-full transition-all border border-white/20"
         >
           <X className="w-5 h-5" />
         </button>
-
-        <div className="absolute bottom-6 left-6 right-6 text-white text-shadow-lg">
-          <h1 className="text-4xl font-black tracking-tighter leading-tight mb-2 uppercase">{project.name}</h1>
-          <div className="flex items-center text-blue-400 text-sm font-bold uppercase tracking-widest mb-2">
-            <MapPin className="w-4 h-4 mr-2" />
-            <span>{project.community}</span>
-          </div>
-          <p className="text-slate-300 font-bold text-base tracking-wide flex items-center gap-2">
-            <Building className="w-4 h-4 text-slate-400" />
-            {project.developerName || 'Unknown Developer'}
-          </p>
-
-          <div className="flex items-center gap-2 mt-4">
-            <span className="px-3 py-1 bg-blue-600/90 text-[10px] font-bold uppercase tracking-widest rounded-sm shadow-sm backdrop-blur-sm">{project.status}</span>
-            {project.type && project.type !== 'N/A' && (
-              <span className="px-3 py-1 bg-slate-800/80 text-[10px] font-bold uppercase tracking-widest rounded-sm shadow-sm backdrop-blur-sm border border-slate-700">{project.type}</span>
-            )}
-          </div>
-        </div>
       </div>
 
       {/* 2. Horizontal Gallery */}
@@ -80,105 +59,129 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({ project, onClose, onDis
       )}
 
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto px-6 py-8 space-y-8 custom-scrollbar bg-white">
+      <div className="flex-1 overflow-y-auto custom-scrollbar bg-white">
 
-        {/* 3. Detailed Location & Price */}
-        <div className="flex justify-between items-start border-b border-slate-100 pb-6">
-          <div className="flex-1">
-            <div className="text-slate-400 text-[10px] font-black uppercase tracking-tighter mb-1">Precise Location</div>
-            <div className="text-slate-900 font-bold text-lg leading-tight">
-              {project.community}, {project.city}
-            </div>
+        {/* 3. The New Top Hierarchy (Name -> Location -> Developer) */}
+        <div className="px-6 pt-6 pb-6 border-b border-slate-100">
+          <h1 className="text-3xl font-black text-slate-900 leading-tight tracking-tight mb-2">
+            {project.name}
+          </h1>
+          <div className="flex items-center text-slate-500 text-xs font-bold uppercase tracking-widest mb-3">
+            <MapPin className="w-4 h-4 mr-1.5 text-blue-600" />
+            <span>{project.community}</span>
+            {project.city && (
+              <>
+                <span className="mx-2 text-slate-300">/</span>
+                <span className="text-slate-600">{project.city}</span>
+              </>
+            )}
           </div>
+          <p className="text-sm font-black text-blue-600 uppercase tracking-widest">
+            {project.developerName || 'Exclusive Developer'}
+          </p>
         </div>
 
-        {/* 4. Data Grid (Vector Icons) - Strictly Conditional */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="px-6 py-6 space-y-8">
 
-          {/* Price - Only show if valid and moved down from header */}
-          {project.priceRange && project.priceRange !== '0' && project.priceRange !== '0.00' && project.priceRange !== 'N/A' && (
-            <div className="p-5 bg-blue-50/50 border border-blue-100/50 rounded-2xl flex items-start gap-4 hover:border-blue-200 transition-colors col-span-2 shadow-sm">
-              <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shrink-0 shadow-lg shadow-blue-200">
-                <Building className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <p className="text-[10px] text-blue-600/70 font-black uppercase tracking-wider mb-0.5">Investment Starting From</p>
-                <p className="font-black text-slate-900 text-2xl tracking-tight">AED {project.priceRange.split('-')[0].trim()}</p>
-              </div>
-            </div>
-          )}
+          {/* 4. Data Grid - Strict Hide Rules */}
+          <div className="grid grid-cols-2 gap-4">
 
-          {project.bedrooms && project.bedrooms !== 'N/A' && project.bedrooms !== '0' && (
-            <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3 hover:border-slate-200 transition-colors">
-              <BedDouble className="w-5 h-5 text-blue-600 mt-0.5" />
-              <div>
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Configuration</p>
-                <p className="font-bold text-slate-800 text-sm">{project.bedrooms} Bedrooms</p>
-              </div>
-            </div>
-          )}
-
-          {project.bathrooms && project.bathrooms !== 'N/A' && project.bathrooms !== '0' && (
-            <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3 hover:border-slate-200 transition-colors">
-              <Bath className="w-5 h-5 text-blue-600 mt-0.5" />
-              <div>
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Bathooms</p>
-                <p className="font-bold text-slate-800 text-sm">{project.bathrooms} Units</p>
-              </div>
-            </div>
-          )}
-
-          {project.completionDate && project.completionDate !== 'N/A' && (
-            <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3 hover:border-slate-200 transition-colors">
-              <Calendar className="w-5 h-5 text-blue-600 mt-0.5" />
-              <div>
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Project Status</p>
-                <p className="font-bold text-slate-800 text-sm">{project.completionDate}</p>
-              </div>
-            </div>
-          )}
-
-          {project.builtupArea && project.builtupArea !== 0 && project.builtupArea.toString() !== '0' && (
-            <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3 hover:border-slate-200 transition-colors">
-              <Square className="w-5 h-5 text-blue-600 mt-0.5" />
-              <div>
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Total Area</p>
-                <p className="font-bold text-slate-800 text-sm">{Number(project.builtupArea).toLocaleString()} sqft</p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* 5. Description */}
-        <div>
-          <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
-            <Activity className="w-4 h-4 mr-2 text-blue-600" />
-            About The Project
-          </h3>
-          <div
-            className="text-sm text-slate-600 leading-relaxed space-y-4 prose-sm prose-p:mb-2 prose-strong:text-slate-900"
-            dangerouslySetInnerHTML={{ __html: project.description || 'No detailed description available.' }}
-          />
-        </div>
-
-        {/* 6. Amenities */}
-        {project.amenities && project.amenities.length > 0 && (
-          <div>
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
-              <LayoutTemplate className="w-4 h-4 mr-2 text-blue-600" />
-              Lifestyle Amenities
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              {project.amenities.map((amenity, idx) => (
-                <div key={idx} className="px-3 py-2 bg-white text-slate-600 text-[11px] font-bold uppercase tracking-wider border border-slate-200 rounded-lg shadow-sm flex items-center gap-2 hover:border-blue-200 transition-colors">
-                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                  {amenity}
+            {/* Price (Hidden if 0) */}
+            {project.priceRange && project.priceRange !== '0' && project.priceRange !== '0.00' && (
+              <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3 col-span-2">
+                <Building className="w-5 h-5 text-blue-600 mt-0.5" />
+                <div>
+                  <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Starting Price</p>
+                  <p className="font-bold text-slate-900 text-lg">AED {project.priceRange.split('-')[0].trim()}</p>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
+              </div>
+            )}
 
+            {/* Type (Hidden if empty or just "apartment") */}
+            {project.type && project.type.toLowerCase() !== 'apartment' && project.type !== 'N/A' && (
+              <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3">
+                <LayoutTemplate className="w-5 h-5 text-blue-600 mt-0.5" />
+                <div>
+                  <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Property Type</p>
+                  <p className="font-bold text-slate-800 text-sm capitalize">{project.type}</p>
+                </div>
+              </div>
+            )}
+
+            {project.bedrooms && project.bedrooms !== 'N/A' && project.bedrooms !== '0' && (
+              <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3">
+                <BedDouble className="w-5 h-5 text-blue-600 mt-0.5" />
+                <div>
+                  <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Bedrooms</p>
+                  <p className="font-bold text-slate-800 text-sm">{project.bedrooms}</p>
+                </div>
+              </div>
+            )}
+
+            {project.bathrooms && project.bathrooms !== 'N/A' && project.bathrooms !== '0' && (
+              <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3">
+                <Bath className="w-5 h-5 text-blue-600 mt-0.5" />
+                <div>
+                  <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Bathrooms</p>
+                  <p className="font-bold text-slate-800 text-sm">{project.bathrooms}</p>
+                </div>
+              </div>
+            )}
+
+            {project.completionDate && project.completionDate !== 'N/A' && (
+              <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3">
+                <Calendar className="w-5 h-5 text-blue-600 mt-0.5" />
+                <div>
+                  <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Completion</p>
+                  <p className="font-bold text-slate-800 text-sm">{project.completionDate}</p>
+                </div>
+              </div>
+            )}
+
+            {project.builtupArea && project.builtupArea !== 0 && project.builtupArea !== '0' && (
+              <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3">
+                <Square className="w-5 h-5 text-blue-600 mt-0.5" />
+                <div>
+                  <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Built-up Area</p>
+                  <p className="font-bold text-slate-800 text-sm">{Number(project.builtupArea).toLocaleString()} sqft</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 5. Description */}
+          {project.description && (
+            <div>
+              <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
+                <Activity className="w-4 h-4 mr-2 text-blue-600" />
+                About The Project
+              </h3>
+              <div
+                className="text-sm text-slate-600 leading-relaxed space-y-4 prose-sm prose-p:mb-2 prose-strong:text-slate-900"
+                dangerouslySetInnerHTML={{ __html: project.description }}
+              />
+            </div>
+          )}
+
+          {/* 6. Amenities */}
+          {project.amenities && project.amenities.length > 0 && (
+            <div>
+              <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
+                <LayoutTemplate className="w-4 h-4 mr-2 text-blue-600" />
+                Lifestyle Amenities
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {project.amenities.map((amenity, idx) => (
+                  <div key={idx} className="px-3 py-2 bg-white text-slate-600 text-[11px] font-bold uppercase tracking-wider border border-slate-200 rounded-lg shadow-sm flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                    {amenity}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+        </div>
       </div>
 
       {/* Footer Actions */}
