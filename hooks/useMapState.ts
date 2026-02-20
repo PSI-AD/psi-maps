@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { MapRef } from 'react-map-gl';
-import MapboxDraw from '@mapbox/mapbox-gl-draw';
+import MapboxDrawImport from '@mapbox/mapbox-gl-draw';
 import useSupercluster from 'use-supercluster';
 import { Project } from '../types';
 

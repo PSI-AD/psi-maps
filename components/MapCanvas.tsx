@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import Map, { AttributionControl, NavigationControl, Source, Layer, Popup } from 'react-map-gl';
+import ReactMapGL, { AttributionControl, NavigationControl, Source, Layer, Popup } from 'react-map-gl';
 import type { CircleLayer, SymbolLayer } from 'react-map-gl';
 import { Project, Landmark } from '../types';
 import DrawControl from './DrawControl';
@@ -93,7 +93,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
 }) => {
 
     // Safety check for valid GPS coordinates
-    const coordMap = new Map<string, number>();
+    const coordMap = new globalThis.Map<string, number>();
     const validMapProjects = (projects || []).filter(p => {
         if (!p) return false;
         const lat = Number(p.latitude);
@@ -145,8 +145,11 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
         }
     };
 
+    // Resolve constructor inside component body to survive Rollup's CJS wrapping
+    const MapComponent = (ReactMapGL as any).default || ReactMapGL;
+
     return (
-        <Map
+        <MapComponent
             {...viewState}
             ref={mapRef}
             onMove={evt => { setViewState(evt.viewState); updateBounds(); }}
@@ -291,7 +294,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                     );
                 })()}
             </div>
-        </Map>
+        </MapComponent>
     );
 };
 

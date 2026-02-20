@@ -1,5 +1,5 @@
 
-import MapboxDraw from '@mapbox/mapbox-gl-draw';
+import MapboxDrawImport from '@mapbox/mapbox-gl-draw';
 import { useControl } from 'react-map-gl';
 import type { ControlPosition } from 'react-map-gl';
 
@@ -12,16 +12,18 @@ interface DrawControlProps {
 }
 
 const DrawControl = (props: DrawControlProps) => {
-  const DrawConstructor = (MapboxDraw as any).default || MapboxDraw;
   const draw = useControl<any>(
-    () => new DrawConstructor({
-      displayControlsDefault: false,
-      controls: {
-        polygon: true,
-        trash: true
-      },
-      defaultMode: 'simple_select'
-    }),
+    () => {
+      const DrawConstructor = (MapboxDrawImport as any).default || MapboxDrawImport;
+      return new DrawConstructor({
+        displayControlsDefault: false,
+        controls: {
+          polygon: true,
+          trash: true
+        },
+        defaultMode: 'simple_select'
+      });
+    },
     ({ map }) => {
       map.on('draw.create', props.onCreate!);
       map.on('draw.update', props.onUpdate!);
