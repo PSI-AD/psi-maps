@@ -11,6 +11,8 @@ jobs:
       
       - name: Install Dependencies and Build
         run: npm ci && npm run build
+        env:
+          VITE_MAPBOX_TOKEN: '${{ secrets.VITE_MAPBOX_TOKEN }}'
         
       - name: Deploy to Firebase
         uses: FirebaseExtended/action-hosting-deploy@v0
