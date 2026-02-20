@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import ReactMapGL, { AttributionControl, NavigationControl, Source, Layer, Popup } from 'react-map-gl';
+import { Map, AttributionControl, NavigationControl, Source, Layer, Popup } from 'react-map-gl';
 import type { CircleLayer, SymbolLayer } from 'react-map-gl';
 import { Project, Landmark } from '../types';
 import DrawControl from './DrawControl';
@@ -145,11 +145,8 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
         }
     };
 
-    // Resolve constructor inside component body to survive Rollup's CJS wrapping
-    const MapComponent = (ReactMapGL as any).default || ReactMapGL;
-
     return (
-        <MapComponent
+        <Map
             {...viewState}
             ref={mapRef}
             onMove={evt => { setViewState(evt.viewState); updateBounds(); }}
@@ -294,7 +291,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                     );
                 })()}
             </div>
-        </MapComponent>
+        </Map>
     );
 };
 

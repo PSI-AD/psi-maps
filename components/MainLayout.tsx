@@ -76,8 +76,20 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
   const [isNearbyToolsOpen, setIsNearbyToolsOpen] = useState(false);
 
   const handleSearchSelect = (project: Project) => {
-    onFlyTo(project.longitude, project.latitude, 16);
+    if (!project) return;
+
+    // Sync breadcrumbs
+    setSelectedCity(project.city || '');
+    setSelectedCommunity(project.community || '');
     onProjectClick(project.id);
+    setIsAnalysisOpen(true);
+
+    // Fly directly to the property with cinematic tilt
+    const lat = Number(project.latitude);
+    const lng = Number(project.longitude);
+    if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+      onFlyTo(lng, lat, 16);
+    }
   };
 
   return (
