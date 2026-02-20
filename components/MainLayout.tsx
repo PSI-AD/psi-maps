@@ -31,7 +31,7 @@ interface MainLayoutProps {
   setMapStyle: (s: string) => void;
   children: React.ReactNode;
   onDiscoverNeighborhood: (lat: number, lng: number) => void;
-  onFlyTo: (lat: number, lng: number) => void;
+  onFlyTo: (lng: number, lat: number, zoom?: number) => void;
   mapFeatures: { show3D: boolean; showAnalytics: boolean };
   setMapFeatures: React.Dispatch<React.SetStateAction<{ show3D: boolean; showAnalytics: boolean }>>;
 }
@@ -48,7 +48,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   const [isNearbyToolsOpen, setIsNearbyToolsOpen] = useState(false);
 
   const handleSearchSelect = (project: Project) => {
-    onFlyTo(project.latitude, project.longitude);
+    onFlyTo(project.longitude, project.latitude, 16);
     onProjectClick(project.id);
   };
 
@@ -73,8 +73,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({
         </div>
       )}
 
-      {/* Main Map Container - pb-24 to clear the bottom dock */}
-      <div className="absolute inset-0 z-0 pb-24">
+      {/* Main Map Container - completely flush with the bottom */}
+      <div className="absolute inset-0 top-20 z-0 bg-slate-100">
         {children}
       </div>
 

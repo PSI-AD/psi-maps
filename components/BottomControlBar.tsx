@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import SearchBar from './SearchBar';
 import { Project } from '../types';
 import { Settings, Filter, Navigation } from 'lucide-react';
@@ -7,10 +7,12 @@ interface BottomControlBarProps {
     projects: Project[];
     onSelectProject: (project: Project) => void;
     onAdminClick: () => void;
-    onFlyTo: (lat: number, lng: number) => void;
+    onFlyTo: (lng: number, lat: number, zoom?: number) => void;
     onToggleNearby: () => void;
     onToggleFilters: () => void;
 }
+
+const uaeEmirates = ['abu dhabi', 'dubai', 'sharjah', 'ajman', 'umm al quwain', 'ras al khaimah', 'fujairah'];
 
 const BottomControlBar: React.FC<BottomControlBarProps> = ({
     projects,
@@ -20,35 +22,45 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
     onToggleNearby,
     onToggleFilters
 }) => {
+    const [selectedCity, setSelectedCity] = useState<string>('');
+
     const cities = useMemo(() => {
-        const unique = Array.from(new Set(projects.map(p => p.city).filter(Boolean)));
-        return unique.sort();
+        const unique = Array.from(new Set(projects.map(p => p.city?.toLowerCase()).filter(Boolean) as string[]));
+        return unique
+            .filter(city => uaeEmirates.includes(city))
+            .map(city => city.charAt(0).toUpperCase() + city.slice(1))
+            .sort();
     }, [projects]);
 
     const communities = useMemo(() => {
-        const unique = Array.from(new Set(projects.map(p => p.community).filter(Boolean)));
+        if (!selectedCity) return [];
+        const filtered = projects.filter(p => p.city?.toLowerCase() === selectedCity.toLowerCase());
+        const unique = Array.from(new Set(filtered.map(p => p.community).filter(Boolean)));
         return unique.sort();
-    }, [projects]);
+    }, [projects, selectedCity]);
 
     const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const city = e.target.value;
+        setSelectedCity(city);
         if (!city) return;
-        const cityProjects = projects.filter(p => p.city === city);
+
+        const cityProjects = projects.filter(p => p.city?.toLowerCase() === city.toLowerCase());
         if (cityProjects.length > 0) {
             const avgLat = cityProjects.reduce((sum, p) => sum + p.latitude, 0) / cityProjects.length;
             const avgLng = cityProjects.reduce((sum, p) => sum + p.longitude, 0) / cityProjects.length;
-            onFlyTo(avgLat, avgLng);
+            onFlyTo(avgLng, avgLat, 10.5);
         }
     };
 
     const handleCommunityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const community = e.target.value;
         if (!community) return;
+
         const commProjects = projects.filter(p => p.community === community);
         if (commProjects.length > 0) {
             const avgLat = commProjects.reduce((sum, p) => sum + p.latitude, 0) / commProjects.length;
             const avgLng = commProjects.reduce((sum, p) => sum + p.longitude, 0) / commProjects.length;
-            onFlyTo(avgLat, avgLng);
+            onFlyTo(avgLng, avgLat, 14);
         }
     };
 
@@ -78,6 +90,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
             {/* Middle Right: Dropdowns */}
             <div className="hidden md:flex items-center gap-3 flex-1 justify-center">
                 <select
+                    value={selectedCity}
                     onChange={handleCityChange}
                     className="bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer min-w-[140px]"
                 >
@@ -89,7 +102,8 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
 
                 <select
                     onChange={handleCommunityChange}
-                    className="bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer min-w-[160px]"
+                    className="bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer min-w-[160px] disabled:opacity-50"
+                    disabled={!selectedCity}
                 >
                     <option value="">Select Community</option>
                     {communities.map(comm => (

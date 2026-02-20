@@ -82,6 +82,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
     mapRef, viewState, setViewState, updateBounds, mapStyle, onClick,
     drawRef, onDrawCreate, onDrawUpdate, onDrawDelete,
     filteredAmenities, onMarkerClick, onLandmarkClick,
+    selectedProjectId, // Fix missing destructuring
     setHoveredProjectId, setHoveredLandmarkId,
     selectedLandmark, selectedProject, hoveredProject, projects = [], mapFeatures
 }) => {
@@ -98,7 +99,8 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
         type: 'FeatureCollection',
         features: validMapProjects.map(p => ({
             type: 'Feature',
-            properties: { ...p, cluster: false },
+            id: p.id,
+            properties: { ...p, cluster: false, id: p.id },
             geometry: { type: 'Point', coordinates: [Number(p.longitude), Number(p.latitude)] }
         }))
     };
@@ -168,7 +170,31 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
             <Source id="projects" type="geojson" data={geoJsonData as any} cluster={true} clusterMaxZoom={14} clusterRadius={45}>
                 <Layer {...clusterLayer} />
                 <Layer {...clusterCountLayer} />
-                <Layer {...unclusteredPointLayer} />
+                <Layer
+                    id="selected-point"
+                    type="circle"
+                    source="projects"
+                    filter={['==', ['get', 'id'], selectedProjectId || '']}
+                    paint={{
+                        'circle-color': '#d4af37', // Gold/Amber
+                        'circle-radius': 14,
+                        'circle-stroke-width': 3,
+                        'circle-stroke-color': '#ffffff',
+                        'circle-color-transition': { duration: 300 }
+                    }}
+                />
+                <Layer
+                    id="unclustered-point"
+                    type="circle"
+                    source="projects"
+                    filter={['!', ['has', 'point_count']]}
+                    paint={{
+                        'circle-color': '#2563eb', // Royal Blue
+                        'circle-radius': 8,
+                        'circle-stroke-width': 2,
+                        'circle-stroke-color': '#ffffff'
+                    }}
+                />
             </Source>
 
             {filteredAmenities.map(amenity => (
