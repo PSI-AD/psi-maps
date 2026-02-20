@@ -15,7 +15,9 @@ const App: React.FC = () => {
   const {
     liveProjects, setLiveProjects, isRefreshing, loadInitialData, filteredProjects,
     filteredAmenities, activeAmenities, handleToggleAmenity, filterPolygon, setFilterPolygon,
-    propertyType, setPropertyType
+    propertyType, setPropertyType,
+    developerFilter, setDeveloperFilter,
+    statusFilter, setStatusFilter
   } = useProjectData();
 
   const {
@@ -73,6 +75,8 @@ const App: React.FC = () => {
       onFlyTo={handleFlyTo}
       mapFeatures={mapFeatures} setMapFeatures={setMapFeatures}
       propertyType={propertyType} setPropertyType={setPropertyType}
+      developerFilter={developerFilter} setDeveloperFilter={setDeveloperFilter}
+      statusFilter={statusFilter} setStatusFilter={setStatusFilter}
     >
       <MapCanvas
         mapRef={mapRef} viewState={viewState} setViewState={setViewState} updateBounds={updateBounds} mapStyle={mapStyle} onClick={handleMapClick}

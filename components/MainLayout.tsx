@@ -36,6 +36,10 @@ interface MainLayoutProps {
   setMapFeatures: React.Dispatch<React.SetStateAction<{ show3D: boolean; showAnalytics: boolean }>>;
   propertyType: string;
   setPropertyType: (type: string) => void;
+  developerFilter: string;
+  setDeveloperFilter: (dev: string) => void;
+  statusFilter: string;
+  setStatusFilter: (stat: string) => void;
 }
 
 const MainLayout: React.FC<MainLayoutProps> = ({
@@ -46,7 +50,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   activeAmenities, onToggleAmenity, isDrawing, onToggleDraw,
   mapStyle, setMapStyle, children, onDiscoverNeighborhood, onFlyTo,
   mapFeatures, setMapFeatures,
-  propertyType, setPropertyType
+  propertyType, setPropertyType,
+  developerFilter, setDeveloperFilter,
+  statusFilter, setStatusFilter
 }) => {
   const [isNearbyToolsOpen, setIsNearbyToolsOpen] = useState(false);
 
@@ -119,6 +125,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({
         onToggleFilters={() => { }} // Could be wired later
         propertyType={propertyType}
         setPropertyType={setPropertyType}
+        developerFilter={developerFilter}
+        setDeveloperFilter={setDeveloperFilter}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
       />
     </div>
   );
