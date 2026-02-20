@@ -3,6 +3,7 @@ import { Project, Landmark, LandmarkCategory } from '../types';
 import { db } from '../utils/firebase';
 import { doc, setDoc, addDoc, collection, deleteDoc, writeBatch, updateDoc } from 'firebase/firestore'; // Added updateDoc
 import { generateCleanId } from '../utils/helpers';
+import { fetchAndSaveBoundary } from '../utils/boundaryService';
 import { Database, RefreshCw, Plus, Edit2, Trash2, MapPin, Search, School, ShoppingBag, Theater } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -31,7 +32,22 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
   // Staging State
   const [stagedProject, setStagedProject] = useState<Project | null>(null);
   const [stagedLandmark, setStagedLandmark] = useState<Partial<Landmark> | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  const handleSyncBoundaries = async () => {
+    setIsSyncing(true);
+    const uniqueCommunities = Array.from(new Set(liveProjects.map(p => p.community).filter(Boolean))) as string[];
+    let synced = 0;
+    for (const community of uniqueCommunities) {
+      await fetchAndSaveBoundary(community);
+      synced++;
+      // 1-second delay to respect OpenStreetMap's public API rate limits
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    setIsSyncing(false);
+    alert(`Successfully synced ${synced} community boundaries to database!`);
+  };
 
   return (
     <div className="fixed inset-0 z-[10000] bg-slate-50/98 backdrop-blur-md overflow-y-auto flex flex-col items-center p-6 md:p-12 animate-in fade-in duration-300 text-slate-900">
@@ -225,6 +241,24 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                 >
                   <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all ${mapFeatures.show3D ? 'left-7' : 'left-1'}`} />
                 </button>
+              </div>
+
+              <div className="mt-8 pt-6 border-t border-slate-100">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Spatial Data Management</h4>
+                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                  <div>
+                    <p className="font-bold text-slate-800">Sync Community Borders</p>
+                    <p className="text-xs text-slate-500 font-medium">Download OSM polygons and cache them permanently in Firestore</p>
+                  </div>
+                  <button
+                    onClick={handleSyncBoundaries}
+                    disabled={isSyncing}
+                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-blue-100"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                    {isSyncing ? 'Syncing...' : 'Sync Borders'}
+                  </button>
+                </div>
               </div>
             </div>
           )}

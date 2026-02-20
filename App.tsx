@@ -5,6 +5,7 @@ import { useProjectData } from './hooks/useProjectData';
 import { useMapState } from './hooks/useMapState';
 import { fetchNearbyAmenities } from './utils/placesClient';
 import { fetchLocationBoundary } from './utils/boundaryFetcher';
+import { getBoundaryFromDB } from './utils/boundaryService';
 import MainLayout from './components/MainLayout';
 import MapCanvas from './components/MapCanvas';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -74,13 +75,10 @@ const App: React.FC = () => {
     } else if (locationType === 'community') {
       if (mapFeatures.showCommunityBorders) {
         try {
-          const query = encodeURIComponent(`${locationName}, United Arab Emirates`);
-          const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${query}&polygon_geojson=1&format=json`);
-          const data = await response.json();
-          const validResult = data.find((item: any) => item.geojson && (item.geojson.type === 'Polygon' || item.geojson.type === 'MultiPolygon'));
-          if (validResult) {
-            setActiveBoundary(validResult.geojson);
-            const bbox = turf.bbox(validResult.geojson) as [number, number, number, number];
+          const geojson = await getBoundaryFromDB(locationName);
+          if (geojson) {
+            setActiveBoundary(geojson);
+            const bbox = turf.bbox(geojson) as [number, number, number, number];
             mapRef.current?.getMap().fitBounds(bbox, { padding: 80, duration: 1500 });
             return;
           }
