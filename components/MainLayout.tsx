@@ -34,6 +34,8 @@ interface MainLayoutProps {
   onFlyTo: (lng: number, lat: number, zoom?: number) => void;
   mapFeatures: { show3D: boolean; showAnalytics: boolean };
   setMapFeatures: React.Dispatch<React.SetStateAction<{ show3D: boolean; showAnalytics: boolean }>>;
+  propertyType: string;
+  setPropertyType: (type: string) => void;
 }
 
 const MainLayout: React.FC<MainLayoutProps> = ({
@@ -43,7 +45,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   onProjectClick, onCloseProject,
   activeAmenities, onToggleAmenity, isDrawing, onToggleDraw,
   mapStyle, setMapStyle, children, onDiscoverNeighborhood, onFlyTo,
-  mapFeatures, setMapFeatures
+  mapFeatures, setMapFeatures,
+  propertyType, setPropertyType
 }) => {
   const [isNearbyToolsOpen, setIsNearbyToolsOpen] = useState(false);
 
@@ -78,19 +81,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({
         {children}
       </div>
 
-      {/* Floating Tools sitting above the bottom bar */}
-      <div className="absolute bottom-28 right-6 z-40 pointer-events-none">
-        <div className="pointer-events-auto">
-          <FloatingMapTools
-            activeFilters={activeAmenities}
-            onToggle={onToggleAmenity}
-            isDrawActive={isDrawing}
-            onToggleDraw={onToggleDraw}
-            isOpen={isNearbyToolsOpen}
-            onToggleOpen={() => setIsNearbyToolsOpen(!isNearbyToolsOpen)}
-          />
-        </div>
-      </div>
+      <FloatingMapTools
+        activeFilters={activeAmenities}
+        onToggle={onToggleAmenity}
+        isDrawActive={isDrawing}
+        onToggleDraw={onToggleDraw}
+        isOpen={isNearbyToolsOpen}
+        onToggleOpen={() => setIsNearbyToolsOpen(!isNearbyToolsOpen)}
+      />
 
       {/* Map Style Switcher (Bottom Left, above dock) */}
       <div className="absolute bottom-28 left-6 z-40 hidden sm:block">
@@ -119,6 +117,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({
         onFlyTo={onFlyTo}
         onToggleNearby={() => setIsNearbyToolsOpen(!isNearbyToolsOpen)}
         onToggleFilters={() => { }} // Could be wired later
+        propertyType={propertyType}
+        setPropertyType={setPropertyType}
       />
     </div>
   );

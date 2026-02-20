@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import SearchBar from './SearchBar';
 import { Project } from '../types';
-import { Settings, Filter, Navigation } from 'lucide-react';
+import { Settings, Filter as FilterIcon, Navigation, Check, X } from 'lucide-react';
 
 interface BottomControlBarProps {
     projects: Project[];
@@ -10,9 +10,23 @@ interface BottomControlBarProps {
     onFlyTo: (lng: number, lat: number, zoom?: number) => void;
     onToggleNearby: () => void;
     onToggleFilters: () => void;
+    propertyType: string;
+    setPropertyType: (type: string) => void;
 }
 
 const uaeEmirates = ['abu dhabi', 'dubai', 'sharjah', 'ajman', 'umm al quwain', 'ras al khaimah', 'fujairah'];
+
+const UAE_CENTERS: Record<string, { lng: number, lat: number, zoom: number }> = {
+    'abu dhabi': { lng: 54.4000, lat: 24.4539, zoom: 10.5 },
+    'dubai': { lng: 55.2708, lat: 25.2048, zoom: 10.5 },
+    'sharjah': { lng: 55.4033, lat: 25.3463, zoom: 11 },
+    'ras al khaimah': { lng: 55.9432, lat: 25.7895, zoom: 11 },
+    'ajman': { lng: 55.4402, lat: 25.4052, zoom: 12 },
+    'fujairah': { lng: 56.3265, lat: 25.1288, zoom: 12 },
+    'umm al quwain': { lng: 55.5753, lat: 25.5647, zoom: 12 }
+};
+
+const PROPERTY_TYPES = ['All', 'Apartment', 'Villa', 'Townhouse', 'Penthouse'];
 
 const BottomControlBar: React.FC<BottomControlBarProps> = ({
     projects,
@@ -20,23 +34,54 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
     onAdminClick,
     onFlyTo,
     onToggleNearby,
-    onToggleFilters
+    onToggleFilters,
+    propertyType,
+    setPropertyType
 }) => {
     const [selectedCity, setSelectedCity] = useState<string>('');
+    const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
-    const cities = useMemo(() => {
-        const unique = Array.from(new Set(projects.map(p => p.city?.toLowerCase()).filter(Boolean) as string[]));
-        return unique
-            .filter(city => uaeEmirates.includes(city))
-            .map(city => city.charAt(0).toUpperCase() + city.slice(1))
-            .sort();
+    // Helper to generate sorted options with counts for Cities
+    const cityOptions = useMemo(() => {
+        const stats = projects.reduce((acc, p) => {
+            const city = p.city?.toLowerCase();
+            if (city && uaeEmirates.includes(city)) {
+                acc[city] = (acc[city] || 0) + 1;
+            }
+            return acc;
+        }, {} as Record<string, number>);
+
+        return Object.entries(stats)
+            .filter(([_, count]) => count > 0)
+            .map(([id, count]) => ({
+                id,
+                name: id.charAt(0).toUpperCase() + id.slice(1),
+                count,
+                label: `${id.charAt(0).toUpperCase() + id.slice(1)} (${count})`
+            }))
+            .sort((a, b) => b.count - a.count);
     }, [projects]);
 
-    const communities = useMemo(() => {
+    // Helper to generate sorted options with counts for Communities
+    const communityOptions = useMemo(() => {
         if (!selectedCity) return [];
         const filtered = projects.filter(p => p.city?.toLowerCase() === selectedCity.toLowerCase());
-        const unique = Array.from(new Set(filtered.map(p => p.community).filter(Boolean)));
-        return unique.sort();
+        const stats = filtered.reduce((acc, p) => {
+            const community = p.community;
+            if (community) {
+                acc[community] = (acc[community] || 0) + 1;
+            }
+            return acc;
+        }, {} as Record<string, number>);
+
+        return Object.entries(stats)
+            .filter(([_, count]) => count > 0)
+            .map(([name, count]) => ({
+                name,
+                count,
+                label: `${name} (${count})`
+            }))
+            .sort((a, b) => b.count - a.count);
     }, [projects, selectedCity]);
 
     const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -44,11 +89,10 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
         setSelectedCity(city);
         if (!city) return;
 
-        const cityProjects = projects.filter(p => p.city?.toLowerCase() === city.toLowerCase());
-        if (cityProjects.length > 0) {
-            const avgLat = cityProjects.reduce((sum, p) => sum + p.latitude, 0) / cityProjects.length;
-            const avgLng = cityProjects.reduce((sum, p) => sum + p.longitude, 0) / cityProjects.length;
-            onFlyTo(avgLng, avgLat, 10.5);
+        // Use hardcoded coordinates for UAE cities
+        const center = UAE_CENTERS[city.toLowerCase()];
+        if (center) {
+            onFlyTo(center.lng, center.lat, center.zoom);
         }
     };
 
@@ -58,86 +102,146 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
 
         const commProjects = projects.filter(p => p.community === community);
         if (commProjects.length > 0) {
-            const avgLat = commProjects.reduce((sum, p) => sum + p.latitude, 0) / commProjects.length;
-            const avgLng = commProjects.reduce((sum, p) => sum + p.longitude, 0) / commProjects.length;
-            onFlyTo(avgLng, avgLat, 14);
+            // Use mathematical averages but zoom to 13.5
+            const avgLat = commProjects.reduce((sum: number, p) => sum + Number(p.latitude), 0) / commProjects.length;
+            const avgLng = commProjects.reduce((sum: number, p) => sum + Number(p.longitude), 0) / commProjects.length;
+            onFlyTo(avgLng, avgLat, 13.5);
         }
     };
 
     return (
-        <div className="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-xl border-t border-slate-200 z-[6000] px-4 py-3 flex items-center justify-between gap-4 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
-            {/* Left: Branding */}
-            <div className="flex items-center gap-3 shrink-0">
-                <div className="w-10 h-10 relative flex items-center justify-center shrink-0">
-                    <svg viewBox="0 0 100 120" className="w-full h-full drop-shadow-md" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M50 115C50 115 92 72 92 46C92 22.804 73.196 4 50 4C26.804 4 8 22.804 8 46C8 72 50 115 50 115Z" fill="#2563EB" stroke="#1D4ED8" strokeWidth="2.5" />
-                        <text x="50" y="58" fill="#FFFFFF" fontFamily="system-ui, -apple-system, sans-serif" fontWeight="900" fontSize="28" textAnchor="middle" style={{ letterSpacing: '-1px' }}>
-                            PSI
-                        </text>
-                    </svg>
+        <>
+            <div className="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-xl border-t border-slate-200 z-[6000] px-4 py-3 flex items-center justify-between gap-4 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+                {/* Left: Branding */}
+                <div className="flex items-center gap-3 shrink-0">
+                    <div className="w-10 h-10 relative flex items-center justify-center shrink-0">
+                        <svg viewBox="0 0 100 120" className="w-full h-full drop-shadow-md" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M50 115C50 115 92 72 92 46C92 22.804 73.196 4 50 4C26.804 4 8 22.804 8 46C8 72 50 115 50 115Z" fill="#2563EB" stroke="#1D4ED8" strokeWidth="2.5" />
+                            <text x="50" y="58" fill="#FFFFFF" fontFamily="system-ui, -apple-system, sans-serif" fontWeight="900" fontSize="28" textAnchor="middle" style={{ letterSpacing: '-1px' }}>
+                                PSI
+                            </text>
+                        </svg>
+                    </div>
+                    <div className="hidden lg:flex flex-col justify-center">
+                        <span className="text-sm font-black text-slate-900 tracking-tighter uppercase leading-none block">PSI Maps</span>
+                        <span className="text-[9px] font-bold text-blue-600 uppercase tracking-[0.2em] mt-0.5">Premier</span>
+                    </div>
                 </div>
-                <div className="hidden lg:flex flex-col justify-center">
-                    <span className="text-sm font-black text-slate-900 tracking-tighter uppercase leading-none block">PSI Maps</span>
-                    <span className="text-[9px] font-bold text-blue-600 uppercase tracking-[0.2em] mt-0.5">Premier</span>
+
+                {/* Middle Left: Search */}
+                <div className="flex-1 max-w-sm">
+                    <SearchBar projects={projects} onSelectProject={onSelectProject} />
+                </div>
+
+                {/* Middle Right: Dropdowns */}
+                <div className="hidden md:flex items-center gap-3 flex-1 justify-center">
+                    <select
+                        value={selectedCity}
+                        onChange={handleCityChange}
+                        className="bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer min-w-[150px]"
+                    >
+                        <option value="">All Emirates</option>
+                        {cityOptions.map(city => (
+                            <option key={city.id} value={city.id}>{city.label}</option>
+                        ))}
+                    </select>
+
+                    <select
+                        onChange={handleCommunityChange}
+                        className="bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer min-w-[170px] disabled:opacity-50"
+                        disabled={!selectedCity}
+                    >
+                        <option value="">Select Community</option>
+                        {communityOptions.map(comm => (
+                            <option key={comm.name} value={comm.name}>{comm.label}</option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Right: Tools & Admin */}
+                <div className="flex items-center gap-2 shrink-0">
+                    <button
+                        onClick={() => setIsFilterModalOpen(true)}
+                        className={`p-2.5 rounded-xl border transition-all group flex items-center gap-2 px-4 ${propertyType !== 'All' ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-slate-50 border-slate-200 text-slate-600'}`}
+                        title="Filters"
+                    >
+                        <FilterIcon className={`w-5 h-5 ${propertyType !== 'All' ? 'text-blue-600' : 'group-hover:text-blue-600'}`} />
+                        <span className="text-[10px] font-black uppercase tracking-widest hidden lg:block">
+                            {propertyType === 'All' ? 'Filters' : propertyType}
+                        </span>
+                    </button>
+
+                    <button
+                        onClick={onToggleNearby}
+                        className="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-200 transition-all flex items-center gap-2 px-4"
+                    >
+                        <Navigation className="w-5 h-5 fill-current" />
+                        <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">Nearby</span>
+                    </button>
+                    <div className="w-px h-6 bg-slate-200 mx-2 hidden sm:block"></div>
+                    <button
+                        onClick={onAdminClick}
+                        className="p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-900 rounded-xl border border-slate-200 transition-all"
+                        title="Admin CMS"
+                    >
+                        <Settings className="w-5 h-5" />
+                    </button>
                 </div>
             </div>
 
-            {/* Middle Left: Search */}
-            <div className="flex-1 max-w-sm">
-                <SearchBar projects={projects} onSelectProject={onSelectProject} />
-            </div>
+            {/* Filter Modal */}
+            {isFilterModalOpen && (
+                <div className="fixed inset-0 z-[7000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
+                    <div
+                        className="absolute inset-0"
+                        onClick={() => setIsFilterModalOpen(false)}
+                    />
+                    <div className="relative bg-white rounded-3xl p-8 shadow-2xl w-full max-w-sm animate-in zoom-in-95 duration-300">
+                        <div className="flex items-center justify-between mb-6">
+                            <div>
+                                <h3 className="text-xl font-black text-slate-900 tracking-tight">Property Filters</h3>
+                                <p className="text-slate-500 text-xs font-medium mt-1">Refine your search by asset type</p>
+                            </div>
+                            <button
+                                onClick={() => setIsFilterModalOpen(false)}
+                                className="p-2 hover:bg-slate-50 text-slate-400 hover:text-slate-900 rounded-full transition-all"
+                            >
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
 
-            {/* Middle Right: Dropdowns */}
-            <div className="hidden md:flex items-center gap-3 flex-1 justify-center">
-                <select
-                    value={selectedCity}
-                    onChange={handleCityChange}
-                    className="bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer min-w-[140px]"
-                >
-                    <option value="">Select City</option>
-                    {cities.map(city => (
-                        <option key={city} value={city}>{city}</option>
-                    ))}
-                </select>
+                        <div className="flex flex-col gap-2">
+                            {PROPERTY_TYPES.map(type => (
+                                <button
+                                    key={type}
+                                    onClick={() => {
+                                        setPropertyType(type);
+                                        // Auto close on select or keep open? User says instantly filtering. Let's close for better UX
+                                        setIsFilterModalOpen(false);
+                                    }}
+                                    className={`
+                                        w-full p-4 rounded-2xl border flex items-center justify-between transition-all font-bold text-sm
+                                        ${propertyType === type
+                                            ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-200'
+                                            : 'bg-slate-50 border-slate-100 text-slate-600 hover:bg-white hover:border-blue-200'}
+                                    `}
+                                >
+                                    <span>{type}</span>
+                                    {propertyType === type && <Check className="w-5 h-5" />}
+                                </button>
+                            ))}
+                        </div>
 
-                <select
-                    onChange={handleCommunityChange}
-                    className="bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer min-w-[160px] disabled:opacity-50"
-                    disabled={!selectedCity}
-                >
-                    <option value="">Select Community</option>
-                    {communities.map(comm => (
-                        <option key={comm} value={comm}>{comm}</option>
-                    ))}
-                </select>
-            </div>
-
-            {/* Right: Tools & Admin */}
-            <div className="flex items-center gap-2 shrink-0">
-                <button
-                    onClick={onToggleFilters}
-                    className="p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl border border-slate-200 transition-all group"
-                    title="Filters"
-                >
-                    <Filter className="w-5 h-5 group-hover:text-blue-600" />
-                </button>
-                <button
-                    onClick={onToggleNearby}
-                    className="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-200 transition-all flex items-center gap-2 px-4"
-                >
-                    <Navigation className="w-5 h-5 fill-current" />
-                    <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">Nearby</span>
-                </button>
-                <div className="w-px h-6 bg-slate-200 mx-2 hidden sm:block"></div>
-                <button
-                    onClick={onAdminClick}
-                    className="p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-900 rounded-xl border border-slate-200 transition-all"
-                    title="Admin CMS"
-                >
-                    <Settings className="w-5 h-5" />
-                </button>
-            </div>
-        </div>
+                        <button
+                            onClick={() => setIsFilterModalOpen(false)}
+                            className="w-full mt-6 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] shadow-xl hover:bg-slate-800 transition-all"
+                        >
+                            Apply Filters
+                        </button>
+                    </div>
+                </div>
+            )}
+        </>
     );
 };
 

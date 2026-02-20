@@ -10,6 +10,7 @@ export const useProjectData = () => {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [activeAmenities, setActiveAmenities] = useState<string[]>([]);
     const [filterPolygon, setFilterPolygon] = useState<any>(null);
+    const [propertyType, setPropertyType] = useState<string>('All');
 
     // Initial Load - Setup Realtime Listener
     useEffect(() => {
@@ -73,15 +74,21 @@ export const useProjectData = () => {
     }, []);
 
     const filteredProjects = useMemo(() => {
-        if (!filterPolygon) return liveProjects;
+        let projects = liveProjects;
+
+        if (propertyType !== 'All') {
+            projects = projects.filter(p => p.type?.toLowerCase() === propertyType.toLowerCase());
+        }
+
+        if (!filterPolygon) return projects;
 
         const points = turf.featureCollection(
-            liveProjects.map(p => turf.point([p.longitude, p.latitude], { ...p }))
+            projects.map(p => turf.point([p.longitude, p.latitude], { ...p }))
         ) as any;
 
         const within = turf.pointsWithinPolygon(points, filterPolygon);
         return within.features.map(f => f.properties as Project);
-    }, [liveProjects, filterPolygon]);
+    }, [liveProjects, filterPolygon, propertyType]);
 
     const filteredAmenities = useMemo(() => {
         if (activeAmenities.length === 0) return [];
@@ -106,6 +113,8 @@ export const useProjectData = () => {
         activeAmenities,
         handleToggleAmenity,
         filterPolygon,
-        setFilterPolygon
+        setFilterPolygon,
+        propertyType,
+        setPropertyType
     };
 };

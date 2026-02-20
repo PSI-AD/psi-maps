@@ -14,7 +14,8 @@ mapboxgl.accessToken = 'pk.eyJ1IjoicHNpbnYiLCJhIjoiY21scjBzM21xMDZqNzNmc2VmdGt5M
 const App: React.FC = () => {
   const {
     liveProjects, setLiveProjects, isRefreshing, loadInitialData, filteredProjects,
-    filteredAmenities, activeAmenities, handleToggleAmenity, filterPolygon, setFilterPolygon
+    filteredAmenities, activeAmenities, handleToggleAmenity, filterPolygon, setFilterPolygon,
+    propertyType, setPropertyType
   } = useProjectData();
 
   const {
@@ -71,6 +72,7 @@ const App: React.FC = () => {
       mapStyle={mapStyle} setMapStyle={setMapStyle} onDiscoverNeighborhood={(lat, lng) => fetchNearbyAmenities(lat, lng)}
       onFlyTo={handleFlyTo}
       mapFeatures={mapFeatures} setMapFeatures={setMapFeatures}
+      propertyType={propertyType} setPropertyType={setPropertyType}
     >
       <MapCanvas
         mapRef={mapRef} viewState={viewState} setViewState={setViewState} updateBounds={updateBounds} mapStyle={mapStyle} onClick={handleMapClick}
