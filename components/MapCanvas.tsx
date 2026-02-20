@@ -224,20 +224,24 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                             maxWidth="320px"
                             offset={20}
                         >
-                            <div className="flex w-[280px] h-[100px] bg-white rounded-xl overflow-hidden shadow-2xl border border-slate-100 p-0 m-[-10px]">
-                                <div className="w-[100px) h-full shrink-0 bg-slate-100 relative">
-                                    <img src={getOptimizedImageUrl(activeProject.thumbnailUrl, 200, 200)} className="absolute inset-0 w-full h-full object-cover" alt="" />
+                            <div className="flex w-[300px] h-[110px] bg-white rounded-2xl overflow-hidden shadow-2xl border border-slate-100 p-0 m-[-10px] group">
+                                <div className="w-[100px] h-full shrink-0 bg-slate-100 relative overflow-hidden">
+                                    <img
+                                        src={getOptimizedImageUrl(activeProject.thumbnailUrl, 200, 200)}
+                                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                        alt=""
+                                    />
                                 </div>
-                                <div className="p-3 flex-1 flex flex-col justify-center min-w-0 bg-white">
-                                    <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1 truncate">
+                                <div className="p-4 flex-1 flex flex-col justify-center min-w-0 bg-white">
+                                    <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.15em] mb-1.5 truncate">
                                         {activeProject.developerName || 'Unknown Developer'}
                                     </span>
-                                    <h4 className="font-black text-sm text-slate-900 leading-tight line-clamp-2 mb-1">
+                                    <h4 className="font-black text-[15px] text-slate-900 leading-tight line-clamp-2 mb-2">
                                         {activeProject.name || 'Premium Property'}
                                     </h4>
                                     <div className="mt-auto">
                                         {activeProject.priceRange && activeProject.priceRange !== '0' && activeProject.priceRange !== '0.00' && (
-                                            <span className="text-[11px] font-bold text-slate-700 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
+                                            <span className="text-[11px] font-bold text-slate-800 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100 inline-block">
                                                 {activeProject.priceRange.split('-')[0].trim()}
                                             </span>
                                         )}
