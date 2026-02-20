@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import SearchBar from './SearchBar';
 import { Project } from '../types';
-import { Settings, Filter as FilterIcon, Navigation, Check, X, Pencil } from 'lucide-react';
+import { Settings, Filter as FilterIcon, Navigation, Check, X, Pencil, Search } from 'lucide-react';
 
 interface BottomControlBarProps {
     projects: Project[];
@@ -51,6 +51,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
     handleLocationSelect
 }) => {
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+    const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
 
     // Dynamic Property Type calculation
     const propertyTypeOptions = useMemo(() => {
@@ -172,39 +173,46 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                     </div>
                 </div>
 
-                {/* Middle Left: Search */}
-                <div className="flex-1 max-w-sm">
-                    <SearchBar projects={projects} onSelectProject={onSelectProject} />
-                </div>
+                {/* Middle Left: Search and Dropdowns (Hidden on Mobile) */}
+                <div className="hidden md:flex items-center gap-2 flex-1 max-w-4xl justify-center">
+                    <div className="flex-1 max-w-sm">
+                        <SearchBar projects={projects} onSelectProject={onSelectProject} />
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <select
+                            value={selectedCity}
+                            onChange={handleCityChange}
+                            className="bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-50/20 transition-all cursor-pointer min-w-[150px]"
+                        >
+                            <option value="">All Emirates</option>
+                            {cityOptions.map(city => (
+                                <option key={city.id} value={city.id}>{city.label}</option>
+                            ))}
+                        </select>
 
-                {/* Middle Right: Dropdowns */}
-                <div className="hidden md:flex items-center gap-3 flex-1 justify-center">
-                    <select
-                        value={selectedCity}
-                        onChange={handleCityChange}
-                        className="bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-50/20 transition-all cursor-pointer min-w-[150px]"
-                    >
-                        <option value="">All Emirates</option>
-                        {cityOptions.map(city => (
-                            <option key={city.id} value={city.id}>{city.label}</option>
-                        ))}
-                    </select>
-
-                    <select
-                        value={selectedCommunity}
-                        onChange={handleCommunityChange}
-                        className="bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-50/20 transition-all cursor-pointer min-w-[170px] disabled:opacity-50"
-                        disabled={!selectedCity}
-                    >
-                        <option value="">Select Community</option>
-                        {communityOptions.map(comm => (
-                            <option key={comm.name} value={comm.name}>{comm.label}</option>
-                        ))}
-                    </select>
+                        <select
+                            value={selectedCommunity}
+                            onChange={handleCommunityChange}
+                            className="bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-50/20 transition-all cursor-pointer min-w-[170px] disabled:opacity-50"
+                            disabled={!selectedCity}
+                        >
+                            <option value="">Select Community</option>
+                            {communityOptions.map(comm => (
+                                <option key={comm.name} value={comm.name}>{comm.label}</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
 
                 {/* Right: Tools & Admin */}
                 <div className="flex items-center gap-2 shrink-0">
+                    <button
+                        onClick={() => setIsMobileSearchOpen(true)}
+                        className="md:hidden p-2.5 bg-slate-100 text-slate-700 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition-all"
+                    >
+                        <Search className="w-5 h-5" />
+                    </button>
+
                     <button
                         onClick={() => setIsFilterModalOpen(true)}
                         className={`p-2.5 rounded-xl border transition-all group flex items-center gap-2 px-4 ${isAnyFilterActive ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-slate-50 border-slate-200 text-slate-600'}`}
@@ -233,6 +241,71 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                     </button>
                 </div>
             </div>
+
+            {/* Mobile Search Modal (Bottom Sheet Style) */}
+            {isMobileSearchOpen && (
+                <div className="fixed inset-0 z-[7000] bg-slate-900/60 backdrop-blur-sm flex items-end md:hidden">
+                    <div className="bg-white w-full rounded-t-3xl p-6 space-y-6 animate-in slide-in-from-bottom-full duration-300 shadow-2xl pb-10">
+                        <div className="flex justify-between items-center mb-2">
+                            <div>
+                                <h3 className="text-base font-black text-slate-900 uppercase tracking-widest">Find Property</h3>
+                                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mt-1">Select location and search</p>
+                            </div>
+                            <button onClick={() => setIsMobileSearchOpen(false)} className="p-2 bg-slate-100 rounded-full text-slate-500 hover:bg-slate-200 transition-all">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="w-full">
+                            <SearchBar
+                                projects={projects}
+                                onSelectProject={(p) => {
+                                    onSelectProject(p);
+                                    setIsMobileSearchOpen(false);
+                                }}
+                            />
+                        </div>
+
+                        <div className="space-y-3">
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Select Emirate</label>
+                                <select
+                                    value={selectedCity}
+                                    onChange={handleCityChange}
+                                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer shadow-sm"
+                                >
+                                    <option value="">All Emirates</option>
+                                    {cityOptions.map(city => (
+                                        <option key={city.id} value={city.id}>{city.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Select Community</label>
+                                <select
+                                    value={selectedCommunity}
+                                    onChange={handleCommunityChange}
+                                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer shadow-sm disabled:opacity-50"
+                                    disabled={!selectedCity}
+                                >
+                                    <option value="">Select Community</option>
+                                    {communityOptions.map(comm => (
+                                        <option key={comm.name} value={comm.name}>{comm.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={() => setIsMobileSearchOpen(false)}
+                            className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all"
+                        >
+                            Discover Results
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Filter Modal (Side Panel) */}
             {isFilterModalOpen && (

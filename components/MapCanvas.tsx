@@ -235,11 +235,6 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
 
                     if (!isValid) return null;
 
-                    const hasValidPrice = activeProject.priceRange &&
-                        activeProject.priceRange !== '0' &&
-                        activeProject.priceRange !== '0.00' &&
-                        !activeProject.priceRange.startsWith('AED 0');
-
                     return (
                         <Popup
                             longitude={lng}
@@ -261,19 +256,24 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                                         alt=""
                                     />
                                 </div>
-                                <div className="p-4 flex-1 flex flex-col justify-center min-w-0 bg-white">
-                                    <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.15em] mb-1.5 truncate">
-                                        {activeProject.developerName || 'Unknown Developer'}
-                                    </span>
-                                    <h4 className="font-black text-[15px] text-slate-900 leading-tight line-clamp-2 mb-2">
+                                <div className="p-3 flex-1 flex flex-col justify-center min-w-0 bg-white text-left">
+                                    {/* Main H1 Project Name - Big, Bold, Truncated */}
+                                    <h4 className="font-black text-base text-slate-900 leading-tight line-clamp-2 break-words mb-1" title={activeProject.name}>
                                         {activeProject.name || 'Premium Property'}
                                     </h4>
-                                    <div className="mt-auto">
-                                        {hasValidPrice && (
-                                            <span className="text-[11px] font-bold text-slate-800 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100 inline-block">
-                                                {activeProject.priceRange?.split('-')[0].trim()}
+
+                                    {/* Secondary Developer Name - Smaller, Gray */}
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider truncate mb-2">
+                                        {activeProject.developerName || 'Unknown Developer'}
+                                    </span>
+
+                                    {/* Price Badge - Simple static badge, not a button-look */}
+                                    <div className="mt-auto flex items-center">
+                                        {activeProject.priceRange && activeProject.priceRange !== '0' && activeProject.priceRange !== '0.00' && !activeProject.priceRange.startsWith('AED 0') ? (
+                                            <span className="text-[10px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200 whitespace-nowrap">
+                                                {activeProject.priceRange.split('-')[0].trim()}
                                             </span>
-                                        )}
+                                        ) : null}
                                     </div>
                                 </div>
                             </div>
