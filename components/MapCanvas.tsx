@@ -130,6 +130,11 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
             {...viewState}
             ref={mapRef}
             onMove={evt => { setViewState(evt.viewState); updateBounds(); }}
+            onLoad={(e) => {
+                e.target.resize();
+                // Failsafe for slower DOM layout paints
+                setTimeout(() => e.target.resize(), 100);
+            }}
             mapStyle={mapStyle}
             mapboxAccessToken={MAPBOX_TOKEN}
             attributionControl={false}
