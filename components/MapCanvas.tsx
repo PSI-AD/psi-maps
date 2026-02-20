@@ -31,8 +31,8 @@ interface MapCanvasProps {
     mapFeatures?: { show3D: boolean; showAnalytics: boolean };
 }
 
-// FIX: Bulletproof Mapbox Token Initialization
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || '';
+// 🚨 PERMANENT FIX: Hardcoded Token. No environment variables allowed.
+const MAPBOX_TOKEN = 'pk.eyJ1IjoicHNpbnYiLCJhIjoiY21scjBzM21xMDZqNzNmc2VmdGt5MW05ZCJ9.VxIEn1jLTzMwLAN8m4B15g';
 (mapboxgl as any).accessToken = MAPBOX_TOKEN;
 
 const clusterLayer: CircleLayer = {
@@ -71,10 +71,10 @@ const unclusteredPointLayer: CircleLayer = {
     source: 'projects',
     filter: ['!', ['has', 'point_count']],
     paint: {
-        'circle-color': '#0f172a', // Slate 900
+        'circle-color': '#0f172a',
         'circle-radius': 8,
         'circle-stroke-width': 2,
-        'circle-stroke-color': '#2563eb' // Blue 600
+        'circle-stroke-color': '#2563eb'
     }
 };
 
@@ -85,12 +85,12 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
     setHoveredProjectId, setHoveredLandmarkId,
     selectedLandmark, selectedProject, hoveredProject, projects = [], mapFeatures
 }) => {
-    // FIX: Bulletproof coordinate parsing to prevent white screen crashes
+
+    // Safety check for valid GPS coordinates
     const validMapProjects = (projects || []).filter(p => {
         if (!p) return false;
         const lat = Number(p.latitude);
         const lng = Number(p.longitude);
-        // Ensure coordinates are real numbers and fall within Earth's bounds!
         return !isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180 && lat !== 0 && lng !== 0;
     });
 
@@ -148,7 +148,6 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
             <NavigationControl position="bottom-right" />
             <DrawControl position="top-right" onCreate={onDrawCreate} onUpdate={onDrawUpdate} onDelete={onDrawDelete} onReference={(draw) => { drawRef.current = draw; }} />
 
-            {/* 3D Buildings Layer (Toggled via Admin Settings) */}
             {mapFeatures?.show3D && (
                 <Layer
                     id="3d-buildings"
@@ -184,11 +183,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                     const lat = Number(activeProject.latitude);
                     const lng = Number(activeProject.longitude);
 
-                    // Strict coordinate validation preventing crashes
-                    const isValid = Number.isFinite(lat) && Number.isFinite(lng) &&
-                        lat >= -90 && lat <= 90 &&
-                        lng >= -180 && lng <= 180 &&
-                        lat !== 0 && lng !== 0;
+                    const isValid = Number.isFinite(lat) && Number.isFinite(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180 && lat !== 0 && lng !== 0;
 
                     if (!isValid) return null;
 
@@ -204,12 +199,8 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                             offset={20}
                         >
                             <div className="flex w-[280px] h-[100px] bg-white rounded-xl overflow-hidden shadow-2xl border border-slate-100 p-0 m-[-10px]">
-                                <div className="w-[100px] h-full shrink-0 bg-slate-100 relative">
-                                    <img
-                                        src={getOptimizedImageUrl(activeProject.thumbnailUrl, 200, 200)}
-                                        className="absolute inset-0 w-full h-full object-cover"
-                                        alt=""
-                                    />
+                                <div className="w-[100px) h-full shrink-0 bg-slate-100 relative">
+                                    <img src={getOptimizedImageUrl(activeProject.thumbnailUrl, 200, 200)} className="absolute inset-0 w-full h-full object-cover" alt="" />
                                 </div>
                                 <div className="p-3 flex-1 flex flex-col justify-center min-w-0 bg-white">
                                     <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1 truncate">
@@ -219,9 +210,11 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                                         {activeProject.name || 'Premium Property'}
                                     </h4>
                                     <div className="mt-auto">
-                                        <span className="text-[11px] font-bold text-slate-700 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
-                                            {activeProject.priceRange?.split('-')[0].trim() || 'Enquire'}
-                                        </span>
+                                        {activeProject.priceRange && activeProject.priceRange !== '0' && activeProject.priceRange !== '0.00' && (
+                                            <span className="text-[11px] font-bold text-slate-700 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
+                                                {activeProject.priceRange.split('-')[0].trim()}
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             </div>
