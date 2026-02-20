@@ -12,7 +12,7 @@ export const fetchAndSaveBoundary = async (communityName: string) => {
             const boundaryRef = doc(db, 'community_boundaries', communityName);
             await setDoc(boundaryRef, {
                 name: communityName,
-                geojson: validResult.geojson,
+                geojson: JSON.stringify(validResult.geojson), // Stringify to avoid Firestore nested-array error
                 updatedAt: new Date().toISOString()
             });
             return validResult.geojson;
@@ -29,7 +29,11 @@ export const getBoundaryFromDB = async (communityName: string) => {
         const boundaryRef = doc(db, 'community_boundaries', communityName);
         const docSnap = await getDoc(boundaryRef);
         if (docSnap.exists()) {
-            return docSnap.data().geojson;
+            const data = docSnap.data();
+            // Parse if stored as string (current format), fall back to raw object for legacy docs
+            return data && typeof data.geojson === 'string'
+                ? JSON.parse(data.geojson)
+                : (data?.geojson || null);
         }
         return null;
     } catch (error) {
