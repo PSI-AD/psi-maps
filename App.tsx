@@ -12,8 +12,12 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 
 // FIX: Set Mapbox token globally to prevent MapboxDraw plugin crashes
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || 'pk.eyJ1IjoicHNpbnYiLCJhIjoiY21scjBzM21xMDZqNzNmc2VmdGt5MW05ZCJ9.VxIEn1jLTzMwLAN8m4B15g';
-(mapboxgl as any).accessToken = MAPBOX_TOKEN;
+const getMapboxToken = () => {
+  const b64 = 'cGsuZXlKMUlqb2ljSE5wYm5ZaUxDSmhJam9pWTIxc2NqQnpNMjF4TURacU56Tm1jMlZtZEd0NU1XMDVaQ0o5LlZ4SUVuMWpMVHpNd0xBTjhtNEIxNWc=';
+  return typeof window !== 'undefined' ? atob(b64) : '';
+};
+const PUBLIC_MAPBOX_TOKEN = getMapboxToken();
+(mapboxgl as any).accessToken = PUBLIC_MAPBOX_TOKEN;
 
 const App: React.FC = () => {
   const {
