@@ -1,11 +1,9 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { MapRef } from 'react-map-gl';
-import MapboxDrawImport from '@mapbox/mapbox-gl-draw';
+import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import useSupercluster from 'use-supercluster';
 import { Project } from '../types';
 
-// Fix CJS interop: check if the import is already a constructor, otherwise unwrap .default
-const MapboxDraw = typeof MapboxDrawImport === 'function' ? MapboxDrawImport : (MapboxDrawImport as any).default;
 
 export const useMapState = (filteredProjects: Project[]) => {
     const mapRef = useRef<MapRef>(null);

@@ -1,13 +1,11 @@
 import React, { useRef } from 'react';
-import ReactMapGL, { AttributionControl, NavigationControl, Source, Layer, Popup } from 'react-map-gl';
+import Map, { AttributionControl, NavigationControl, Source, Layer, Popup } from 'react-map-gl';
 import type { CircleLayer, SymbolLayer } from 'react-map-gl';
 import { Project, Landmark } from '../types';
 import DrawControl from './DrawControl';
 import AmenityMarker from './AmenityMarker';
 import { getOptimizedImageUrl } from '../utils/imageHelpers';
 
-// Safe ESM/CJS interop for react-map-gl
-const Map = (ReactMapGL as any).default || ReactMapGL;
 
 interface MapCanvasProps {
     mapRef: any;

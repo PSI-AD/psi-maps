@@ -1,10 +1,7 @@
 
-import MapboxDrawImport from '@mapbox/mapbox-gl-draw';
+import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import { useControl } from 'react-map-gl';
 import type { ControlPosition } from 'react-map-gl';
-
-// Fix CJS interop: check if the import is already a constructor, otherwise unwrap .default
-const MapboxDraw = typeof MapboxDrawImport === 'function' ? MapboxDrawImport : (MapboxDrawImport as any).default;
 
 interface DrawControlProps {
   position?: ControlPosition;
@@ -15,8 +12,9 @@ interface DrawControlProps {
 }
 
 const DrawControl = (props: DrawControlProps) => {
+  const DrawConstructor = (MapboxDraw as any).default || MapboxDraw;
   const draw = useControl<any>(
-    () => new MapboxDraw({
+    () => new DrawConstructor({
       displayControlsDefault: false,
       controls: {
         polygon: true,
