@@ -7,6 +7,7 @@ import { fetchNearbyAmenities } from './utils/placesClient';
 import { fetchLocationBoundary } from './utils/boundaryFetcher';
 import MainLayout from './components/MainLayout';
 import MapCanvas from './components/MapCanvas';
+import ErrorBoundary from './components/ErrorBoundary';
 import { Project } from './types';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
@@ -168,17 +169,19 @@ const App: React.FC = () => {
       onQuickFilter={handleQuickFilter}
       activeBoundary={activeBoundary}
     >
-      <MapCanvas
-        mapRef={mapRef} viewState={viewState} setViewState={setViewState} updateBounds={updateBounds} mapStyle={mapStyle} onClick={handleMapClick}
-        drawRef={drawRef} onDrawCreate={e => { setFilterPolygon(e.features[0]); setIsDrawing(false); }} onDrawUpdate={e => setFilterPolygon(e.features[0])} onDrawDelete={() => { setFilterPolygon(null); setIsDrawing(false); }}
-        filteredAmenities={filteredAmenities}
-        onMarkerClick={handleMarkerClick} onLandmarkClick={handleLandmarkClick}
-        selectedProjectId={selectedProjectId} setHoveredProjectId={setHoveredProjectId} setHoveredLandmarkId={setHoveredLandmarkId}
-        selectedLandmark={selectedLandmark} selectedProject={selectedProject} hoveredProject={hoveredProject}
-        projects={filteredProjects}
-        mapFeatures={mapFeatures}
-        activeBoundary={activeBoundary}
-      />
+      <ErrorBoundary>
+        <MapCanvas
+          mapRef={mapRef} viewState={viewState} setViewState={setViewState} updateBounds={updateBounds} mapStyle={mapStyle} onClick={handleMapClick}
+          drawRef={drawRef} onDrawCreate={e => { setFilterPolygon(e.features[0]); setIsDrawing(false); }} onDrawUpdate={e => setFilterPolygon(e.features[0])} onDrawDelete={() => { setFilterPolygon(null); setIsDrawing(false); }}
+          filteredAmenities={filteredAmenities}
+          onMarkerClick={handleMarkerClick} onLandmarkClick={handleLandmarkClick}
+          selectedProjectId={selectedProjectId} setHoveredProjectId={setHoveredProjectId} setHoveredLandmarkId={setHoveredLandmarkId}
+          selectedLandmark={selectedLandmark} selectedProject={selectedProject} hoveredProject={hoveredProject}
+          projects={filteredProjects}
+          mapFeatures={mapFeatures}
+          activeBoundary={activeBoundary}
+        />
+      </ErrorBoundary>
     </MainLayout>
   );
 };
