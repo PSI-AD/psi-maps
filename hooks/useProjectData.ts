@@ -82,9 +82,11 @@ export const useProjectData = () => {
                 return {
                     id: doc.id,
                     name: data.name || 'Untitled Landmark',
-                    category: data.category || 'culture',
+                    category: data.category || 'Culture',
+                    community: data.community || '',
                     latitude: parseFloat(data.latitude || "0"),
                     longitude: parseFloat(data.longitude || "0"),
+                    isHidden: data.isHidden || false,
                     thumbnailUrl: data.thumbnailUrl || ''
                 } as Landmark;
             });
@@ -135,7 +137,7 @@ export const useProjectData = () => {
 
     const filteredAmenities = useMemo(() => {
         if (activeAmenities.length === 0) return [];
-        return liveLandmarks.filter(landmark => activeAmenities.includes(landmark.category));
+        return liveLandmarks.filter(landmark => !landmark.isHidden && activeAmenities.includes(landmark.category));
     }, [activeAmenities, liveLandmarks]);
 
     const handleToggleAmenity = (category: string) => {

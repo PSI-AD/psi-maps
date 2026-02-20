@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Project, Landmark, LandmarkCategory } from '../types';
 import { db } from '../utils/firebase';
-import { doc, setDoc, addDoc, collection, deleteDoc, writeBatch, updateDoc } from 'firebase/firestore'; // Added updateDoc
+import { doc, setDoc, addDoc, collection, deleteDoc, writeBatch, updateDoc } from 'firebase/firestore';
 import { generateCleanId } from '../utils/helpers';
 import { fetchAndSaveBoundary } from '../utils/boundaryService';
-import { Database, RefreshCw, Plus, Edit2, Trash2, MapPin, Search, School, ShoppingBag, Theater } from 'lucide-react';
+import { Database, RefreshCw, Plus, Edit2, Trash2, MapPin, Search, Eye, EyeOff } from 'lucide-react';
 
 interface AdminDashboardProps {
   onClose: () => void;
@@ -25,15 +25,30 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
   const [loading, setLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Search State
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('general');
 
-  // Staging State
   const [stagedProject, setStagedProject] = useState<Project | null>(null);
   const [stagedLandmark, setStagedLandmark] = useState<Partial<Landmark> | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isHydrating, setIsHydrating] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  // Nearbys CMS Filters
+  const [nearbysCategoryFilter, setNearbysCategoryFilter] = useState<string>('All');
+  const [nearbysCommunityFilter, setNearbysCommunityFilter] = useState<string>('All');
+
+  const uniqueLandmarkCommunities = useMemo(() => {
+    return Array.from(new Set(liveLandmarks.map(l => l.community).filter(Boolean))).sort();
+  }, [liveLandmarks]);
+
+  const filteredLandmarks = useMemo(() => {
+    return liveLandmarks.filter(l => {
+      if (nearbysCategoryFilter !== 'All' && l.category !== nearbysCategoryFilter) return false;
+      if (nearbysCommunityFilter !== 'All' && l.community !== nearbysCommunityFilter) return false;
+      return true;
+    });
+  }, [liveLandmarks, nearbysCategoryFilter, nearbysCommunityFilter]);
 
   const handleSyncBoundaries = async () => {
     setIsSyncing(true);
@@ -42,11 +57,57 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
     for (const community of uniqueCommunities) {
       await fetchAndSaveBoundary(community);
       synced++;
-      // 1-second delay to respect OpenStreetMap's public API rate limits
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
     setIsSyncing(false);
     alert(`Successfully synced ${synced} community boundaries to database!`);
+  };
+
+  const handleToggleVisibility = async (landmark: Landmark) => {
+    try {
+      await updateDoc(doc(db, 'landmarks', landmark.id), { isHidden: !landmark.isHidden });
+    } catch (e) { console.error(e); }
+  };
+
+  const seedTopFiveCommunities = async () => {
+    setIsHydrating(true);
+    try {
+      // Calculate Top 5 communities by project count
+      const commCounts: Record<string, number> = {};
+      liveProjects.forEach(p => {
+        if (p.community) commCounts[p.community] = (commCounts[p.community] || 0) + 1;
+      });
+      const top5 = Object.entries(commCounts).sort((a, b) => b[1] - a[1]).slice(0, 5).map(e => e[0]);
+
+      for (const community of top5) {
+        // 1. Cache the boundary polygon
+        await fetchAndSaveBoundary(community);
+        await new Promise(r => setTimeout(r, 1000));
+
+        // 2. Get approximate center from projects in that community
+        const communityProjects = liveProjects.filter(p => p.community === community);
+        const avgLat = communityProjects.reduce((s, p) => s + Number(p.latitude), 0) / communityProjects.length;
+        const avgLng = communityProjects.reduce((s, p) => s + Number(p.longitude), 0) / communityProjects.length;
+
+        // 3. Seed landmarks around the community center
+        const landmarks = [
+          { name: `${community} International School`, category: 'School' as LandmarkCategory, latitude: avgLat + 0.003, longitude: avgLng + 0.002 },
+          { name: `${community} Academy`, category: 'School' as LandmarkCategory, latitude: avgLat - 0.002, longitude: avgLng + 0.004 },
+          { name: `${community} Mall`, category: 'Retail' as LandmarkCategory, latitude: avgLat + 0.001, longitude: avgLng - 0.003 },
+          { name: `${community} Market Center`, category: 'Retail' as LandmarkCategory, latitude: avgLat - 0.003, longitude: avgLng - 0.001 },
+          { name: `${community} Medical Center`, category: 'Hospital' as LandmarkCategory, latitude: avgLat + 0.004, longitude: avgLng + 0.005 },
+        ];
+
+        const batch = writeBatch(db);
+        for (const lm of landmarks) {
+          const ref = doc(collection(db, 'landmarks'));
+          batch.set(ref, { ...lm, community, isHidden: false });
+        }
+        await batch.commit();
+      }
+      alert(`Successfully hydrated Top 5 communities: ${top5.join(', ')}`);
+    } catch (e) { console.error(e); }
+    setIsHydrating(false);
   };
 
   return (
@@ -92,18 +153,57 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
         <div className="space-y-8 pb-20">
           {activeTab === 'nearbys' && (
             <section className="animate-in fade-in duration-300">
+              {/* Header Row */}
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-2xl font-black text-slate-900 tracking-tight">Landmarks & Amenities</h2>
-                  <p className="text-slate-500 font-medium text-sm">Manage educational, retail, and cultural points of interest</p>
+                  <p className="text-slate-500 font-medium text-sm">Manage educational, retail, cultural, and medical points of interest</p>
                 </div>
-                <button
-                  onClick={() => setStagedLandmark({ name: '', category: 'school', latitude: 24.4, longitude: 54.4, thumbnailUrl: '' })}
-                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-blue-100"
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={seedTopFiveCommunities}
+                    disabled={isHydrating}
+                    className="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-emerald-100"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isHydrating ? 'animate-spin' : ''}`} />
+                    {isHydrating ? 'Hydrating...' : 'Hydrate Top 5'}
+                  </button>
+                  <button
+                    onClick={() => setStagedLandmark({ name: '', category: 'School', community: '', latitude: 24.4, longitude: 54.4 })}
+                    className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-blue-100"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Landmark
+                  </button>
+                </div>
+              </div>
+
+              {/* Filters Row */}
+              <div className="flex gap-4 mb-6">
+                <select
+                  value={nearbysCategoryFilter}
+                  onChange={e => setNearbysCategoryFilter(e.target.value)}
+                  className="h-11 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-blue-100"
                 >
-                  <Plus className="w-4 h-4" />
-                  Add Landmark
-                </button>
+                  <option value="All">All Categories</option>
+                  <option value="School">Schools</option>
+                  <option value="Retail">Retail</option>
+                  <option value="Culture">Culture</option>
+                  <option value="Hospital">Hospitals</option>
+                </select>
+                <select
+                  value={nearbysCommunityFilter}
+                  onChange={e => setNearbysCommunityFilter(e.target.value)}
+                  className="h-11 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-blue-100"
+                >
+                  <option value="All">All Communities</option>
+                  {uniqueLandmarkCommunities.map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                <div className="ml-auto text-xs font-black text-slate-400 uppercase tracking-widest self-center">
+                  {filteredLandmarks.length} Result{filteredLandmarks.length !== 1 ? 's' : ''}
+                </div>
               </div>
 
               {/* Landmark Editor Form */}
@@ -115,57 +215,47 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                   <h3 className="text-lg font-black text-blue-900 uppercase tracking-tighter mb-6">
                     {stagedLandmark.id ? 'Edit Landmark' : 'Create New Landmark'}
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
                     <div className="flex flex-col gap-1.5 lg:col-span-2">
                       <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest ml-1">Name</label>
-                      <input
-                        type="text"
-                        value={stagedLandmark.name || ''}
-                        onChange={(e) => setStagedLandmark({ ...stagedLandmark, name: e.target.value })}
-                        className="h-12 bg-white border border-blue-200 rounded-xl px-4 text-slate-800 font-medium outline-none focus:ring-4 focus:ring-blue-100"
-                      />
+                      <input type="text" value={stagedLandmark.name || ''} onChange={(e) => setStagedLandmark({ ...stagedLandmark, name: e.target.value })}
+                        className="h-12 bg-white border border-blue-200 rounded-xl px-4 text-slate-800 font-medium outline-none focus:ring-4 focus:ring-blue-100" />
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest ml-1">Category</label>
-                      <select
-                        value={stagedLandmark.category}
-                        onChange={(e) => setStagedLandmark({ ...stagedLandmark, category: e.target.value as LandmarkCategory })}
-                        className="h-12 bg-white border border-blue-200 rounded-xl px-4 text-slate-800 font-medium outline-none focus:ring-4 focus:ring-blue-100"
-                      >
-                        <option value="school">School</option>
-                        <option value="retail">Retail</option>
-                        <option value="culture">Culture</option>
-                        <option value="leisure">Leisure</option>
-                        <option value="hotel">Hotel</option>
+                      <select value={stagedLandmark.category} onChange={(e) => setStagedLandmark({ ...stagedLandmark, category: e.target.value as LandmarkCategory })}
+                        className="h-12 bg-white border border-blue-200 rounded-xl px-4 text-slate-800 font-medium outline-none focus:ring-4 focus:ring-blue-100">
+                        <option value="School">School</option>
+                        <option value="Retail">Retail</option>
+                        <option value="Culture">Culture</option>
+                        <option value="Hospital">Hospital</option>
                       </select>
                     </div>
                     <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest ml-1">Community</label>
+                      <input type="text" value={stagedLandmark.community || ''} onChange={(e) => setStagedLandmark({ ...stagedLandmark, community: e.target.value })}
+                        className="h-12 bg-white border border-blue-200 rounded-xl px-4 text-slate-800 font-medium outline-none focus:ring-4 focus:ring-blue-100" />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
                       <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest ml-1">Lat</label>
-                      <input
-                        type="number"
-                        value={stagedLandmark.latitude || ''}
-                        onChange={(e) => setStagedLandmark({ ...stagedLandmark, latitude: parseFloat(e.target.value) })}
-                        className="h-12 bg-white border border-blue-200 rounded-xl px-4 text-slate-800 font-medium outline-none focus:ring-4 focus:ring-blue-100"
-                      />
+                      <input type="number" value={stagedLandmark.latitude || ''} onChange={(e) => setStagedLandmark({ ...stagedLandmark, latitude: parseFloat(e.target.value) })}
+                        className="h-12 bg-white border border-blue-200 rounded-xl px-4 text-slate-800 font-medium outline-none focus:ring-4 focus:ring-blue-100" />
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest ml-1">Lng</label>
-                      <input
-                        type="number"
-                        value={stagedLandmark.longitude || ''}
-                        onChange={(e) => setStagedLandmark({ ...stagedLandmark, longitude: parseFloat(e.target.value) })}
-                        className="h-12 bg-white border border-blue-200 rounded-xl px-4 text-slate-800 font-medium outline-none focus:ring-4 focus:ring-blue-100"
-                      />
+                      <input type="number" value={stagedLandmark.longitude || ''} onChange={(e) => setStagedLandmark({ ...stagedLandmark, longitude: parseFloat(e.target.value) })}
+                        className="h-12 bg-white border border-blue-200 rounded-xl px-4 text-slate-800 font-medium outline-none focus:ring-4 focus:ring-blue-100" />
                     </div>
-                    <div className="flex items-end">
+                    <div className="flex items-end lg:col-span-2">
                       <button
                         onClick={async () => {
                           setIsSaving(true);
                           try {
+                            const payload = { ...stagedLandmark, isHidden: stagedLandmark.isHidden || false };
                             if (stagedLandmark.id) {
-                              await updateDoc(doc(db, 'landmarks', stagedLandmark.id), stagedLandmark);
+                              await updateDoc(doc(db, 'landmarks', stagedLandmark.id), payload);
                             } else {
-                              await addDoc(collection(db, 'landmarks'), stagedLandmark);
+                              await addDoc(collection(db, 'landmarks'), payload);
                             }
                             alert("Landmark Saved!");
                             setStagedLandmark(null);
@@ -181,32 +271,55 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                 </div>
               )}
 
+              {/* Landmarks Table */}
               <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
                 <table className="w-full text-left">
                   <thead className="bg-slate-50 border-b border-slate-100">
                     <tr>
                       <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Name</th>
                       <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Category</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Community</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Coordinates</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Status</th>
                       <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
-                    {liveLandmarks.map((l) => (
-                      <tr key={l.id} className="hover:bg-slate-50 transition-all group">
+                    {filteredLandmarks.map((l) => (
+                      <tr key={l.id} className={`hover:bg-slate-50 transition-all group ${l.isHidden ? 'opacity-50' : ''}`}>
                         <td className="px-6 py-4 font-bold text-slate-900">{l.name}</td>
-                        <td className="px-6 py-4 text-xs font-medium text-slate-500 uppercase tracking-widest">{l.category}</td>
+                        <td className="px-6 py-4">
+                          <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${l.category === 'School' ? 'bg-amber-50 text-amber-700' :
+                              l.category === 'Retail' ? 'bg-purple-50 text-purple-700' :
+                                l.category === 'Hospital' ? 'bg-rose-50 text-rose-700' :
+                                  'bg-blue-50 text-blue-700'
+                            }`}>{l.category}</span>
+                        </td>
+                        <td className="px-6 py-4 text-sm font-medium text-slate-600">{l.community || '—'}</td>
+                        <td className="px-6 py-4 text-xs font-mono text-slate-400">{l.latitude.toFixed(4)}, {l.longitude.toFixed(4)}</td>
+                        <td className="px-6 py-4">
+                          <span className={`text-[10px] font-black uppercase tracking-widest ${l.isHidden ? 'text-rose-500' : 'text-emerald-600'}`}>
+                            {l.isHidden ? 'Hidden' : 'Visible'}
+                          </span>
+                        </td>
                         <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100">
-                            <button onClick={() => setStagedLandmark(l)} className="p-2 text-blue-600 hover:bg-white rounded-lg"><Edit2 className="w-4 h-4" /></button>
+                          <div className="flex items-center justify-end gap-1">
+                            <button onClick={() => handleToggleVisibility(l)} className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all" title={l.isHidden ? 'Show' : 'Hide'}>
+                              {l.isHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                            <button onClick={() => setStagedLandmark(l)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"><Edit2 className="w-4 h-4" /></button>
                             <button onClick={async () => {
-                              if (window.confirm("Delete?")) {
+                              if (window.confirm("Permanently delete this landmark?")) {
                                 await deleteDoc(doc(db, 'landmarks', l.id));
                               }
-                            }} className="p-2 text-rose-600 hover:bg-white rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                            }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-all"><Trash2 className="w-4 h-4" /></button>
                           </div>
                         </td>
                       </tr>
                     ))}
+                    {filteredLandmarks.length === 0 && (
+                      <tr><td colSpan={6} className="px-6 py-12 text-center text-slate-400 font-medium">No landmarks match the current filters.</td></tr>
+                    )}
                   </tbody>
                 </table>
               </div>

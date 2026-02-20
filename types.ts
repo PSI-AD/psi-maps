@@ -26,7 +26,7 @@ export interface Project {
   subCommunity?: string;
 }
 
-export type LandmarkCategory = 'culture' | 'leisure' | 'school' | 'hotel' | 'retail';
+export type LandmarkCategory = 'School' | 'Retail' | 'Culture' | 'Hospital';
 
 export interface Landmark {
   id: string;
@@ -34,7 +34,9 @@ export interface Landmark {
   latitude: number;
   longitude: number;
   category: LandmarkCategory;
-  thumbnailUrl: string;
+  community: string;
+  isHidden?: boolean;
+  thumbnailUrl?: string;
 }
 
 export interface MapViewState {
