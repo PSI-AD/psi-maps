@@ -47,7 +47,7 @@ interface MainLayoutProps {
   selectedCommunity: string;
   setSelectedCommunity: (comm: string) => void;
   handleFitBounds: (projects: Project[]) => void;
-  handleLocationSelect: (locationName: string) => void;
+  handleLocationSelect: (locationType: 'city' | 'community', locationName: string, projectsInLocation: Project[]) => void;
 }
 
 const MainLayout: React.FC<MainLayoutProps> = ({
@@ -107,19 +107,19 @@ const MainLayout: React.FC<MainLayoutProps> = ({
 
       {/* Breadcrumbs Navigation */}
       <div className="absolute top-6 left-6 z-50 pointer-events-auto flex items-center gap-2 text-white text-sm font-bold drop-shadow-md">
-        <button onClick={() => { setSelectedCity(''); setSelectedCommunity(''); onCloseProject(); handleLocationSelect(''); }} className="hover:text-blue-400 transition-colors">UAE</button>
+        <button onClick={() => { setSelectedCity(''); setSelectedCommunity(''); onCloseProject(); handleLocationSelect('city', '', []); }} className="hover:text-blue-400 transition-colors">UAE</button>
 
         {selectedCity && (
           <>
             <span className="text-slate-400">/</span>
-            <button onClick={() => { setSelectedCommunity(''); onCloseProject(); handleLocationSelect(selectedCity); }} className="hover:text-blue-400 transition-colors capitalize">{selectedCity}</button>
+            <button onClick={() => { setSelectedCommunity(''); onCloseProject(); handleLocationSelect('city', selectedCity, liveProjects.filter(p => p.city === selectedCity)); }} className="hover:text-blue-400 transition-colors capitalize">{selectedCity}</button>
           </>
         )}
 
         {selectedCommunity && (
           <>
             <span className="text-slate-400">/</span>
-            <button onClick={() => { onCloseProject(); handleLocationSelect(selectedCommunity); }} className="hover:text-blue-400 transition-colors capitalize">{selectedCommunity}</button>
+            <button onClick={() => { onCloseProject(); handleLocationSelect('community', selectedCommunity, liveProjects.filter(p => p.community === selectedCommunity)); }} className="hover:text-blue-400 transition-colors capitalize">{selectedCommunity}</button>
           </>
         )}
 

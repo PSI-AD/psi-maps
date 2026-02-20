@@ -23,7 +23,7 @@ interface BottomControlBarProps {
     handleFitBounds: (projects: Project[]) => void;
     isDrawing: boolean;
     onToggleDraw: () => void;
-    handleLocationSelect: (locationName: string) => void;
+    handleLocationSelect: (locationType: 'city' | 'community', locationName: string, projectsInLocation: Project[]) => void;
 }
 
 const uaeEmirates = ['abu dhabi', 'dubai', 'sharjah', 'ajman', 'umm al quwain', 'ras al khaimah', 'fujairah'];
@@ -137,19 +137,16 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
     }, [projects, selectedCity]);
 
     const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const city = e.target.value;
-        setSelectedCity(city);
+        const val = e.target.value;
+        setSelectedCity(val);
         setSelectedCommunity('');
-        // Restricted borders to Communities only
-        if (!city) {
-            handleLocationSelect('');
-        }
+        handleLocationSelect('city', val, projects.filter(p => p.city === val));
     };
 
     const handleCommunityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const community = e.target.value;
-        setSelectedCommunity(community);
-        handleLocationSelect(community || selectedCity);
+        const val = e.target.value;
+        setSelectedCommunity(val);
+        handleLocationSelect('community', val, projects.filter(p => p.community === val));
     };
 
     const isAnyFilterActive = propertyType !== 'All' || developerFilter !== 'All' || statusFilter !== 'All';

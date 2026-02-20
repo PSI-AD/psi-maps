@@ -55,22 +55,30 @@ const App: React.FC = () => {
     mapRef.current.getMap().fitBounds(bbox, { padding: 120, duration: 1200, maxZoom: 15 });
   };
 
-  const handleLocationSelect = async (locationName: string) => {
+  const handleLocationSelect = async (locationType: 'city' | 'community', locationName: string, projectsInLocation: Project[]) => {
     if (!locationName) {
       setActiveBoundary(null);
-      // Fallback to UAE safe bounds if cleared
-      mapRef.current?.getMap().fitBounds([[51.5, 22.5], [56.5, 26.0]], { padding: 50, duration: 1000 });
+      handleFitBounds(liveProjects); // Reset to UAE
       return;
     }
 
-    const geojson = await fetchLocationBoundary(locationName);
-    if (geojson) {
-      setActiveBoundary(geojson);
-      // Use Turf.js to calculate the exact bounding box of the polygon
-      const bbox = turf.bbox(geojson) as [number, number, number, number];
-      mapRef.current?.getMap().fitBounds(bbox, { padding: 100, duration: 1500 });
-    } else {
+    if (locationType === 'city') {
+      // 1. CITIES: Never draw borders, just fit the camera perfectly to the pins.
       setActiveBoundary(null);
+      handleFitBounds(projectsInLocation);
+    } else if (locationType === 'community') {
+      // 2. COMMUNITIES: Try to fetch and draw the border.
+      const geojson = await fetchLocationBoundary(locationName);
+      if (geojson) {
+        // Border found! Draw it and zoom to its exact shape.
+        setActiveBoundary(geojson);
+        const bbox = turf.bbox(geojson) as [number, number, number, number];
+        mapRef.current?.getMap().fitBounds(bbox, { padding: 100, duration: 1500 });
+      } else {
+        // 3. FALLBACK: No border found in OSM. Don't draw lines, just zoom to the pins.
+        setActiveBoundary(null);
+        handleFitBounds(projectsInLocation);
+      }
     }
   };
 
