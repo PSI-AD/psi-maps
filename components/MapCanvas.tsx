@@ -90,11 +90,28 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
 }) => {
 
     // Safety check for valid GPS coordinates
+    const coordMap = new Map<string, number>();
     const validMapProjects = (projects || []).filter(p => {
         if (!p) return false;
         const lat = Number(p.latitude);
         const lng = Number(p.longitude);
         return !isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180 && lat !== 0 && lng !== 0;
+    }).map(p => {
+        let lat = Number(p.latitude);
+        let lng = Number(p.longitude);
+        // Group pins that are virtually on top of each other
+        const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+        const count = coordMap.get(key) || 0;
+        coordMap.set(key, count + 1);
+
+        if (count > 0) {
+            // Spiral offset math
+            const angle = count * 0.6;
+            const radius = 0.00015 + (count * 0.00003);
+            lat += Math.cos(angle) * radius;
+            lng += Math.sin(angle) * radius;
+        }
+        return { ...p, displayLat: lat, displayLng: lng };
     });
 
     const geoJsonData = {
@@ -103,7 +120,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
             type: 'Feature',
             id: p.id,
             properties: { ...p, cluster: false, id: p.id },
-            geometry: { type: 'Point', coordinates: [Number(p.longitude), Number(p.latitude)] }
+            geometry: { type: 'Point', coordinates: [p.displayLng, p.displayLat] }
         }))
     };
 
@@ -228,8 +245,8 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                     const activeProject = selectedProject || hoveredProject;
                     if (!activeProject) return null;
 
-                    const lat = Number(activeProject.latitude);
-                    const lng = Number(activeProject.longitude);
+                    const lat = Number(activeProject.displayLat || activeProject.latitude);
+                    const lng = Number(activeProject.displayLng || activeProject.longitude);
 
                     const isValid = Number.isFinite(lat) && Number.isFinite(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180 && lat !== 0 && lng !== 0;
 
@@ -257,24 +274,14 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                                     />
                                 </div>
                                 <div className="p-3 flex-1 flex flex-col justify-center min-w-0 bg-white text-left">
-                                    {/* Main H1 Project Name - Big, Bold, Truncated */}
-                                    <h4 className="font-black text-base text-slate-900 leading-tight line-clamp-2 break-words mb-1" title={activeProject.name}>
+                                    {/* H4 with min-h to guarantee 2 lines of space */}
+                                    <h4 className="font-black text-[13px] text-slate-900 leading-tight line-clamp-2 break-words mb-1 min-h-[2rem]" title={activeProject.name}>
                                         {activeProject.name || 'Premium Property'}
                                     </h4>
-
-                                    {/* Secondary Developer Name - Smaller, Gray */}
-                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider truncate mb-2">
-                                        {activeProject.developerName || 'Unknown Developer'}
+                                    {/* Developer name strictly in Blue */}
+                                    <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest truncate">
+                                        {activeProject.developerName || 'Exclusive Developer'}
                                     </span>
-
-                                    {/* Price Badge - Simple static badge, not a button-look */}
-                                    <div className="mt-auto flex items-center">
-                                        {activeProject.priceRange && activeProject.priceRange !== '0' && activeProject.priceRange !== '0.00' && !activeProject.priceRange.startsWith('AED 0') ? (
-                                            <span className="text-[10px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200 whitespace-nowrap">
-                                                {activeProject.priceRange.split('-')[0].trim()}
-                                            </span>
-                                        ) : null}
-                                    </div>
                                 </div>
                             </div>
                         </Popup>

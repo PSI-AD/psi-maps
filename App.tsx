@@ -127,6 +127,18 @@ const App: React.FC = () => {
     setIsAnalysisOpen(false);
   };
 
+  const handleQuickFilter = (type: 'community' | 'developer', value: string) => {
+    if (type === 'community' && setSelectedCommunity && handleLocationSelect) {
+      setSelectedCommunity(value);
+      setSelectedCity('');
+      handleLocationSelect('community', value, liveProjects.filter(p => p.community === value));
+    } else if (type === 'developer' && setDeveloperFilter) {
+      setDeveloperFilter(value);
+      handleFitBounds(liveProjects.filter(p => p.developerName === value));
+    }
+    setIsAnalysisOpen(false); // Close sidebar to show map results
+  };
+
   return (
     <MainLayout
       viewMode={viewMode} setViewMode={setViewMode} isAdminOpen={isAdminOpen} setIsAdminOpen={setIsAdminOpen}
@@ -145,6 +157,7 @@ const App: React.FC = () => {
       selectedCommunity={selectedCommunity} setSelectedCommunity={setSelectedCommunity}
       handleFitBounds={handleFitBounds}
       handleLocationSelect={handleLocationSelect}
+      onQuickFilter={handleQuickFilter}
     >
       <MapCanvas
         mapRef={mapRef} viewState={viewState} setViewState={setViewState} updateBounds={updateBounds} mapStyle={mapStyle} onClick={handleMapClick}

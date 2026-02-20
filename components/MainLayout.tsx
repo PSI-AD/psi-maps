@@ -48,6 +48,7 @@ interface MainLayoutProps {
   setSelectedCommunity: (comm: string) => void;
   handleFitBounds: (projects: Project[]) => void;
   handleLocationSelect: (locationType: 'city' | 'community', locationName: string, projectsInLocation: Project[]) => void;
+  onQuickFilter?: (type: 'community' | 'developer', value: string) => void;
 }
 
 const MainLayout: React.FC<MainLayoutProps> = ({
@@ -65,7 +66,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   selectedCity, setSelectedCity,
   selectedCommunity, setSelectedCommunity,
   handleFitBounds,
-  handleLocationSelect
+  handleLocationSelect,
+  onQuickFilter
 }) => {
   const [isNearbyToolsOpen, setIsNearbyToolsOpen] = useState(false);
 
@@ -155,6 +157,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
               onCloseProject();
             }}
             onDiscoverNeighborhood={onDiscoverNeighborhood}
+            onQuickFilter={onQuickFilter}
           />
         </div>
       )}

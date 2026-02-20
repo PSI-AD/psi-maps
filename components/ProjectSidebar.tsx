@@ -7,9 +7,10 @@ interface ProjectSidebarProps {
   project: Project | null;
   onClose: () => void;
   onDiscoverNeighborhood: (lat: number, lng: number) => Promise<void>;
+  onQuickFilter?: (type: 'community' | 'developer', value: string) => void;
 }
 
-const ProjectSidebar: React.FC<ProjectSidebarProps> = ({ project, onClose, onDiscoverNeighborhood }) => {
+const ProjectSidebar: React.FC<ProjectSidebarProps> = ({ project, onClose, onDiscoverNeighborhood, onQuickFilter }) => {
   const [activeImage, setActiveImage] = useState<string | null>(null);
   const [isDiscovering, setIsDiscovering] = useState(false);
 
@@ -81,7 +82,12 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({ project, onClose, onDis
           </h1>
           <div className="flex items-center text-slate-500 text-xs font-bold uppercase tracking-widest mb-3">
             <MapPin className="w-4 h-4 mr-1.5 text-blue-600" />
-            <span>{project.community}</span>
+            <button
+              onClick={() => onQuickFilter && project.community ? onQuickFilter('community', project.community) : undefined}
+              className="hover:text-blue-800 hover:underline transition-all text-left"
+            >
+              {project.community}
+            </button>
             {project.city && (
               <>
                 <span className="mx-2 text-slate-300">/</span>
@@ -90,7 +96,12 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({ project, onClose, onDis
             )}
           </div>
           <p className="text-sm font-black text-blue-600 uppercase tracking-widest">
-            {project.developerName || 'Exclusive Developer'}
+            <button
+              onClick={() => onQuickFilter && project.developerName ? onQuickFilter('developer', project.developerName) : undefined}
+              className="hover:text-blue-800 hover:underline transition-all text-left"
+            >
+              {project.developerName || 'Exclusive Developer'}
+            </button>
           </p>
         </div>
 
