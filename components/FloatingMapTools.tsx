@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Layers, X, Map as MapIcon, School, Coffee, Theater, ShoppingBag, BedDouble, PenTool } from 'lucide-react';
+import { Layers, X, School, Coffee, Theater, ShoppingBag, BedDouble, PenTool } from 'lucide-react';
 
 interface FloatingMapToolsProps {
     activeFilters: string[];
@@ -10,10 +9,7 @@ interface FloatingMapToolsProps {
 }
 
 const FloatingMapTools: React.FC<FloatingMapToolsProps> = ({
-    activeFilters,
-    onToggle,
-    isDrawActive,
-    onToggleDraw
+    activeFilters, onToggle, isDrawActive, onToggleDraw
 }) => {
     const [isOpen, setIsOpen] = useState(false);
 
@@ -27,39 +23,42 @@ const FloatingMapTools: React.FC<FloatingMapToolsProps> = ({
     ];
 
     return (
-        <div className="flex flex-col items-end gap-2">
-            {/* Expanded Menu */}
+        <div className="relative flex flex-col items-center">
+            {/* Pop-up Menu (Opens ABOVE the dock) */}
             <div className={`
-        flex flex-col gap-2 transition-all duration-300 origin-bottom-right
-        ${isOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-90 translate-y-4 pointer-events-none absolute bottom-0 right-0'}
-      `}>
+                absolute bottom-full mb-4 flex flex-col sm:flex-row flex-wrap justify-center gap-2 transition-all duration-300 origin-bottom
+                ${isOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-90 translate-y-4 pointer-events-none'}
+            `}>
                 {tools.map((tool) => (
                     <button
                         key={tool.id}
                         onClick={() => { tool.action(); if (window.innerWidth < 768) setIsOpen(false); }}
                         className={`
-              flex items-center gap-3 px-4 py-3 rounded-full shadow-lg backdrop-blur-md border transition-all duration-200
-              ${tool.active
-                                ? 'bg-blue-600 text-white border-blue-500 hover:bg-blue-700 shadow-blue-500/30'
+                            flex items-center gap-2 px-4 py-2.5 rounded-full shadow-lg backdrop-blur-md border transition-all duration-200
+                            ${tool.active
+                                ? 'bg-blue-600 text-white border-blue-500 shadow-blue-500/30'
                                 : 'bg-white/95 text-slate-700 border-white hover:bg-slate-50 hover:text-blue-700'}
-            `}
+                        `}
                     >
                         {tool.icon}
-                        <span className="text-xs font-bold uppercase tracking-wider whitespace-nowrap">{tool.label}</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest whitespace-nowrap">{tool.label}</span>
                     </button>
                 ))}
             </div>
 
-            {/* Main Toggle Button */}
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                className={`
-          w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-300
-          ${isOpen ? 'bg-slate-900 text-white rotate-90' : 'bg-white text-slate-900 hover:bg-slate-50'}
-        `}
-            >
-                {isOpen ? <X className="w-6 h-6" /> : <Layers className="w-6 h-6" />}
-            </button>
+            {/* The Main Dock Bar */}
+            <div className="bg-white/90 backdrop-blur-md shadow-2xl border border-slate-200 rounded-full px-2 py-2 flex items-center gap-2">
+                <button
+                    onClick={() => setIsOpen(!isOpen)}
+                    className={`
+                        flex items-center gap-2 px-5 py-3 rounded-full transition-all duration-300 z-50
+                        ${isOpen ? 'bg-slate-100 text-slate-900' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/30'}
+                    `}
+                >
+                    {isOpen ? <X className="w-5 h-5" /> : <Layers className="w-5 h-5" />}
+                    <span className="text-xs font-bold uppercase tracking-widest">{isOpen ? 'Close Tools' : 'Map Tools'}</span>
+                </button>
+            </div>
         </div>
     );
 };
