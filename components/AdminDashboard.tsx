@@ -75,11 +75,126 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
         {/* Content Sections */}
         <div className="space-y-8 pb-20">
           {activeTab === 'nearbys' && (
-            <div className="bg-white p-12 rounded-3xl border border-slate-100 shadow-sm text-center">
-              <MapPin className="w-12 h-12 text-slate-200 mx-auto mb-4" />
-              <h3 className="text-lg font-black text-slate-900 uppercase tracking-widest mb-2">Firestore Landmarks Collection Manager</h3>
-              <p className="text-slate-500 font-medium">(Ready for DB Sync)</p>
-            </div>
+            <section className="animate-in fade-in duration-300">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-black text-slate-900 tracking-tight">Landmarks & Amenities</h2>
+                  <p className="text-slate-500 font-medium text-sm">Manage educational, retail, and cultural points of interest</p>
+                </div>
+                <button
+                  onClick={() => setStagedLandmark({ name: '', category: 'school', latitude: 24.4, longitude: 54.4, thumbnailUrl: '' })}
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-blue-100"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Landmark
+                </button>
+              </div>
+
+              {/* Landmark Editor Form */}
+              {stagedLandmark && (
+                <div className="mb-10 p-8 bg-blue-50 border border-blue-100 rounded-3xl animate-in slide-in-from-top-4 duration-500 relative">
+                  <button onClick={() => setStagedLandmark(null)} className="absolute top-6 right-6 text-blue-400 hover:text-blue-900">
+                    <X className="w-6 h-6" />
+                  </button>
+                  <h3 className="text-lg font-black text-blue-900 uppercase tracking-tighter mb-6">
+                    {stagedLandmark.id ? 'Edit Landmark' : 'Create New Landmark'}
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="flex flex-col gap-1.5 lg:col-span-2">
+                      <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest ml-1">Name</label>
+                      <input
+                        type="text"
+                        value={stagedLandmark.name || ''}
+                        onChange={(e) => setStagedLandmark({ ...stagedLandmark, name: e.target.value })}
+                        className="h-12 bg-white border border-blue-200 rounded-xl px-4 text-slate-800 font-medium outline-none focus:ring-4 focus:ring-blue-100"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest ml-1">Category</label>
+                      <select
+                        value={stagedLandmark.category}
+                        onChange={(e) => setStagedLandmark({ ...stagedLandmark, category: e.target.value as LandmarkCategory })}
+                        className="h-12 bg-white border border-blue-200 rounded-xl px-4 text-slate-800 font-medium outline-none focus:ring-4 focus:ring-blue-100"
+                      >
+                        <option value="school">School</option>
+                        <option value="retail">Retail</option>
+                        <option value="culture">Culture</option>
+                        <option value="leisure">Leisure</option>
+                        <option value="hotel">Hotel</option>
+                      </select>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest ml-1">Lat</label>
+                      <input
+                        type="number"
+                        value={stagedLandmark.latitude || ''}
+                        onChange={(e) => setStagedLandmark({ ...stagedLandmark, latitude: parseFloat(e.target.value) })}
+                        className="h-12 bg-white border border-blue-200 rounded-xl px-4 text-slate-800 font-medium outline-none focus:ring-4 focus:ring-blue-100"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest ml-1">Lng</label>
+                      <input
+                        type="number"
+                        value={stagedLandmark.longitude || ''}
+                        onChange={(e) => setStagedLandmark({ ...stagedLandmark, longitude: parseFloat(e.target.value) })}
+                        className="h-12 bg-white border border-blue-200 rounded-xl px-4 text-slate-800 font-medium outline-none focus:ring-4 focus:ring-blue-100"
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <button
+                        onClick={async () => {
+                          setIsSaving(true);
+                          try {
+                            if (stagedLandmark.id) {
+                              await updateDoc(doc(db, 'landmarks', stagedLandmark.id), stagedLandmark);
+                            } else {
+                              await addDoc(collection(db, 'landmarks'), stagedLandmark);
+                            }
+                            alert("Landmark Saved!");
+                            setStagedLandmark(null);
+                          } catch (e) { console.error(e); }
+                          setIsSaving(false);
+                        }}
+                        className="w-full h-12 bg-blue-700 text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-blue-200"
+                      >
+                        {isSaving ? 'Saving...' : (stagedLandmark.id ? 'Update' : 'Create')}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+                <table className="w-full text-left">
+                  <thead className="bg-slate-50 border-b border-slate-100">
+                    <tr>
+                      <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Name</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Category</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {liveLandmarks.map((l) => (
+                      <tr key={l.id} className="hover:bg-slate-50 transition-all group">
+                        <td className="px-6 py-4 font-bold text-slate-900">{l.name}</td>
+                        <td className="px-6 py-4 text-xs font-medium text-slate-500 uppercase tracking-widest">{l.category}</td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100">
+                            <button onClick={() => setStagedLandmark(l)} className="p-2 text-blue-600 hover:bg-white rounded-lg"><Edit2 className="w-4 h-4" /></button>
+                            <button onClick={async () => {
+                              if (window.confirm("Delete?")) {
+                                await deleteDoc(doc(db, 'landmarks', l.id));
+                              }
+                            }} className="p-2 text-rose-600 hover:bg-white rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
           )}
 
           {activeTab === 'settings' && (

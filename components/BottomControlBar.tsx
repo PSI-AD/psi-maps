@@ -114,40 +114,33 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
             .sort((a, b) => (b.count as number) - (a.count as number));
     }, [projects]);
 
-    // Helper to generate sorted options with counts for Communities
-    const communityOptions = useMemo(() => {
+    const availableCommunities = useMemo(() => {
         if (!selectedCity) return [];
-        // CRUCIAL: Filtered by city to show ONLY communities in that city
-        const filtered = projects.filter(p => p.city?.toLowerCase() === selectedCity.toLowerCase());
-        const stats = filtered.reduce((acc, p) => {
-            const community = p.community;
-            if (community) {
-                acc[community] = (acc[community] || 0) + 1;
+        const inCity = projects.filter(p => p.city === selectedCity && p.community);
+        const counts = inCity.reduce((acc, p) => {
+            if (p.community) {
+                acc[p.community] = (acc[p.community] || 0) + 1;
             }
             return acc;
         }, {} as Record<string, number>);
-
-        return Object.entries(stats)
-            .filter(([_, count]) => (count as number) > 0)
-            .map(([name, count]) => ({
-                name,
-                count: count as number,
-                label: `${name} (${count})`
-            }))
-            .sort((a, b) => (b.count as number) - (a.count as number));
+        return Object.entries(counts).sort((a, b) => (b[1] as number) - (a[1] as number));
     }, [projects, selectedCity]);
 
     const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const val = e.target.value;
         setSelectedCity(val);
         setSelectedCommunity('');
-        handleLocationSelect('city', val, projects.filter(p => p.city === val));
+        if (handleLocationSelect) {
+            handleLocationSelect('city', val, projects.filter(p => p.city === val));
+        }
     };
 
     const handleCommunityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const val = e.target.value;
         setSelectedCommunity(val);
-        handleLocationSelect('community', val, projects.filter(p => p.community === val));
+        if (handleLocationSelect) {
+            handleLocationSelect('community', val, projects.filter(p => p.community === val));
+        }
     };
 
     const isAnyFilterActive = propertyType !== 'All' || developerFilter !== 'All' || statusFilter !== 'All';
@@ -195,8 +188,8 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                             disabled={!selectedCity}
                         >
                             <option value="">Select Community</option>
-                            {communityOptions.map(comm => (
-                                <option key={comm.name} value={comm.name}>{comm.label}</option>
+                            {availableCommunities.map(([name, count]) => (
+                                <option key={name} value={name}>{name} ({count})</option>
                             ))}
                         </select>
                     </div>
@@ -288,8 +281,8 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                                     disabled={!selectedCity}
                                 >
                                     <option value="">Select Community</option>
-                                    {communityOptions.map(comm => (
-                                        <option key={comm.name} value={comm.name}>{comm.label}</option>
+                                    {availableCommunities.map(([name, count]) => (
+                                        <option key={name} value={name}>{name} ({count})</option>
                                     ))}
                                 </select>
                             </div>
