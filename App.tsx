@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import mapboxgl from 'mapbox-gl';
 import * as turf from '@turf/turf';
 import { useProjectData } from './hooks/useProjectData';
@@ -9,7 +9,7 @@ import { getBoundaryFromDB } from './utils/boundaryService';
 import MainLayout from './components/MainLayout';
 import MapCanvas from './components/MapCanvas';
 import ErrorBoundary from './components/ErrorBoundary';
-import { Project } from './types';
+import { Project, Landmark } from './types';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 
@@ -50,10 +50,32 @@ const App: React.FC = () => {
   const [selectedLandmarkId, setSelectedLandmarkId] = useState<string | null>(null);
   const [hoveredLandmarkId, setHoveredLandmarkId] = useState<string | null>(null);
   const [activeIsochrone, setActiveIsochrone] = useState<{ mode: 'driving' | 'walking'; minutes: number } | null>(null);
+  const [showNearbyPanel, setShowNearbyPanel] = useState(false);
 
   const selectedProject = filteredProjects.find(p => p.id === selectedProjectId) || null;
   const hoveredProject = filteredProjects.find(p => p.id === hoveredProjectId) || null;
   const selectedLandmark = filteredAmenities.find(l => l.id === selectedLandmarkId) || null;
+
+  // Only show the top 5 landmarks per category for the selected project when the panel is open
+  const projectSpecificLandmarks = useMemo((): Landmark[] => {
+    if (!selectedProject || !showNearbyPanel) return [];
+    const projCoord: [number, number] = [Number(selectedProject.longitude), Number(selectedProject.latitude)];
+    const withDist = liveLandmarks
+      .filter(l => !l.isHidden && !isNaN(Number(l.latitude)) && !isNaN(Number(l.longitude)))
+      .map(l => ({
+        ...l,
+        _dist: turf.distance(projCoord, [Number(l.longitude), Number(l.latitude)])
+      }))
+      .sort((a, b) => a._dist - b._dist);
+
+    const topLandmarks: Landmark[] = [];
+    const counts: Record<string, number> = {};
+    for (const l of withDist) {
+      counts[l.category] = (counts[l.category] || 0) + 1;
+      if (counts[l.category] <= 5) topLandmarks.push(l);
+    }
+    return topLandmarks;
+  }, [selectedProject, liveLandmarks, showNearbyPanel]);
 
   const handleFitBounds = (projectsToFit: Project[], isDefault = false) => {
     if (!mapRef.current) return;
@@ -163,6 +185,7 @@ const App: React.FC = () => {
     setSelectedProjectId(null);
     setIsAnalysisOpen(false);
     setActiveIsochrone(null);
+    setShowNearbyPanel(false);
   };
 
   const handleGlobalReset = () => {
@@ -214,12 +237,15 @@ const App: React.FC = () => {
       handleGlobalReset={handleGlobalReset}
       activeIsochrone={activeIsochrone}
       setActiveIsochrone={setActiveIsochrone}
+      showNearbyPanel={showNearbyPanel}
+      setShowNearbyPanel={setShowNearbyPanel}
+      projectSpecificLandmarks={projectSpecificLandmarks}
     >
       <ErrorBoundary>
         <MapCanvas
           mapRef={mapRef} viewState={viewState} setViewState={setViewState} updateBounds={updateBounds} mapStyle={mapStyle} onClick={handleMapClick}
           drawRef={drawRef} onDrawCreate={e => { setFilterPolygon(e.features[0]); setIsDrawing(false); }} onDrawUpdate={e => setFilterPolygon(e.features[0])} onDrawDelete={() => { setFilterPolygon(null); setIsDrawing(false); }}
-          filteredAmenities={filteredAmenities}
+          filteredAmenities={showNearbyPanel ? projectSpecificLandmarks : filteredAmenities}
           onMarkerClick={handleMarkerClick} onLandmarkClick={handleLandmarkClick}
           selectedProjectId={selectedProjectId} setHoveredProjectId={setHoveredProjectId} setHoveredLandmarkId={setHoveredLandmarkId}
           selectedLandmark={selectedLandmark} selectedProject={selectedProject} hoveredProject={hoveredProject}

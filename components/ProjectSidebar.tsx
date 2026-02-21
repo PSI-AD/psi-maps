@@ -15,6 +15,7 @@ interface ProjectSidebarProps {
   setActiveIsochrone: (iso: { mode: 'driving' | 'walking'; minutes: number } | null) => void;
   nearbyLandmarks: Landmark[];
   onFlyTo: (lng: number, lat: number, zoom?: number) => void;
+  setShowNearbyPanel: (v: boolean) => void;
 }
 
 // Category colour mapping (mirrors AmenityMarker)
@@ -46,6 +47,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   setActiveIsochrone,
   nearbyLandmarks,
   onFlyTo,
+  setShowNearbyPanel,
 }) => {
   const [activeImage, setActiveImage] = useState<string | null>(null);
   const [isDiscovering, setIsDiscovering] = useState(false);
@@ -300,27 +302,14 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
               )}
             </div>
 
-            {/* 7. Nearby Landmarks */}
-            {communityLandmarks.length > 0 && (
-              <div>
-                <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
-                  <MapPin className="w-4 h-4 mr-2 text-blue-600" />Neighborhood
-                </h3>
-                <div className="space-y-2">
-                  {communityLandmarks.map(l => {
-                    const cat = l.category?.toLowerCase() ?? '';
-                    const style = categoryStyle[cat] ?? defaultStyle;
-                    return (
-                      <div key={l.id} className={`flex items-center gap-3 px-4 py-3 ${style.bg} rounded-xl`}>
-                        <div className={`w-2 h-2 rounded-full shrink-0 ${style.dot}`} />
-                        <span className={`text-xs font-bold flex-1 truncate ${style.text}`}>{l.name}</span>
-                        <span className={`text-[10px] font-black uppercase tracking-widest ${style.text} opacity-60`}>{style.label}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+            {/* 7. Nearby Amenities — opens the NearbyPanel */}
+            <button
+              onClick={() => setShowNearbyPanel(true)}
+              className="w-full mt-4 mb-2 py-3 bg-slate-50 border border-slate-200 hover:bg-blue-50 hover:border-blue-200 text-blue-700 rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+            >
+              <MapPin className="w-4 h-4" />
+              View Top Nearby Amenities
+            </button>
 
             <div id="sidebar-map-section" />
           </div>

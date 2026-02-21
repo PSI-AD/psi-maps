@@ -6,6 +6,11 @@ import { generateCleanId } from '../utils/helpers';
 import { fetchAndSaveBoundary } from '../utils/boundaryService';
 import { Database, RefreshCw, Plus, Edit2, Trash2, MapPin, Search, Eye, EyeOff, ImageIcon, Zap } from 'lucide-react';
 import { optimizeAndUploadImage } from '../utils/imageOptimizer';
+import Map, { Marker } from 'react-map-gl';
+
+const PUBLIC_MAPBOX_TOKEN = typeof window !== 'undefined'
+  ? atob('cGsuZXlKMUlqb2ljSE5wYm5ZaUxDSmhJam9pWTIxc2NqQnpNMjF4TURacU56Tm1jMlZtZEd0NU1XMDVaQ0o5LlZ4SUVuMWpMVHpNd0xBTjhtNEIxNWc=')
+  : '';
 
 interface AdminDashboardProps {
   onClose: () => void;
@@ -192,6 +197,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
         { osmTag: 'amenity=hospital', appCategory: 'Hospital' },
         { osmTag: 'shop=mall', appCategory: 'Retail' },
         { osmTag: 'tourism=museum', appCategory: 'Culture' },
+        { osmTag: 'tourism=hotel', appCategory: 'Hotel' },
+        { osmTag: 'amenity=kindergarten', appCategory: 'School' },
       ];
 
       let addedCount = 0;
@@ -199,7 +206,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
 
       for (const cat of categories) {
         const query = `[out:json][timeout:25];(node[${cat.osmTag}](${bbox});way[${cat.osmTag}](${bbox}););out center;`;
-        const response = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: query });
+        const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+        const response = await fetch(url, { method: 'GET' });
         const osmData = await response.json();
 
         if (osmData?.elements) {
@@ -364,10 +372,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                       <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest ml-1">Category</label>
                       <select value={stagedLandmark.category} onChange={(e) => setStagedLandmark({ ...stagedLandmark, category: e.target.value as LandmarkCategory })}
                         className="h-12 bg-white border border-blue-200 rounded-xl px-4 text-slate-800 font-medium outline-none focus:ring-4 focus:ring-blue-100">
-                        <option value="School">School</option>
-                        <option value="Retail">Retail</option>
+                        <option value="School">School / Nursery</option>
+                        <option value="Hospital">Hospital / Clinic</option>
+                        <option value="Retail">Mall / Retail</option>
                         <option value="Culture">Culture</option>
-                        <option value="Hospital">Hospital</option>
+                        <option value="Hotel">Hotel</option>
+                        <option value="Leisure">Leisure</option>
                       </select>
                     </div>
                     <div className="flex flex-col gap-1.5">
@@ -381,15 +391,44 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                         {uniqueProjectCommunities.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest ml-1">Lat</label>
-                      <input type="number" value={stagedLandmark.latitude || ''} onChange={(e) => setStagedLandmark({ ...stagedLandmark, latitude: parseFloat(e.target.value) })}
-                        className="h-12 bg-white border border-blue-200 rounded-xl px-4 text-slate-800 font-medium outline-none focus:ring-4 focus:ring-blue-100" />
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest ml-1">Lng</label>
-                      <input type="number" value={stagedLandmark.longitude || ''} onChange={(e) => setStagedLandmark({ ...stagedLandmark, longitude: parseFloat(e.target.value) })}
-                        className="h-12 bg-white border border-blue-200 rounded-xl px-4 text-slate-800 font-medium outline-none focus:ring-4 focus:ring-blue-100" />
+                    {/* Interactive Map Picker — replaces raw Lat/Lng inputs */}
+                    <div className="lg:col-span-5 flex flex-col gap-1.5">
+                      <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest ml-1">
+                        Pin Location
+                        {stagedLandmark.latitude && stagedLandmark.longitude && (
+                          <span className="ml-2 normal-case font-medium text-blue-400">
+                            {Number(stagedLandmark.latitude).toFixed(5)}, {Number(stagedLandmark.longitude).toFixed(5)}
+                          </span>
+                        )}
+                      </label>
+                      <div className="relative h-56 rounded-xl overflow-hidden border border-blue-200">
+                        <div className="absolute top-2 left-2 z-10 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg shadow-sm text-[10px] font-black uppercase text-blue-600 pointer-events-none">
+                          Click map to set pin
+                        </div>
+                        <Map
+                          mapboxAccessToken={PUBLIC_MAPBOX_TOKEN}
+                          initialViewState={{
+                            longitude: Number(stagedLandmark.longitude) || 54.4,
+                            latitude: Number(stagedLandmark.latitude) || 24.4,
+                            zoom: 11
+                          }}
+                          mapStyle="mapbox://styles/mapbox/streets-v12"
+                          style={{ width: '100%', height: '100%' }}
+                          onClick={(e) => setStagedLandmark({
+                            ...stagedLandmark,
+                            longitude: e.lngLat.lng,
+                            latitude: e.lngLat.lat
+                          })}
+                        >
+                          {stagedLandmark.longitude && stagedLandmark.latitude && (
+                            <Marker
+                              longitude={Number(stagedLandmark.longitude)}
+                              latitude={Number(stagedLandmark.latitude)}
+                              color="#2563EB"
+                            />
+                          )}
+                        </Map>
+                      </div>
                     </div>
                     {/* 3D Model URL — full-width row */}
                     <div className="flex flex-col gap-1.5 lg:col-span-2">

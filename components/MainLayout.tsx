@@ -6,6 +6,7 @@ import FloatingMapTools from './FloatingMapTools';
 import MapStyleSwitcher from './MapStyleSwitcher';
 import BottomControlBar from './BottomControlBar';
 import FullscreenImageModal from './FullscreenImageModal';
+import NearbyPanel from './NearbyPanel';
 import { Loader2 } from 'lucide-react';
 
 interface MainLayoutProps {
@@ -54,6 +55,9 @@ interface MainLayoutProps {
   handleGlobalReset: () => void;
   activeIsochrone: { mode: 'driving' | 'walking'; minutes: number } | null;
   setActiveIsochrone: (iso: { mode: 'driving' | 'walking'; minutes: number } | null) => void;
+  showNearbyPanel: boolean;
+  setShowNearbyPanel: (v: boolean) => void;
+  projectSpecificLandmarks: Landmark[];
 }
 
 const MainLayout: React.FC<MainLayoutProps> = (props) => {
@@ -78,6 +82,9 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
     handleGlobalReset,
     activeIsochrone,
     setActiveIsochrone,
+    showNearbyPanel,
+    setShowNearbyPanel,
+    projectSpecificLandmarks,
   } = props;
 
   const [isNearbyToolsOpen, setIsNearbyToolsOpen] = useState(false);
@@ -182,6 +189,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
             setActiveIsochrone={setActiveIsochrone}
             nearbyLandmarks={liveLandmarks}
             onFlyTo={onFlyTo}
+            setShowNearbyPanel={setShowNearbyPanel}
           />
         </div>
       )}
@@ -270,6 +278,15 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
             </div>
           )}
         </div>
+      )}
+
+      {/* NearbyPanel — floats above the bottom dock */}
+      {showNearbyPanel && selectedProject && (
+        <NearbyPanel
+          project={selectedProject}
+          landmarks={projectSpecificLandmarks}
+          onClose={() => setShowNearbyPanel(false)}
+        />
       )}
 
       {/* The New Bottom Dock */}
