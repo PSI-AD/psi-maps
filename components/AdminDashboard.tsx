@@ -35,6 +35,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
   const [isHydrating, setIsHydrating] = useState(false);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [optimizeProgress, setOptimizeProgress] = useState<{ current: number; total: number; optimized: number; failed: number } | null>(null);
+  const [osmCommunity, setOsmCommunity] = useState('');
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
   // Nearbys CMS Filters
@@ -51,6 +52,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
 
   const uniqueProjectCities = useMemo(() => {
     return Array.from(new Set(liveProjects.map(p => p.city).filter(Boolean))).sort() as string[];
+  }, [liveProjects]);
+
+  const uniqueProjectDevelopers = useMemo(() => {
+    return Array.from(new Set(liveProjects.map(p => p.developerName).filter(Boolean))).sort() as string[];
   }, [liveProjects]);
 
   const filteredLandmarks = useMemo(() => {
@@ -169,6 +174,62 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
     setIsHydrating(false);
   };
 
+  const fetchRealAmenitiesFromOSM = async (communityName: string) => {
+    if (!communityName) return;
+    setIsHydrating(true);
+    try {
+      const communityProjects = liveProjects.filter(p => p.community === communityName);
+      if (!communityProjects.length) throw new Error('No projects found in this community.');
+
+      const avgLat = communityProjects.reduce((s, p) => s + Number(p.latitude), 0) / communityProjects.length;
+      const avgLng = communityProjects.reduce((s, p) => s + Number(p.longitude), 0) / communityProjects.length;
+
+      const latOffset = 0.027; const lngOffset = 0.03; // ~3km bounding box
+      const bbox = `${avgLat - latOffset},${avgLng - lngOffset},${avgLat + latOffset},${avgLng + lngOffset}`;
+
+      const categories = [
+        { osmTag: 'amenity=school', appCategory: 'School' },
+        { osmTag: 'amenity=hospital', appCategory: 'Hospital' },
+        { osmTag: 'shop=mall', appCategory: 'Retail' },
+        { osmTag: 'tourism=museum', appCategory: 'Culture' },
+      ];
+
+      let addedCount = 0;
+      const batch = writeBatch(db);
+
+      for (const cat of categories) {
+        const query = `[out:json][timeout:25];(node[${cat.osmTag}](${bbox});way[${cat.osmTag}](${bbox}););out center;`;
+        const response = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: query });
+        const osmData = await response.json();
+
+        if (osmData?.elements) {
+          for (const el of osmData.elements.slice(0, 6)) {
+            const name = el.tags?.name || el.tags?.['name:en'];
+            const lat = el.lat ?? el.center?.lat;
+            const lon = el.lon ?? el.center?.lon;
+            if (lat && lon && name) {
+              const ref = doc(collection(db, 'landmarks'));
+              batch.set(ref, { name, category: cat.appCategory, community: communityName, latitude: lat, longitude: lon, isHidden: false });
+              addedCount++;
+            }
+          }
+        }
+        await new Promise(r => setTimeout(r, 1200)); // respect OSM rate limit
+      }
+
+      if (addedCount > 0) {
+        await batch.commit();
+        alert(`Imported ${addedCount} real landmarks for ${communityName} from OSM!`);
+      } else {
+        alert(`No landmarks found in OSM for ${communityName}.`);
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Failed to fetch from OSM. Check the console for details.');
+    }
+    setIsHydrating(false);
+  };
+
   return (
     <div className="fixed inset-0 z-[10000] bg-slate-50/98 backdrop-blur-md overflow-y-auto flex flex-col items-center p-6 md:p-12 animate-in fade-in duration-300 text-slate-900">
       {/* Header */}
@@ -227,6 +288,25 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                     <RefreshCw className={`w-4 h-4 ${isHydrating ? 'animate-spin' : ''}`} />
                     {isHydrating ? 'Hydrating...' : 'Hydrate Top 5'}
                   </button>
+                  {/* OSM Real Data Importer */}
+                  <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
+                    <select
+                      value={osmCommunity}
+                      onChange={e => setOsmCommunity(e.target.value)}
+                      className="h-10 px-3 bg-white border border-slate-200 rounded-lg text-[10px] font-bold outline-none text-slate-700"
+                    >
+                      <option value="">Select Community to Import from OSM...</option>
+                      {uniqueProjectCommunities.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <button
+                      onClick={() => fetchRealAmenitiesFromOSM(osmCommunity)}
+                      disabled={!osmCommunity || isHydrating}
+                      className="px-4 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-black uppercase tracking-widest shadow-md disabled:bg-slate-300 disabled:cursor-not-allowed transition-all flex items-center gap-2 whitespace-nowrap"
+                    >
+                      <MapPin className="w-3.5 h-3.5" />
+                      {isHydrating ? 'Importing...' : 'Fetch Real Data'}
+                    </button>
+                  </div>
                   <button
                     onClick={() => setStagedLandmark({ name: '', category: 'School', community: '', latitude: 24.4, longitude: 54.4 })}
                     className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-blue-100"
@@ -563,10 +643,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Project Name</label>
                   <input className="h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-slate-800 font-medium" value={stagedProject.name || ''} onChange={(e) => setStagedProject({ ...stagedProject, name: e.target.value })} />
                 </div>
-                {/* Developer */}
+                {/* Developer — dropdown from live project data */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Developer</label>
-                  <input className="h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-slate-800 font-medium" value={stagedProject.developerName || ''} onChange={(e) => setStagedProject({ ...stagedProject, developerName: e.target.value })} />
+                  <select className="h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-slate-800 font-medium" value={stagedProject.developerName || ''} onChange={(e) => setStagedProject({ ...stagedProject, developerName: e.target.value })}>
+                    <option value="">Select Developer...</option>
+                    {uniqueProjectDevelopers.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
                 </div>
                 {/* Status */}
                 <div className="flex flex-col gap-1.5">
@@ -610,10 +693,35 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Bedrooms</label>
                   <input className="h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-slate-800 font-medium" placeholder="e.g. 1, 2, 3" value={String(stagedProject.bedrooms || '')} onChange={(e) => setStagedProject({ ...stagedProject, bedrooms: e.target.value })} />
                 </div>
-                {/* Completion Date */}
+                {/* Completion Date — quarter + year split selects */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Completion Date</label>
-                  <input className="h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-slate-800 font-medium" placeholder="e.g. Q4 2026" value={stagedProject.completionDate || ''} onChange={(e) => setStagedProject({ ...stagedProject, completionDate: e.target.value })} />
+                  <div className="flex gap-2">
+                    <select
+                      className="h-12 flex-1 bg-slate-50 border border-slate-100 rounded-xl px-3 text-slate-800 font-medium outline-none"
+                      value={stagedProject.completionDate?.split(' ')[0] || 'Q1'}
+                      onChange={(e) => {
+                        const q = e.target.value;
+                        const y = stagedProject.completionDate?.split(' ')[1] || new Date().getFullYear().toString();
+                        setStagedProject({ ...stagedProject, completionDate: `${q} ${y}` });
+                      }}
+                    >
+                      {['Q1', 'Q2', 'Q3', 'Q4'].map(q => <option key={q} value={q}>{q}</option>)}
+                    </select>
+                    <select
+                      className="h-12 flex-1 bg-slate-50 border border-slate-100 rounded-xl px-3 text-slate-800 font-medium outline-none"
+                      value={stagedProject.completionDate?.split(' ')[1] || new Date().getFullYear().toString()}
+                      onChange={(e) => {
+                        const y = e.target.value;
+                        const q = stagedProject.completionDate?.split(' ')[0] || 'Q1';
+                        setStagedProject({ ...stagedProject, completionDate: `${q} ${y}` });
+                      }}
+                    >
+                      {Array.from({ length: 15 }, (_, i) => 2020 + i).map(year => (
+                        <option key={year} value={String(year)}>{year}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
 

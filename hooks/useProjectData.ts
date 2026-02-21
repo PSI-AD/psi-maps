@@ -27,7 +27,7 @@ export const useProjectData = () => {
                 const rawName = data.propertyName || data.enMarketingTitle || data.name || data.ProjectName || data.title || 'Untitled Project';
                 const cleanName = rawName !== 'Untitled Project' ? rawName.replace(/[-_]/g, ' ') : rawName;
 
-                const rawDeveloper = data.masterDeveloper || data.developerName || data.Developer || data.developer || 'Unknown Developer';
+                const rawDeveloper = data.masterDeveloper || data.developerName || data.Developer || data.developer || 'Exclusive Developer';
 
                 const lat = parseFloat(data.mapLatitude || data.latitude || "0");
                 const lng = parseFloat(data.mapLongitude || data.longitude || "0");

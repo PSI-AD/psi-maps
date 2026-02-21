@@ -117,8 +117,8 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                   key={idx}
                   onClick={(e) => { e.stopPropagation(); setActiveImage(img); }}
                   className={`shrink-0 w-14 h-10 rounded-lg overflow-hidden border-2 transition-all ${(activeImage ?? images[0]) === img
-                      ? 'border-white scale-105 shadow-lg'
-                      : 'border-white/40 opacity-70 hover:opacity-100 hover:border-white'
+                    ? 'border-white scale-105 shadow-lg'
+                    : 'border-white/40 opacity-70 hover:opacity-100 hover:border-white'
                     }`}
                 >
                   <img src={getOptimizedImageUrl(img, 120, 90)} alt="" loading="lazy" className="w-full h-full object-cover" />
@@ -139,8 +139,8 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto custom-scrollbar bg-white">
 
-          {/* 2. Name → Location → Developer */}
-          <div className="px-6 pt-6 pb-6 border-b border-slate-100">
+          {/* 2. Name → Location → Developer — sticky while scrolling */}
+          <div className="sticky top-0 z-20 bg-white px-6 pt-6 pb-5 border-b border-slate-100 shadow-sm">
             <h1 className="text-2xl font-black text-slate-900 leading-tight tracking-tight mb-2">{project.name}</h1>
             <div className="flex items-center text-slate-500 text-xs font-bold uppercase tracking-widest mb-3">
               <MapPin className="w-4 h-4 mr-1.5 text-blue-600 shrink-0" />

@@ -168,7 +168,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
 
       {/* Analysis Sidebar */}
       {isAnalysisOpen && selectedProject && (
-        <div className="absolute top-0 right-0 bottom-0 w-full md:w-[380px] z-[5000] shadow-2xl bg-white transition-transform transform translate-x-0 border-l border-slate-200 overflow-y-auto">
+        <div className="absolute top-0 right-0 bottom-[76px] w-full md:w-[380px] z-[5000] shadow-2xl bg-white transition-transform transform translate-x-0 border-l border-slate-200 overflow-hidden flex flex-col">
           <ProjectSidebar
             project={selectedProject}
             onClose={() => {
