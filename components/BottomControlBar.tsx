@@ -27,6 +27,7 @@ interface BottomControlBarProps {
     mapFeatures: { show3D: boolean; showAnalytics: boolean; showCommunityBorders: boolean };
     setMapFeatures: React.Dispatch<React.SetStateAction<{ show3D: boolean; showAnalytics: boolean; showCommunityBorders: boolean }>>;
     onGlobalReset: () => void;
+    filteredCount: number;
 }
 
 const uaeEmirates = ['abu dhabi', 'dubai', 'sharjah', 'ajman', 'umm al quwain', 'ras al khaimah', 'fujairah'];
@@ -54,7 +55,8 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
     handleLocationSelect,
     mapFeatures,
     setMapFeatures,
-    onGlobalReset
+    onGlobalReset,
+    filteredCount
 }) => {
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
     const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
@@ -137,7 +139,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
 
     const isAnyFilterActive = propertyType !== 'All' || developerFilter !== 'All' || statusFilter !== 'All';
 
-    const selectCls = "w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-base md:text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer shadow-sm";
+    const selectCls = "w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-base md:text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer shadow-sm appearance-none";
 
     return (
         <>
@@ -347,7 +349,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                                 className="w-full py-5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-black uppercase text-sm tracking-widest shadow-xl transition-all flex items-center justify-center gap-3"
                             >
                                 <Map className="w-5 h-5" />
-                                View Map ({projects.length} Results)
+                                View Map ({filteredCount} Results)
                             </button>
                         </div>
                     </div>

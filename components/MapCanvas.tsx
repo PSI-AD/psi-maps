@@ -180,7 +180,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
             mapboxAccessToken={PUBLIC_MAPBOX_TOKEN}
             attributionControl={false}
             className="w-full h-full"
-            interactiveLayerIds={['clusters', 'unclustered-point']}
+            interactiveLayerIds={['clusters', 'unclustered-point', 'unclustered-point-hit']}
             onClick={(e) => {
                 const features = e.features || [];
                 if (features.length > 0) handleLayerClick(e);
@@ -188,7 +188,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
             }}
             cursor={hoveredProject ? 'pointer' : 'auto'}
             onMouseEnter={(e) => {
-                if (e.features?.[0]?.layer.id === 'unclustered-point') {
+                if (['unclustered-point', 'unclustered-point-hit'].includes(e.features?.[0]?.layer.id ?? '')) {
                     setHoveredProjectId(e.features[0].properties?.id);
                 }
             }}
@@ -272,6 +272,17 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                         'circle-radius': 8,
                         'circle-stroke-width': 2,
                         'circle-stroke-color': '#ffffff'
+                    }}
+                />
+                {/* Invisible hit-target layer — 25px radius makes pins tappable on mobile */}
+                <Layer
+                    id="unclustered-point-hit"
+                    type="circle"
+                    source="projects"
+                    filter={['!', ['has', 'point_count']]}
+                    paint={{
+                        'circle-color': 'rgba(0,0,0,0)',
+                        'circle-radius': 25
                     }}
                 />
             </Source>

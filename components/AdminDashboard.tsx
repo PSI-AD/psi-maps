@@ -356,8 +356,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
               {/* Landmark Editor Form */}
               {stagedLandmark && (
                 <div className="mb-10 p-8 bg-blue-50 border border-blue-100 rounded-3xl animate-in slide-in-from-top-4 duration-500 relative">
-                  <button onClick={() => setStagedLandmark(null)} className="absolute top-6 right-6 text-blue-400 hover:text-blue-900">
-                    <X className="w-6 h-6" />
+                  <button onClick={() => setStagedLandmark(null)} className="absolute top-4 right-4 p-2 bg-white rounded-full shadow-md text-slate-500 hover:text-slate-800 transition-all z-10">
+                    <X className="w-5 h-5" />
                   </button>
                   <h3 className="text-lg font-black text-blue-900 uppercase tracking-tighter mb-6">
                     {stagedLandmark.id ? 'Edit Landmark' : 'Create New Landmark'}
@@ -677,7 +677,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                   <h2 className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mb-1">Asset Staging</h2>
                   <h3 className="text-2xl font-black text-slate-900 tracking-tight">{stagedProject.name}</h3>
                 </div>
-                <button onClick={() => setStagedProject(null)} className="text-xs font-black text-rose-400 uppercase">Discard</button>
+                <button onClick={() => setStagedProject(null)} className="p-2 bg-white rounded-full shadow-md text-slate-400 hover:text-slate-800 transition-all"><X className="w-5 h-5" /></button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
@@ -689,7 +689,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                 {/* Developer — dropdown from live project data */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Developer</label>
-                  <select className="h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-slate-800 font-medium" value={stagedProject.developerName || ''} onChange={(e) => setStagedProject({ ...stagedProject, developerName: e.target.value })}>
+                  <select className="h-12 w-full bg-slate-50 border border-slate-100 rounded-xl px-4 text-base md:text-sm text-slate-800 font-medium appearance-none" value={stagedProject.developerName || ''} onChange={(e) => setStagedProject({ ...stagedProject, developerName: e.target.value })}>
                     <option value="">Select Developer...</option>
                     {uniqueProjectDevelopers.map(d => <option key={d} value={d}>{d}</option>)}
                   </select>
@@ -697,7 +697,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                 {/* Status */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Status</label>
-                  <select className="h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-slate-800 font-medium" value={stagedProject.status || 'Completed'} onChange={(e) => setStagedProject({ ...stagedProject, status: e.target.value })}>
+                  <select className="h-12 w-full bg-slate-50 border border-slate-100 rounded-xl px-4 text-base md:text-sm text-slate-800 font-medium appearance-none" value={stagedProject.status || 'Completed'} onChange={(e) => setStagedProject({ ...stagedProject, status: e.target.value })}>
                     <option value="Completed">Completed</option>
                     <option value="Off-Plan">Off-Plan</option>
                   </select>
@@ -705,7 +705,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                 {/* City */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">City</label>
-                  <select className="h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-slate-800 font-medium" value={stagedProject.city || ''} onChange={(e) => setStagedProject({ ...stagedProject, city: e.target.value })}>
+                  <select className="h-12 w-full bg-slate-50 border border-slate-100 rounded-xl px-4 text-base md:text-sm text-slate-800 font-medium appearance-none" value={stagedProject.city || ''} onChange={(e) => setStagedProject({ ...stagedProject, city: e.target.value })}>
                     <option value="">Select City...</option>
                     {uniqueProjectCities.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
@@ -713,7 +713,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                 {/* Community */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Community</label>
-                  <select className="h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-slate-800 font-medium" value={stagedProject.community || ''} onChange={(e) => setStagedProject({ ...stagedProject, community: e.target.value })}>
+                  <select className="h-12 w-full bg-slate-50 border border-slate-100 rounded-xl px-4 text-base md:text-sm text-slate-800 font-medium appearance-none" value={stagedProject.community || ''} onChange={(e) => setStagedProject({ ...stagedProject, community: e.target.value })}>
                     <option value="">Select Community...</option>
                     {uniqueProjectCommunities.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
@@ -721,7 +721,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                 {/* Type */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Property Type</label>
-                  <select className="h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-slate-800 font-medium" value={stagedProject.type || 'apartment'} onChange={(e) => setStagedProject({ ...stagedProject, type: e.target.value as 'apartment' | 'villa' })}>
+                  <select className="h-12 w-full bg-slate-50 border border-slate-100 rounded-xl px-4 text-base md:text-sm text-slate-800 font-medium appearance-none" value={stagedProject.type || 'apartment'} onChange={(e) => setStagedProject({ ...stagedProject, type: e.target.value as 'apartment' | 'villa' })}>
                     <option value="apartment">Apartment</option>
                     <option value="villa">Villa / Townhouse</option>
                   </select>

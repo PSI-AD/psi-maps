@@ -17,11 +17,27 @@ export const optimizeAndUploadImage = async (
     index: number
 ): Promise<string | null> => {
     try {
-        // Switched to codetabs proxy — more stable for large binary files
-        const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(originalUrl)}`;
-        const response = await fetch(proxyUrl);
-        if (!response.ok) throw new Error(`Proxy fetch failed: ${response.statusText}`);
-        const blob = await response.blob();
+        // Proxy fallback matrix — tries each in order until one succeeds
+        const proxies = [
+            `https://api.allorigins.win/raw?url=${encodeURIComponent(originalUrl)}`,
+            `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(originalUrl)}`,
+            `https://corsproxy.io/?${encodeURIComponent(originalUrl)}`
+        ];
+
+        let blob: Blob | null = null;
+        for (const proxyUrl of proxies) {
+            try {
+                const response = await fetch(proxyUrl);
+                if (response.ok) {
+                    blob = await response.blob();
+                    break;
+                }
+            } catch (e) {
+                console.warn(`Proxy failed: ${proxyUrl}`, e);
+            }
+        }
+
+        if (!blob) throw new Error('All CORS proxies failed to fetch the image.');
 
         // Load the blob into an <img> element so Canvas can draw it
         const image = new Image();

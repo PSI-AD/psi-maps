@@ -314,6 +314,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
         mapFeatures={mapFeatures}
         setMapFeatures={setMapFeatures}
         onGlobalReset={handleGlobalReset}
+        filteredCount={props.filteredProjects.length}
       />
 
       {/* Fullscreen Image Lightbox — rendered at MainLayout level to cover full viewport */}
