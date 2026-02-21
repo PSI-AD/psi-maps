@@ -107,13 +107,10 @@
             animation: marker-pulse 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* Custom Draw Control Styling */
-        .mapboxgl-ctrl-group button.mapbox-gl-draw_polygon {
-            background-size: 18px;
-        }
-
+        /* Hide native MapboxDraw buttons — custom controls used instead */
+        .mapboxgl-ctrl-group button.mapbox-gl-draw_polygon,
         .mapboxgl-ctrl-group button.mapbox-gl-draw_trash {
-            background-size: 18px;
+            display: none !important;
         }
     </style>
 

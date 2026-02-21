@@ -319,20 +319,6 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                             </button>
                         </div>
 
-                        {/* Spatial Tools */}
-                        <div className="mb-10 p-5 bg-blue-50 rounded-2xl border border-blue-100">
-                            <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] mb-4">Spatial Tools</h4>
-                            <button
-                                onClick={() => {
-                                    onToggleDraw();
-                                    setIsFilterModalOpen(false);
-                                }}
-                                className={`w-full py-4 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-3 transition-all ${isDrawing ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-slate-700 border border-blue-200 hover:border-blue-400'}`}
-                            >
-                                <Pencil className="w-4 h-4" />
-                                <span>{isDrawing ? 'Cancel Custom Area' : 'Draw Custom Area'}</span>
-                            </button>
-                        </div>
 
                         {/* Status Filter */}
                         <div className="mb-10">
@@ -365,26 +351,20 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                             </select>
                         </div>
 
-                        {/* Property Type Filter */}
-                        <div className="mb-10">
-                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-5">Asset Type</h4>
-                            <div className="space-y-2.5">
-                                {propertyTypeOptions.map(option => (
-                                    <button
-                                        key={option.name}
-                                        onClick={() => setPropertyType(option.name)}
-                                        className={`
-                                            w-full p-5 rounded-2xl border flex items-center justify-between transition-all font-bold text-sm
-                                            ${propertyType === option.name
-                                                ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-200'
-                                                : 'bg-slate-50 border-slate-100 text-slate-600 hover:bg-white hover:border-blue-200'}
-                                        `}
-                                    >
-                                        <span>{option.name} ({option.count})</span>
-                                        {propertyType === option.name && <Check className="w-5 h-5" />}
-                                    </button>
-                                ))}
-                            </div>
+
+                        {/* Spatial Tools — Draw area filter, pinned to bottom of panel */}
+                        <div className="mb-8 p-5 bg-blue-50 rounded-2xl border border-blue-100">
+                            <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] mb-4">Spatial Tools</h4>
+                            <button
+                                onClick={() => {
+                                    onToggleDraw();
+                                    setIsFilterModalOpen(false);
+                                }}
+                                className={`w-full py-4 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-3 transition-all ${isDrawing ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-slate-700 border border-blue-200 hover:border-blue-400'}`}
+                            >
+                                <Pencil className="w-4 h-4" />
+                                <span>{isDrawing ? 'Cancel Custom Area' : 'Draw Custom Area'}</span>
+                            </button>
                         </div>
 
                         <div className="sticky bottom-0 pt-6 bg-white border-t border-slate-50">

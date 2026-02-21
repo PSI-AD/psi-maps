@@ -122,8 +122,6 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
         {children}
       </div>
 
-      {/* Top Gradient Overlay */}
-      <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-slate-900/80 to-transparent pointer-events-none z-40"></div>
 
       {/* Breadcrumbs Navigation */}
       <div className="absolute top-6 left-6 z-[4000] flex items-center gap-2 text-slate-800 text-sm font-bold bg-white/80 backdrop-blur-md px-4 py-2 rounded-full shadow-sm border border-slate-200">
@@ -164,7 +162,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
 
       {/* Analysis Sidebar */}
       {isAnalysisOpen && selectedProject && (
-        <div className="absolute top-0 right-0 bottom-24 w-full md:w-[380px] z-[5000] shadow-2xl bg-white transition-transform transform translate-x-0 border-l border-slate-200 overflow-y-auto">
+        <div className="absolute top-0 right-0 bottom-0 w-full md:w-[380px] z-[5000] shadow-2xl bg-white transition-transform transform translate-x-0 border-l border-slate-200 overflow-y-auto">
           <ProjectSidebar
             project={selectedProject}
             onClose={() => {

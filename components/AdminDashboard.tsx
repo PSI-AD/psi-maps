@@ -508,7 +508,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {liveProjects.map((p) => (
+                  {[...liveProjects].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map((p) => (
                     <tr key={p.id} className="hover:bg-slate-50 transition-all group">
                       <td className="px-8 py-5 font-bold text-slate-800">{p.name}</td>
                       <td className="px-8 py-5 text-sm text-slate-500 font-medium">{p.developerName}</td>
