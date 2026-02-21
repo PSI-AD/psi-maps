@@ -231,7 +231,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[10000] bg-slate-50/98 backdrop-blur-md overflow-y-auto flex flex-col items-center p-6 md:p-12 animate-in fade-in duration-300 text-slate-900">
+    <div className="fixed inset-0 z-[10000] bg-slate-50/98 backdrop-blur-md overflow-y-auto flex flex-col items-center p-4 md:p-12 animate-in fade-in duration-300 text-slate-900">
       {/* Header */}
       <div className="w-full max-w-7xl flex justify-between items-center mb-10">
         <div className="flex items-center gap-4">
@@ -253,7 +253,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
 
       <div className="w-full max-w-7xl">
         {/* Main Tab Navigation */}
-        <div className="flex gap-4 mb-8 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm sticky top-0 z-[11000]">
+        <div className="flex gap-4 mb-8 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm sticky top-0 z-[11000] overflow-x-auto hide-scrollbar w-full">
           {(['general', 'location', 'media', 'nearbys', 'settings'] as TabType[]).map((tab) => (
             <button
               key={tab}
@@ -429,55 +429,57 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
 
               {/* Landmarks Table */}
               <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-                <table className="w-full text-left">
-                  <thead className="bg-slate-50 border-b border-slate-100">
-                    <tr>
-                      <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Name</th>
-                      <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Category</th>
-                      <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Community</th>
-                      <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Coordinates</th>
-                      <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Status</th>
-                      <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50">
-                    {filteredLandmarks.map((l) => (
-                      <tr key={l.id} className={`hover:bg-slate-50 transition-all group ${l.isHidden ? 'opacity-50' : ''}`}>
-                        <td className="px-6 py-4 font-bold text-slate-900">{l.name}</td>
-                        <td className="px-6 py-4">
-                          <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${l.category === 'School' ? 'bg-amber-50 text-amber-700' :
-                            l.category === 'Retail' ? 'bg-purple-50 text-purple-700' :
-                              l.category === 'Hospital' ? 'bg-rose-50 text-rose-700' :
-                                'bg-blue-50 text-blue-700'
-                            }`}>{l.category}</span>
-                        </td>
-                        <td className="px-6 py-4 text-sm font-medium text-slate-600">{l.community || '—'}</td>
-                        <td className="px-6 py-4 text-xs font-mono text-slate-400">{l.latitude.toFixed(4)}, {l.longitude.toFixed(4)}</td>
-                        <td className="px-6 py-4">
-                          <span className={`text-[10px] font-black uppercase tracking-widest ${l.isHidden ? 'text-rose-500' : 'text-emerald-600'}`}>
-                            {l.isHidden ? 'Hidden' : 'Visible'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <button onClick={() => handleToggleVisibility(l)} className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all" title={l.isHidden ? 'Show' : 'Hide'}>
-                              {l.isHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                            </button>
-                            <button onClick={() => setStagedLandmark(l)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"><Edit2 className="w-4 h-4" /></button>
-                            <button onClick={async () => {
-                              if (window.confirm("Permanently delete this landmark?")) {
-                                await deleteDoc(doc(db, 'landmarks', l.id));
-                              }
-                            }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-all"><Trash2 className="w-4 h-4" /></button>
-                          </div>
-                        </td>
+                <div className="w-full overflow-x-auto hide-scrollbar">
+                  <table className="w-full text-left min-w-[700px]">
+                    <thead className="bg-slate-50 border-b border-slate-100">
+                      <tr>
+                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Name</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Category</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Community</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Coordinates</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Status</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Actions</th>
                       </tr>
-                    ))}
-                    {filteredLandmarks.length === 0 && (
-                      <tr><td colSpan={6} className="px-6 py-12 text-center text-slate-400 font-medium">No landmarks match the current filters.</td></tr>
-                    )}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {filteredLandmarks.map((l) => (
+                        <tr key={l.id} className={`hover:bg-slate-50 transition-all group ${l.isHidden ? 'opacity-50' : ''}`}>
+                          <td className="px-6 py-4 font-bold text-slate-900">{l.name}</td>
+                          <td className="px-6 py-4">
+                            <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${l.category === 'School' ? 'bg-amber-50 text-amber-700' :
+                              l.category === 'Retail' ? 'bg-purple-50 text-purple-700' :
+                                l.category === 'Hospital' ? 'bg-rose-50 text-rose-700' :
+                                  'bg-blue-50 text-blue-700'
+                              }`}>{l.category}</span>
+                          </td>
+                          <td className="px-6 py-4 text-sm font-medium text-slate-600">{l.community || '—'}</td>
+                          <td className="px-6 py-4 text-xs font-mono text-slate-400">{l.latitude.toFixed(4)}, {l.longitude.toFixed(4)}</td>
+                          <td className="px-6 py-4">
+                            <span className={`text-[10px] font-black uppercase tracking-widest ${l.isHidden ? 'text-rose-500' : 'text-emerald-600'}`}>
+                              {l.isHidden ? 'Hidden' : 'Visible'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <button onClick={() => handleToggleVisibility(l)} className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all" title={l.isHidden ? 'Show' : 'Hide'}>
+                                {l.isHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              </button>
+                              <button onClick={() => setStagedLandmark(l)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"><Edit2 className="w-4 h-4" /></button>
+                              <button onClick={async () => {
+                                if (window.confirm("Permanently delete this landmark?")) {
+                                  await deleteDoc(doc(db, 'landmarks', l.id));
+                                }
+                              }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-all"><Trash2 className="w-4 h-4" /></button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                      {filteredLandmarks.length === 0 && (
+                        <tr><td colSpan={6} className="px-6 py-12 text-center text-slate-400 font-medium">No landmarks match the current filters.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </section>
           )}
@@ -604,26 +606,28 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
 
           {activeTab === 'general' && !stagedProject && (
             <section className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-              <table className="w-full text-left">
-                <thead className="bg-slate-50 border-b border-slate-100">
-                  <tr>
-                    <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Project Name</th>
-                    <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Developer</th>
-                    <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {[...liveProjects].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map((p) => (
-                    <tr key={p.id} className="hover:bg-slate-50 transition-all group">
-                      <td className="px-8 py-5 font-bold text-slate-800">{p.name}</td>
-                      <td className="px-8 py-5 text-sm text-slate-500 font-medium">{p.developerName}</td>
-                      <td className="px-8 py-5 text-right">
-                        <button onClick={() => setStagedProject(p)} className="text-blue-600 hover:text-blue-800 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all">Edit Asset</button>
-                      </td>
+              <div className="w-full overflow-x-auto hide-scrollbar">
+                <table className="w-full text-left min-w-[600px]">
+                  <thead className="bg-slate-50 border-b border-slate-100">
+                    <tr>
+                      <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Project Name</th>
+                      <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Developer</th>
+                      <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Action</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {[...liveProjects].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map((p) => (
+                      <tr key={p.id} className="hover:bg-slate-50 transition-all group">
+                        <td className="px-8 py-5 font-bold text-slate-800">{p.name}</td>
+                        <td className="px-8 py-5 text-sm text-slate-500 font-medium">{p.developerName}</td>
+                        <td className="px-8 py-5 text-right">
+                          <button onClick={() => setStagedProject(p)} className="text-blue-600 hover:text-blue-800 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all">Edit Asset</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </section>
           )}
 
