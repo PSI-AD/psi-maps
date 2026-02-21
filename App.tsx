@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import mapboxgl from 'mapbox-gl';
 import * as turf from '@turf/turf';
 import { useProjectData } from './hooks/useProjectData';
@@ -10,8 +10,11 @@ import MainLayout from './components/MainLayout';
 import MapCanvas from './components/MapCanvas';
 import ErrorBoundary from './components/ErrorBoundary';
 import { Project, Landmark } from './types';
+import WelcomeBanner from './components/WelcomeBanner';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from './utils/firebase';
 
 // FIX: Set Mapbox token globally to prevent MapboxDraw plugin crashes
 const getMapboxToken = () => {
@@ -51,6 +54,17 @@ const App: React.FC = () => {
   const [hoveredLandmarkId, setHoveredLandmarkId] = useState<string | null>(null);
   const [activeIsochrone, setActiveIsochrone] = useState<{ mode: 'driving' | 'walking'; minutes: number } | null>(null);
   const [showNearbyPanel, setShowNearbyPanel] = useState(false);
+  const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
+
+  // Real-time listener: settings/global.showWelcomeBanner
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'settings', 'global'), (snap) => {
+      if (snap.exists()) {
+        setShowWelcomeBanner(snap.data().showWelcomeBanner ?? false);
+      }
+    });
+    return () => unsub();
+  }, []);
 
   const selectedProject = filteredProjects.find(p => p.id === selectedProjectId) || null;
   const hoveredProject = filteredProjects.find(p => p.id === hoveredProjectId) || null;
@@ -240,7 +254,9 @@ const App: React.FC = () => {
       showNearbyPanel={showNearbyPanel}
       setShowNearbyPanel={setShowNearbyPanel}
       projectSpecificLandmarks={projectSpecificLandmarks}
+      showWelcomeBanner={showWelcomeBanner}
     >
+      <WelcomeBanner show={showWelcomeBanner} />
       <ErrorBoundary>
         <MapCanvas
           mapRef={mapRef} viewState={viewState} setViewState={setViewState} updateBounds={updateBounds} mapStyle={mapStyle} onClick={handleMapClick}

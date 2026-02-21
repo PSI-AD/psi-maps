@@ -58,6 +58,7 @@ interface MainLayoutProps {
   showNearbyPanel: boolean;
   setShowNearbyPanel: (v: boolean) => void;
   projectSpecificLandmarks: Landmark[];
+  showWelcomeBanner: boolean;
 }
 
 const MainLayout: React.FC<MainLayoutProps> = (props) => {
@@ -85,6 +86,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
     showNearbyPanel,
     setShowNearbyPanel,
     projectSpecificLandmarks,
+    showWelcomeBanner,
   } = props;
 
   const [isNearbyToolsOpen, setIsNearbyToolsOpen] = useState(false);
@@ -119,6 +121,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
           setLiveLandmarks={setLiveLandmarks}
           mapFeatures={mapFeatures}
           setMapFeatures={setMapFeatures}
+          showWelcomeBanner={showWelcomeBanner}
         />
       )}
 

@@ -20,6 +20,7 @@ interface AdminDashboardProps {
   setLiveLandmarks: React.Dispatch<React.SetStateAction<Landmark[]>>;
   mapFeatures: { show3D: boolean; showAnalytics: boolean; showCommunityBorders: boolean };
   setMapFeatures: React.Dispatch<React.SetStateAction<{ show3D: boolean; showAnalytics: boolean; showCommunityBorders: boolean }>>;
+  showWelcomeBanner?: boolean;
 }
 
 type TabType = 'general' | 'location' | 'media' | 'settings' | 'nearbys';
@@ -557,6 +558,25 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
           {activeTab === 'settings' && (
             <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
               <h3 className="text-xl font-black text-slate-900 tracking-tight mb-6">Global Application Settings</h3>
+
+              {/* ── Welcome Banner ── */}
+              <div className="flex items-center justify-between p-4 bg-blue-50 rounded-2xl border border-blue-100">
+                <div>
+                  <p className="font-bold text-slate-800">Presentation Welcome Banner</p>
+                  <p className="text-xs text-slate-500 font-medium">Display the cinematic PSI branding watermark over the map canvas</p>
+                </div>
+                <button
+                  onClick={async () => {
+                    const ref = doc(db, 'settings', 'global');
+                    await setDoc(ref, { showWelcomeBanner: !props.showWelcomeBanner }, { merge: true });
+                  }}
+                  className={`w-14 h-8 rounded-full transition-all duration-300 relative shrink-0 ${props.showWelcomeBanner ? 'bg-blue-600' : 'bg-slate-300'
+                    }`}
+                >
+                  <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-transform duration-300 ${props.showWelcomeBanner ? 'left-7' : 'left-1'
+                    }`} />
+                </button>
+              </div>
 
               <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
                 <div>
