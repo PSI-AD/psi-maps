@@ -181,6 +181,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
             activeIsochrone={activeIsochrone}
             setActiveIsochrone={setActiveIsochrone}
             nearbyLandmarks={liveLandmarks}
+            onFlyTo={onFlyTo}
           />
         </div>
       )}

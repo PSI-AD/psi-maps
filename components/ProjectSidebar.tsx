@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Project, Landmark } from '../types';
-import { X, MapPin, BedDouble, Bath, Square, Calendar, ArrowRight, Activity, Building, LayoutTemplate, Car, Footprints, Clock } from 'lucide-react';
+import { X, MapPin, BedDouble, Bath, Square, Calendar, ArrowRight, Activity, Building, LayoutTemplate, Car, Footprints, Clock, MessageSquare } from 'lucide-react';
 import { getOptimizedImageUrl } from '../utils/imageHelpers';
 import TextModal from './TextModal';
-import FloorPlanModal from './FloorPlanModal';
+import InquireModal from './InquireModal';
 
 interface ProjectSidebarProps {
   project: Project | null;
@@ -14,6 +14,7 @@ interface ProjectSidebarProps {
   activeIsochrone: { mode: 'driving' | 'walking'; minutes: number } | null;
   setActiveIsochrone: (iso: { mode: 'driving' | 'walking'; minutes: number } | null) => void;
   nearbyLandmarks: Landmark[];
+  onFlyTo: (lng: number, lat: number, zoom?: number) => void;
 }
 
 // Category colour mapping (mirrors AmenityMarker)
@@ -27,6 +28,14 @@ const categoryStyle: Record<string, { bg: string; text: string; dot: string; lab
 };
 const defaultStyle = { bg: 'bg-slate-100', text: 'text-slate-700', dot: 'bg-slate-400', label: 'Landmark' };
 
+// Strict price guard — hides block if value is falsy, '0', 'NaN', or parses to NaN
+const isValidPrice = (range?: string): boolean => {
+  if (!range) return false;
+  const raw = range.split('-')[0].trim().replace(/[^0-9.]/g, '');
+  const n = Number(raw);
+  return raw.length > 0 && !isNaN(n) && n > 0;
+};
+
 const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   project,
   onClose,
@@ -36,39 +45,34 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   activeIsochrone,
   setActiveIsochrone,
   nearbyLandmarks,
+  onFlyTo,
 }) => {
   const [activeImage, setActiveImage] = useState<string | null>(null);
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [isTextModalOpen, setIsTextModalOpen] = useState(false);
-  const [isFloorPlanModalOpen, setIsFloorPlanModalOpen] = useState(false);
+  const [isInquireModalOpen, setIsInquireModalOpen] = useState(false);
 
   if (!project) return null;
 
-  const handleDiscovery = async () => {
-    setIsDiscovering(true);
-    await new Promise(r => setTimeout(r, 800));
-    await onDiscoverNeighborhood(project.latitude, project.longitude);
-    setIsDiscovering(false);
-  };
-
-  const scrollToMap = () => {
-    document.getElementById('sidebar-map-section')?.scrollIntoView({ behavior: 'smooth' });
+  // ---- Explore Neighborhood: zoom out to reveal amenity markers ----
+  const handleExploreNeighborhood = () => {
+    const lat = Number(project.latitude);
+    const lng = Number(project.longitude);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      onFlyTo(lng, lat, 14.5);
+    }
   };
 
   const images = project.images && project.images.length > 0 ? project.images : [project.thumbnailUrl];
   const displayImage = activeImage || images[0] || project.thumbnailUrl;
-
-  const hasValidPrice = project.priceRange &&
-    project.priceRange !== '0' &&
-    project.priceRange !== '0.00' &&
-    !project.priceRange.startsWith('AED 0');
+  const hasMultipleImages = images.length > 1;
 
   const DESCRIPTION_LIMIT = 250;
   const rawDescription = project.description || '';
   const plainText = rawDescription.replace(/<[^>]*>/g, '');
   const isDescriptionLong = plainText.length > DESCRIPTION_LIMIT;
   const truncatedHtml = isDescriptionLong
-    ? rawDescription.replace(/<[^>]*>/g, '').slice(0, DESCRIPTION_LIMIT)
+    ? plainText.slice(0, DESCRIPTION_LIMIT)
     : rawDescription;
 
   // Filter nearby landmarks by same community
@@ -85,59 +89,76 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
     <>
       <div className="h-full flex flex-col bg-white text-slate-800 font-sans shadow-2xl relative border-l border-slate-200">
 
-        {/* 1. Hero Image */}
-        <div
-          className="relative h-64 w-full shrink-0 bg-slate-100 group cursor-zoom-in"
-          onClick={() => setFullscreenImage(displayImage)}
-        >
+        {/* 1. Hero Image — thumbnails overlaid on bottom 20% */}
+        <div className="relative h-64 w-full shrink-0 bg-slate-100 overflow-hidden group">
+          {/* Main image */}
           <img
             src={getOptimizedImageUrl(displayImage, 1200, 800)}
             alt={project.name}
             loading="eager"
             decoding="async"
-            className="w-full h-full object-cover transition-transform duration-1000 ease-in-out group-hover:scale-105"
+            onClick={() => setFullscreenImage(displayImage)}
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 cursor-zoom-in"
           />
+
+          {/* Close button */}
           <button
-            onClick={(e) => { e.stopPropagation(); onClose(); }}
-            className="absolute top-6 right-6 bg-slate-900/40 hover:bg-slate-900/80 backdrop-blur-md text-white p-2 rounded-full transition-all border border-white/20"
+            onClick={onClose}
+            className="absolute top-4 right-4 bg-black/40 hover:bg-black/70 backdrop-blur-md text-white p-2 rounded-full transition-all border border-white/20 z-10"
           >
             <X className="w-5 h-5" />
           </button>
-          <div className="absolute bottom-3 right-3 bg-black/40 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-lg pointer-events-none">
-            Click to expand
-          </div>
-        </div>
 
-        {/* 2. Gallery */}
-        {images.length > 1 && (
-          <div className="flex gap-3 p-4 overflow-x-auto bg-slate-50 border-b border-slate-200 custom-scrollbar shrink-0">
-            {images.map((img, idx) => (
-              <button
-                key={idx}
-                onClick={() => { setActiveImage(img); setFullscreenImage(img); }}
-                className={`relative w-28 h-20 shrink-0 rounded-lg overflow-hidden border-2 transition-all shadow-sm ${activeImage === img ? 'border-blue-600 ring-2 ring-blue-100 opacity-100' : 'border-transparent opacity-70 hover:opacity-100 hover:border-slate-300'}`}
-              >
-                <img src={getOptimizedImageUrl(img, 200, 150)} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
-              </button>
-            ))}
-          </div>
-        )}
+          {/* Thumbnail strip — floated over the bottom 20% of the hero */}
+          {hasMultipleImages && (
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent pt-6 pb-2 px-2 flex gap-2 overflow-x-auto hide-scrollbar">
+              {images.map((img, idx) => (
+                <button
+                  key={idx}
+                  onClick={(e) => { e.stopPropagation(); setActiveImage(img); }}
+                  className={`shrink-0 w-14 h-10 rounded-lg overflow-hidden border-2 transition-all ${(activeImage ?? images[0]) === img
+                      ? 'border-white scale-105 shadow-lg'
+                      : 'border-white/40 opacity-70 hover:opacity-100 hover:border-white'
+                    }`}
+                >
+                  <img src={getOptimizedImageUrl(img, 120, 90)} alt="" loading="lazy" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Expand hint */}
+          <button
+            onClick={() => setFullscreenImage(displayImage)}
+            className="absolute bottom-2 right-2 bg-black/40 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-lg pointer-events-auto hover:bg-black/60 transition-all z-10"
+          >
+            ⤢ Expand
+          </button>
+        </div>
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto custom-scrollbar bg-white">
 
-          {/* 3. Name → Location → Developer */}
+          {/* 2. Name → Location → Developer */}
           <div className="px-6 pt-6 pb-6 border-b border-slate-100">
-            <h1 className="text-3xl font-black text-slate-900 leading-tight tracking-tight mb-2">{project.name}</h1>
+            <h1 className="text-2xl font-black text-slate-900 leading-tight tracking-tight mb-2">{project.name}</h1>
             <div className="flex items-center text-slate-500 text-xs font-bold uppercase tracking-widest mb-3">
-              <MapPin className="w-4 h-4 mr-1.5 text-blue-600" />
-              <button onClick={() => onQuickFilter && project.community ? onQuickFilter('community', project.community) : undefined} className="hover:text-blue-800 hover:underline transition-all text-left">
+              <MapPin className="w-4 h-4 mr-1.5 text-blue-600 shrink-0" />
+              <button
+                onClick={() => onQuickFilter && project.community ? onQuickFilter('community', project.community) : undefined}
+                className="hover:text-blue-800 hover:underline transition-all text-left truncate"
+              >
                 {project.community}
               </button>
-              {project.city && (<><span className="mx-2 text-slate-300">/</span><span className="text-slate-600">{project.city}</span></>)}
+              {project.city && (
+                <><span className="mx-2 text-slate-300">/</span><span className="text-slate-600">{project.city}</span></>
+              )}
             </div>
             <p className="text-sm font-black text-blue-600 uppercase tracking-widest">
-              <button onClick={() => onQuickFilter && project.developerName ? onQuickFilter('developer', project.developerName) : undefined} className="hover:text-blue-800 hover:underline transition-all text-left">
+              <button
+                onClick={() => onQuickFilter && project.developerName ? onQuickFilter('developer', project.developerName) : undefined}
+                className="hover:text-blue-800 hover:underline transition-all text-left"
+              >
                 {project.developerName || 'Exclusive Developer'}
               </button>
             </p>
@@ -145,47 +166,50 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
 
           <div className="px-6 py-6 space-y-8">
 
-            {/* 4. Data Grid */}
-            <div className="grid grid-cols-2 gap-4">
-              {hasValidPrice && (
+            {/* 3. Data Grid */}
+            <div className="grid grid-cols-2 gap-3">
+              {/* Strict NaN guard — only render if number is valid and > 0 */}
+              {isValidPrice(project.priceRange) && (
                 <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3 col-span-2">
-                  <Building className="w-5 h-5 text-blue-600 mt-0.5" />
+                  <Building className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
                   <div>
                     <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Starting Price</p>
-                    <p className="font-bold text-slate-900 text-lg">AED {project.priceRange?.split('-')[0].trim()}</p>
+                    <p className="font-bold text-slate-900 text-lg">
+                      AED {Number(project.priceRange!.split('-')[0].trim().replace(/[^0-9.]/g, '')).toLocaleString()}
+                    </p>
                   </div>
                 </div>
               )}
               {project.type && project.type.toLowerCase() !== 'apartment' && project.type !== 'N/A' && (
                 <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3">
-                  <LayoutTemplate className="w-5 h-5 text-blue-600 mt-0.5" />
+                  <LayoutTemplate className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
                   <div>
-                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Property Type</p>
+                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Type</p>
                     <p className="font-bold text-slate-800 text-sm capitalize">{project.type}</p>
                   </div>
                 </div>
               )}
               {project.bedrooms && project.bedrooms !== 'N/A' && project.bedrooms !== '0' && (
                 <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3">
-                  <BedDouble className="w-5 h-5 text-blue-600 mt-0.5" />
+                  <BedDouble className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
                   <div>
-                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Bedrooms</p>
+                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Beds</p>
                     <p className="font-bold text-slate-800 text-sm">{project.bedrooms}</p>
                   </div>
                 </div>
               )}
               {project.bathrooms && project.bathrooms !== 'N/A' && project.bathrooms !== '0' && (
                 <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3">
-                  <Bath className="w-5 h-5 text-blue-600 mt-0.5" />
+                  <Bath className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
                   <div>
-                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Bathrooms</p>
+                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Baths</p>
                     <p className="font-bold text-slate-800 text-sm">{project.bathrooms}</p>
                   </div>
                 </div>
               )}
               {project.completionDate && project.completionDate !== 'N/A' && (
                 <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3">
-                  <Calendar className="w-5 h-5 text-blue-600 mt-0.5" />
+                  <Calendar className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
                   <div>
                     <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Completion</p>
                     <p className="font-bold text-slate-800 text-sm">{project.completionDate}</p>
@@ -194,16 +218,16 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
               )}
               {project.builtupArea && project.builtupArea !== 0 && project.builtupArea !== '0' && (
                 <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3">
-                  <Square className="w-5 h-5 text-blue-600 mt-0.5" />
+                  <Square className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
                   <div>
-                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Built-up Area</p>
+                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">BUA</p>
                     <p className="font-bold text-slate-800 text-sm">{Number(project.builtupArea).toLocaleString()} sqft</p>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* 5. Description */}
+            {/* 4. Description */}
             {rawDescription && (
               <div>
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
@@ -212,7 +236,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                 {isDescriptionLong ? (
                   <div>
                     <p className="prose prose-sm text-slate-600 leading-relaxed max-w-none">{truncatedHtml}…</p>
-                    <button onClick={() => setIsTextModalOpen(true)} className="mt-2 text-blue-600 hover:text-blue-800 text-xs font-black uppercase tracking-widest transition-colors cursor-pointer">
+                    <button onClick={() => setIsTextModalOpen(true)} className="mt-2 text-blue-600 hover:text-blue-800 text-xs font-black uppercase tracking-widest transition-colors">
                       Read More →
                     </button>
                   </div>
@@ -222,7 +246,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
               </div>
             )}
 
-            {/* 6. Amenities */}
+            {/* 5. Lifestyle Amenities */}
             {project.amenities && project.amenities.length > 0 && (
               <div>
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
@@ -239,12 +263,11 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
               </div>
             )}
 
-            {/* 7. Drive-Time Isochrone */}
+            {/* 6. Drive-Time Isochrone */}
             <div>
               <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
                 <Clock className="w-4 h-4 mr-2 text-blue-600" />Commute & Drive-Time
               </h3>
-              {/* Mode toggle */}
               <div className="flex gap-2 p-1 bg-slate-100 rounded-xl mb-4">
                 {(['driving', 'walking'] as const).map(mode => (
                   <button
@@ -257,7 +280,6 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                   </button>
                 ))}
               </div>
-              {/* Minutes slider */}
               <div className="space-y-2">
                 <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                   <span>5 min</span>
@@ -272,16 +294,13 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                 />
               </div>
               {activeIsochrone && (
-                <button
-                  onClick={() => setActiveIsochrone(null)}
-                  className="mt-3 text-xs font-bold text-slate-400 hover:text-rose-500 transition-colors"
-                >
+                <button onClick={() => setActiveIsochrone(null)} className="mt-3 text-xs font-bold text-slate-400 hover:text-rose-500 transition-colors">
                   ✕ Clear isochrone
                 </button>
               )}
             </div>
 
-            {/* 8. Nearby Landmarks */}
+            {/* 7. Nearby Landmarks */}
             {communityLandmarks.length > 0 && (
               <div>
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
@@ -295,9 +314,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                       <div key={l.id} className={`flex items-center gap-3 px-4 py-3 ${style.bg} rounded-xl`}>
                         <div className={`w-2 h-2 rounded-full shrink-0 ${style.dot}`} />
                         <span className={`text-xs font-bold flex-1 truncate ${style.text}`}>{l.name}</span>
-                        <span className={`text-[10px] font-black uppercase tracking-widest ${style.text} opacity-60`}>
-                          {style.label}
-                        </span>
+                        <span className={`text-[10px] font-black uppercase tracking-widest ${style.text} opacity-60`}>{style.label}</span>
                       </div>
                     );
                   })}
@@ -305,35 +322,29 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
               </div>
             )}
 
-            {/* Anchor for scroll-to */}
             <div id="sidebar-map-section" />
           </div>
         </div>
 
         {/* Footer Actions */}
-        <div className="p-6 bg-white border-t border-slate-100 z-10 shrink-0 space-y-3 shadow-[0_-4px_20px_rgba(0,0,0,0.02)]">
+        <div className="p-5 bg-white border-t border-slate-100 z-10 shrink-0 space-y-2.5 shadow-[0_-4px_20px_rgba(0,0,0,0.02)]">
+          {/* Explore Neighborhood — zooms out to 14.5 so amenity markers become visible */}
           <button
-            onClick={scrollToMap}
+            onClick={handleExploreNeighborhood}
             disabled={isDiscovering}
-            className="w-full bg-blue-800 hover:bg-blue-900 text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest transition-all hover:shadow-xl hover:shadow-blue-200 active:scale-[0.99] disabled:opacity-70 flex items-center justify-center gap-3"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest transition-all hover:shadow-xl hover:shadow-blue-200 active:scale-[0.99] disabled:opacity-70 flex items-center justify-center gap-3"
           >
-            {isDiscovering ? (
-              <>
-                <svg className="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                <span className="text-blue-50">Analyzing Location...</span>
-              </>
-            ) : (
-              <>
-                <MapPin className="w-4 h-4 text-blue-500" />
-                <span>Explore Neighborhood</span>
-              </>
-            )}
+            <MapPin className="w-4 h-4" />
+            <span>Explore Neighborhood</span>
           </button>
+
+          {/* Inquire Now — replaces "Request Floor Plans" */}
           <button
-            onClick={() => setIsFloorPlanModalOpen(true)}
-            className="flex items-center justify-center w-full py-4 border border-slate-200 hover:border-blue-600 text-slate-800 hover:text-blue-700 bg-slate-50 hover:bg-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all gap-2 group"
+            onClick={() => setIsInquireModalOpen(true)}
+            className="flex items-center justify-center w-full py-4 border border-blue-200 hover:border-blue-600 text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all gap-2 group"
           >
-            <span>Request Floor Plans</span>
+            <MessageSquare className="w-4 h-4" />
+            <span>Inquire Now</span>
             <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
           </button>
         </div>
@@ -341,7 +352,9 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
 
       {/* Modals */}
       {isTextModalOpen && (<TextModal text={rawDescription} onClose={() => setIsTextModalOpen(false)} />)}
-      {isFloorPlanModalOpen && (<FloorPlanModal onClose={() => setIsFloorPlanModalOpen(false)} />)}
+      {isInquireModalOpen && (
+        <InquireModal projectName={project.name} onClose={() => setIsInquireModalOpen(false)} />
+      )}
     </>
   );
 };

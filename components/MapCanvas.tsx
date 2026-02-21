@@ -195,7 +195,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
             onMouseLeave={() => setHoveredProjectId(null)}
         >
             <AttributionControl position="bottom-left" />
-            <NavigationControl position="bottom-left" />
+            <NavigationControl position="bottom-right" style={{ marginBottom: '130px', marginRight: '12px' }} />
             <DrawControl position="top-right" onCreate={onDrawCreate} onUpdate={onDrawUpdate} onDelete={onDrawDelete} onReference={(draw) => { drawRef.current = draw; }} />
 
             {mapFeatures?.show3D && (
