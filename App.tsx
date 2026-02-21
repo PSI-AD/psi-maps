@@ -49,6 +49,7 @@ const App: React.FC = () => {
   const [hoveredProjectId, setHoveredProjectId] = useState<string | null>(null);
   const [selectedLandmarkId, setSelectedLandmarkId] = useState<string | null>(null);
   const [hoveredLandmarkId, setHoveredLandmarkId] = useState<string | null>(null);
+  const [activeIsochrone, setActiveIsochrone] = useState<{ mode: 'driving' | 'walking'; minutes: number } | null>(null);
 
   const selectedProject = filteredProjects.find(p => p.id === selectedProjectId) || null;
   const hoveredProject = filteredProjects.find(p => p.id === hoveredProjectId) || null;
@@ -161,6 +162,21 @@ const App: React.FC = () => {
   const onCloseProject = () => {
     setSelectedProjectId(null);
     setIsAnalysisOpen(false);
+    setActiveIsochrone(null);
+  };
+
+  const handleGlobalReset = () => {
+    setSelectedProjectId(null);
+    setSelectedLandmarkId(null);
+    setIsAnalysisOpen(false);
+    setActiveIsochrone(null);
+    setActiveBoundary(null);
+    setSelectedCity('');
+    setSelectedCommunity('');
+    setDeveloperFilter('All');
+    setStatusFilter('All');
+    setPropertyType('All');
+    handleFitBounds([], true);
   };
 
   const handleQuickFilter = (type: 'community' | 'developer', value: string) => {
@@ -195,6 +211,9 @@ const App: React.FC = () => {
       handleLocationSelect={handleLocationSelect}
       onQuickFilter={handleQuickFilter}
       activeBoundary={activeBoundary}
+      handleGlobalReset={handleGlobalReset}
+      activeIsochrone={activeIsochrone}
+      setActiveIsochrone={setActiveIsochrone}
     >
       <ErrorBoundary>
         <MapCanvas
@@ -207,6 +226,7 @@ const App: React.FC = () => {
           projects={filteredProjects}
           mapFeatures={mapFeatures}
           activeBoundary={activeBoundary}
+          activeIsochrone={activeIsochrone}
         />
       </ErrorBoundary>
     </MainLayout>

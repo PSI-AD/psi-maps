@@ -1,6 +1,6 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Map, AttributionControl, NavigationControl, Source, Layer, Popup } from 'react-map-gl';
-import type { CircleLayer, SymbolLayer } from 'react-map-gl';
+import type { CircleLayer, SymbolLayer, FillLayer, LineLayer } from 'react-map-gl';
 import { Project, Landmark } from '../types';
 import DrawControl from './DrawControl';
 import AmenityMarker from './AmenityMarker';
@@ -30,6 +30,7 @@ interface MapCanvasProps {
     projects?: Project[];
     mapFeatures?: { show3D: boolean; showAnalytics: boolean; showCommunityBorders: boolean };
     activeBoundary?: any;
+    activeIsochrone?: { mode: 'driving' | 'walking'; minutes: number } | null;
 }
 
 // 🚨 PERMANENT FIX: Base64 decoded token. Passed only via component prop.
@@ -89,7 +90,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
     selectedProjectId,
     setHoveredProjectId, setHoveredLandmarkId,
     selectedLandmark, selectedProject, hoveredProject, projects = [], mapFeatures,
-    activeBoundary
+    activeBoundary, activeIsochrone
 }) => {
 
     // Safety check for valid GPS coordinates
@@ -126,6 +127,26 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
             geometry: { type: 'Point', coordinates: [p.displayLng, p.displayLat] }
         }))
     };
+
+    // Isochrone drive-time polygon state
+    const [isochroneGeoJSON, setIsochroneGeoJSON] = useState<any>(null);
+
+    useEffect(() => {
+        if (activeIsochrone && selectedProject) {
+            const { mode, minutes } = activeIsochrone;
+            const lng = Number(selectedProject.longitude);
+            const lat = Number(selectedProject.latitude);
+            if (!isNaN(lng) && !isNaN(lat)) {
+                const url = `https://api.mapbox.com/isochrone/v1/mapbox/${mode}/${lng},${lat}?contours_minutes=${minutes}&polygons=true&access_token=${PUBLIC_MAPBOX_TOKEN}`;
+                fetch(url)
+                    .then(r => r.json())
+                    .then(data => setIsochroneGeoJSON(data))
+                    .catch(e => console.error('Isochrone fetch failed:', e));
+            }
+        } else {
+            setIsochroneGeoJSON(null);
+        }
+    }, [activeIsochrone, selectedProject]);
 
     const handleLayerClick = (event: any) => {
         const feature = event.features?.[0];
@@ -174,7 +195,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
             onMouseLeave={() => setHoveredProjectId(null)}
         >
             <AttributionControl position="bottom-left" />
-            <NavigationControl position="bottom-right" />
+            <NavigationControl position="bottom-left" />
             <DrawControl position="top-right" onCreate={onDrawCreate} onUpdate={onDrawUpdate} onDelete={onDrawDelete} onReference={(draw) => { drawRef.current = draw; }} />
 
             {mapFeatures?.show3D && (
@@ -192,6 +213,22 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                         'fill-extrusion-opacity': 0.8
                     }}
                 />
+            )}
+
+            {/* Isochrone Drive-Time Polygon */}
+            {isochroneGeoJSON && (
+                <Source id="isochrone" type="geojson" data={isochroneGeoJSON}>
+                    <Layer
+                        id="isochrone-fill"
+                        type="fill"
+                        paint={{ 'fill-color': '#7c3aed', 'fill-opacity': 0.15 }}
+                    />
+                    <Layer
+                        id="isochrone-line"
+                        type="line"
+                        paint={{ 'line-color': '#7c3aed', 'line-width': 2, 'line-dasharray': [3, 1] }}
+                    />
+                </Source>
             )}
 
             {activeBoundary && mapFeatures?.showCommunityBorders && (

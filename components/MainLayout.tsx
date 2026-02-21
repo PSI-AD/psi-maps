@@ -51,6 +51,9 @@ interface MainLayoutProps {
   handleLocationSelect: (locationType: 'city' | 'community', locationName: string, projectsInLocation: Project[]) => void;
   onQuickFilter?: (type: 'community' | 'developer', value: string) => void;
   activeBoundary: any;
+  handleGlobalReset: () => void;
+  activeIsochrone: { mode: 'driving' | 'walking'; minutes: number } | null;
+  setActiveIsochrone: (iso: { mode: 'driving' | 'walking'; minutes: number } | null) => void;
 }
 
 const MainLayout: React.FC<MainLayoutProps> = (props) => {
@@ -71,7 +74,10 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
     handleFitBounds,
     handleLocationSelect,
     onQuickFilter,
-    activeBoundary
+    activeBoundary,
+    handleGlobalReset,
+    activeIsochrone,
+    setActiveIsochrone,
   } = props;
 
   const [isNearbyToolsOpen, setIsNearbyToolsOpen] = useState(false);
@@ -172,6 +178,9 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
             onDiscoverNeighborhood={onDiscoverNeighborhood}
             onQuickFilter={onQuickFilter}
             setFullscreenImage={setFullscreenImage}
+            activeIsochrone={activeIsochrone}
+            setActiveIsochrone={setActiveIsochrone}
+            nearbyLandmarks={liveLandmarks}
           />
         </div>
       )}
@@ -286,6 +295,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
         handleLocationSelect={handleLocationSelect}
         mapFeatures={mapFeatures}
         setMapFeatures={setMapFeatures}
+        onGlobalReset={handleGlobalReset}
       />
 
       {/* Fullscreen Image Lightbox — rendered at MainLayout level to cover full viewport */}

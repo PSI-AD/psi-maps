@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Project } from '../types';
-import { X, MapPin, BedDouble, Bath, Square, Calendar, ArrowRight, Activity, Building, LayoutTemplate } from 'lucide-react';
+import { Project, Landmark } from '../types';
+import { X, MapPin, BedDouble, Bath, Square, Calendar, ArrowRight, Activity, Building, LayoutTemplate, Car, Footprints, Clock } from 'lucide-react';
 import { getOptimizedImageUrl } from '../utils/imageHelpers';
 import TextModal from './TextModal';
 import FloorPlanModal from './FloorPlanModal';
@@ -11,7 +11,21 @@ interface ProjectSidebarProps {
   onDiscoverNeighborhood: (lat: number, lng: number) => Promise<void>;
   onQuickFilter?: (type: 'community' | 'developer', value: string) => void;
   setFullscreenImage: (url: string | null) => void;
+  activeIsochrone: { mode: 'driving' | 'walking'; minutes: number } | null;
+  setActiveIsochrone: (iso: { mode: 'driving' | 'walking'; minutes: number } | null) => void;
+  nearbyLandmarks: Landmark[];
 }
+
+// Category colour mapping (mirrors AmenityMarker)
+const categoryStyle: Record<string, { bg: string; text: string; dot: string; label: string }> = {
+  school: { bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500', label: 'School' },
+  hospital: { bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-500', label: 'Hospital' },
+  retail: { bg: 'bg-rose-100', text: 'text-rose-700', dot: 'bg-rose-500', label: 'Retail' },
+  culture: { bg: 'bg-purple-100', text: 'text-purple-700', dot: 'bg-purple-500', label: 'Culture' },
+  hotel: { bg: 'bg-blue-100', text: 'text-blue-700', dot: 'bg-blue-500', label: 'Hotel' },
+  leisure: { bg: 'bg-teal-100', text: 'text-teal-700', dot: 'bg-teal-500', label: 'Leisure' },
+};
+const defaultStyle = { bg: 'bg-slate-100', text: 'text-slate-700', dot: 'bg-slate-400', label: 'Landmark' };
 
 const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   project,
@@ -19,6 +33,9 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   onDiscoverNeighborhood,
   onQuickFilter,
   setFullscreenImage,
+  activeIsochrone,
+  setActiveIsochrone,
+  nearbyLandmarks,
 }) => {
   const [activeImage, setActiveImage] = useState<string | null>(null);
   const [isDiscovering, setIsDiscovering] = useState(false);
@@ -48,18 +65,27 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
 
   const DESCRIPTION_LIMIT = 250;
   const rawDescription = project.description || '';
-  // Strip HTML tags for length check, but render HTML in display
   const plainText = rawDescription.replace(/<[^>]*>/g, '');
   const isDescriptionLong = plainText.length > DESCRIPTION_LIMIT;
   const truncatedHtml = isDescriptionLong
     ? rawDescription.replace(/<[^>]*>/g, '').slice(0, DESCRIPTION_LIMIT)
     : rawDescription;
 
+  // Filter nearby landmarks by same community
+  const communityLandmarks = nearbyLandmarks.filter(l =>
+    !l.isHidden &&
+    l.community?.toLowerCase() === project.community?.toLowerCase()
+  ).slice(0, 10);
+
+  // Isochrone local state
+  const isoMode = activeIsochrone?.mode ?? 'driving';
+  const isoMinutes = activeIsochrone?.minutes ?? 10;
+
   return (
     <>
       <div className="h-full flex flex-col bg-white text-slate-800 font-sans shadow-2xl relative border-l border-slate-200">
 
-        {/* 1. Hero Image — click to fullscreen */}
+        {/* 1. Hero Image */}
         <div
           className="relative h-64 w-full shrink-0 bg-slate-100 group cursor-zoom-in"
           onClick={() => setFullscreenImage(displayImage)}
@@ -82,7 +108,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
           </div>
         </div>
 
-        {/* 2. Horizontal Gallery */}
+        {/* 2. Gallery */}
         {images.length > 1 && (
           <div className="flex gap-3 p-4 overflow-x-auto bg-slate-50 border-b border-slate-200 custom-scrollbar shrink-0">
             {images.map((img, idx) => (
@@ -91,13 +117,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                 onClick={() => { setActiveImage(img); setFullscreenImage(img); }}
                 className={`relative w-28 h-20 shrink-0 rounded-lg overflow-hidden border-2 transition-all shadow-sm ${activeImage === img ? 'border-blue-600 ring-2 ring-blue-100 opacity-100' : 'border-transparent opacity-70 hover:opacity-100 hover:border-slate-300'}`}
               >
-                <img
-                  src={getOptimizedImageUrl(img, 200, 150)}
-                  alt=""
-                  loading="lazy"
-                  decoding="async"
-                  className="w-full h-full object-cover"
-                />
+                <img src={getOptimizedImageUrl(img, 200, 150)} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
               </button>
             ))}
           </div>
@@ -106,31 +126,18 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto custom-scrollbar bg-white">
 
-          {/* 3. Top Hierarchy: Name → Location → Developer */}
+          {/* 3. Name → Location → Developer */}
           <div className="px-6 pt-6 pb-6 border-b border-slate-100">
-            <h1 className="text-3xl font-black text-slate-900 leading-tight tracking-tight mb-2">
-              {project.name}
-            </h1>
+            <h1 className="text-3xl font-black text-slate-900 leading-tight tracking-tight mb-2">{project.name}</h1>
             <div className="flex items-center text-slate-500 text-xs font-bold uppercase tracking-widest mb-3">
               <MapPin className="w-4 h-4 mr-1.5 text-blue-600" />
-              <button
-                onClick={() => onQuickFilter && project.community ? onQuickFilter('community', project.community) : undefined}
-                className="hover:text-blue-800 hover:underline transition-all text-left"
-              >
+              <button onClick={() => onQuickFilter && project.community ? onQuickFilter('community', project.community) : undefined} className="hover:text-blue-800 hover:underline transition-all text-left">
                 {project.community}
               </button>
-              {project.city && (
-                <>
-                  <span className="mx-2 text-slate-300">/</span>
-                  <span className="text-slate-600">{project.city}</span>
-                </>
-              )}
+              {project.city && (<><span className="mx-2 text-slate-300">/</span><span className="text-slate-600">{project.city}</span></>)}
             </div>
             <p className="text-sm font-black text-blue-600 uppercase tracking-widest">
-              <button
-                onClick={() => onQuickFilter && project.developerName ? onQuickFilter('developer', project.developerName) : undefined}
-                className="hover:text-blue-800 hover:underline transition-all text-left"
-              >
+              <button onClick={() => onQuickFilter && project.developerName ? onQuickFilter('developer', project.developerName) : undefined} className="hover:text-blue-800 hover:underline transition-all text-left">
                 {project.developerName || 'Exclusive Developer'}
               </button>
             </p>
@@ -140,7 +147,6 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
 
             {/* 4. Data Grid */}
             <div className="grid grid-cols-2 gap-4">
-
               {hasValidPrice && (
                 <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3 col-span-2">
                   <Building className="w-5 h-5 text-blue-600 mt-0.5" />
@@ -150,7 +156,6 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                   </div>
                 </div>
               )}
-
               {project.type && project.type.toLowerCase() !== 'apartment' && project.type !== 'N/A' && (
                 <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3">
                   <LayoutTemplate className="w-5 h-5 text-blue-600 mt-0.5" />
@@ -160,7 +165,6 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                   </div>
                 </div>
               )}
-
               {project.bedrooms && project.bedrooms !== 'N/A' && project.bedrooms !== '0' && (
                 <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3">
                   <BedDouble className="w-5 h-5 text-blue-600 mt-0.5" />
@@ -170,7 +174,6 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                   </div>
                 </div>
               )}
-
               {project.bathrooms && project.bathrooms !== 'N/A' && project.bathrooms !== '0' && (
                 <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3">
                   <Bath className="w-5 h-5 text-blue-600 mt-0.5" />
@@ -180,7 +183,6 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                   </div>
                 </div>
               )}
-
               {project.completionDate && project.completionDate !== 'N/A' && (
                 <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3">
                   <Calendar className="w-5 h-5 text-blue-600 mt-0.5" />
@@ -190,7 +192,6 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                   </div>
                 </div>
               )}
-
               {project.builtupArea && project.builtupArea !== 0 && project.builtupArea !== '0' && (
                 <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3">
                   <Square className="w-5 h-5 text-blue-600 mt-0.5" />
@@ -202,30 +203,21 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
               )}
             </div>
 
-            {/* 5. Description with truncation + Read More */}
+            {/* 5. Description */}
             {rawDescription && (
               <div>
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
-                  <Activity className="w-4 h-4 mr-2 text-blue-600" />
-                  About The Project
+                  <Activity className="w-4 h-4 mr-2 text-blue-600" />About The Project
                 </h3>
                 {isDescriptionLong ? (
                   <div>
-                    <p className="prose prose-sm text-slate-600 leading-relaxed max-w-none">
-                      {truncatedHtml}…
-                    </p>
-                    <button
-                      onClick={() => setIsTextModalOpen(true)}
-                      className="mt-2 text-blue-600 hover:text-blue-800 text-xs font-black uppercase tracking-widest transition-colors cursor-pointer"
-                    >
+                    <p className="prose prose-sm text-slate-600 leading-relaxed max-w-none">{truncatedHtml}…</p>
+                    <button onClick={() => setIsTextModalOpen(true)} className="mt-2 text-blue-600 hover:text-blue-800 text-xs font-black uppercase tracking-widest transition-colors cursor-pointer">
                       Read More →
                     </button>
                   </div>
                 ) : (
-                  <div
-                    className="prose prose-sm text-slate-600 leading-relaxed max-w-none prose-p:mb-2 prose-strong:text-slate-900"
-                    dangerouslySetInnerHTML={{ __html: rawDescription }}
-                  />
+                  <div className="prose prose-sm text-slate-600 leading-relaxed max-w-none prose-p:mb-2 prose-strong:text-slate-900" dangerouslySetInnerHTML={{ __html: rawDescription }} />
                 )}
               </div>
             )}
@@ -234,8 +226,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
             {project.amenities && project.amenities.length > 0 && (
               <div>
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
-                  <LayoutTemplate className="w-4 h-4 mr-2 text-blue-600" />
-                  Lifestyle Amenities
+                  <LayoutTemplate className="w-4 h-4 mr-2 text-blue-600" />Lifestyle Amenities
                 </h3>
                 <div className="flex flex-wrap gap-2">
                   {project.amenities.map((amenity, idx) => (
@@ -248,9 +239,74 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
               </div>
             )}
 
-            {/* 7. Placeholder for map section anchor */}
-            <div id="sidebar-map-section" />
+            {/* 7. Drive-Time Isochrone */}
+            <div>
+              <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
+                <Clock className="w-4 h-4 mr-2 text-blue-600" />Commute & Drive-Time
+              </h3>
+              {/* Mode toggle */}
+              <div className="flex gap-2 p-1 bg-slate-100 rounded-xl mb-4">
+                {(['driving', 'walking'] as const).map(mode => (
+                  <button
+                    key={mode}
+                    onClick={() => setActiveIsochrone({ mode, minutes: isoMinutes })}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${isoMode === mode && activeIsochrone ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-900'}`}
+                  >
+                    {mode === 'driving' ? <Car className="w-4 h-4" /> : <Footprints className="w-4 h-4" />}
+                    {mode}
+                  </button>
+                ))}
+              </div>
+              {/* Minutes slider */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  <span>5 min</span>
+                  <span className="text-blue-600 font-black">{isoMinutes} min</span>
+                  <span>30 min</span>
+                </div>
+                <input
+                  type="range" min={5} max={30} step={5}
+                  value={isoMinutes}
+                  onChange={e => setActiveIsochrone({ mode: isoMode, minutes: Number(e.target.value) })}
+                  className="w-full accent-blue-600 cursor-pointer"
+                />
+              </div>
+              {activeIsochrone && (
+                <button
+                  onClick={() => setActiveIsochrone(null)}
+                  className="mt-3 text-xs font-bold text-slate-400 hover:text-rose-500 transition-colors"
+                >
+                  ✕ Clear isochrone
+                </button>
+              )}
+            </div>
 
+            {/* 8. Nearby Landmarks */}
+            {communityLandmarks.length > 0 && (
+              <div>
+                <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
+                  <MapPin className="w-4 h-4 mr-2 text-blue-600" />Neighborhood
+                </h3>
+                <div className="space-y-2">
+                  {communityLandmarks.map(l => {
+                    const cat = l.category?.toLowerCase() ?? '';
+                    const style = categoryStyle[cat] ?? defaultStyle;
+                    return (
+                      <div key={l.id} className={`flex items-center gap-3 px-4 py-3 ${style.bg} rounded-xl`}>
+                        <div className={`w-2 h-2 rounded-full shrink-0 ${style.dot}`} />
+                        <span className={`text-xs font-bold flex-1 truncate ${style.text}`}>{l.name}</span>
+                        <span className={`text-[10px] font-black uppercase tracking-widest ${style.text} opacity-60`}>
+                          {style.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Anchor for scroll-to */}
+            <div id="sidebar-map-section" />
           </div>
         </div>
 
@@ -284,12 +340,8 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
       </div>
 
       {/* Modals */}
-      {isTextModalOpen && (
-        <TextModal text={rawDescription} onClose={() => setIsTextModalOpen(false)} />
-      )}
-      {isFloorPlanModalOpen && (
-        <FloorPlanModal onClose={() => setIsFloorPlanModalOpen(false)} />
-      )}
+      {isTextModalOpen && (<TextModal text={rawDescription} onClose={() => setIsTextModalOpen(false)} />)}
+      {isFloorPlanModalOpen && (<FloorPlanModal onClose={() => setIsFloorPlanModalOpen(false)} />)}
     </>
   );
 };

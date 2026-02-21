@@ -26,6 +26,7 @@ interface BottomControlBarProps {
     handleLocationSelect: (locationType: 'city' | 'community', locationName: string, projectsInLocation: Project[]) => void;
     mapFeatures: { show3D: boolean; showAnalytics: boolean; showCommunityBorders: boolean };
     setMapFeatures: React.Dispatch<React.SetStateAction<{ show3D: boolean; showAnalytics: boolean; showCommunityBorders: boolean }>>;
+    onGlobalReset: () => void;
 }
 
 const uaeEmirates = ['abu dhabi', 'dubai', 'sharjah', 'ajman', 'umm al quwain', 'ras al khaimah', 'fujairah'];
@@ -52,7 +53,8 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
     onToggleDraw,
     handleLocationSelect,
     mapFeatures,
-    setMapFeatures
+    setMapFeatures,
+    onGlobalReset
 }) => {
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
     const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
@@ -152,9 +154,13 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
     return (
         <>
             <div className="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-xl border-t border-slate-200 z-[6000] px-4 py-3 flex items-center justify-between gap-4 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
-                {/* Left: Branding */}
-                <div className="flex items-center gap-3 shrink-0">
-                    <div className="w-10 h-10 relative flex items-center justify-center shrink-0">
+                {/* Left: Branding — click to reset everything */}
+                <button
+                    onClick={onGlobalReset}
+                    title="Reset to UAE overview"
+                    className="flex items-center gap-3 shrink-0 group"
+                >
+                    <div className="w-10 h-10 relative flex items-center justify-center shrink-0 transition-transform group-hover:scale-110">
                         <svg viewBox="0 0 100 120" className="w-full h-full drop-shadow-md" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M50 115C50 115 92 72 92 46C92 22.804 73.196 4 50 4C26.804 4 8 22.804 8 46C8 72 50 115 50 115Z" fill="#2563EB" stroke="#1D4ED8" strokeWidth="2.5" />
                             <text x="50" y="58" fill="#FFFFFF" fontFamily="system-ui, -apple-system, sans-serif" fontWeight="900" fontSize="28" textAnchor="middle" style={{ letterSpacing: '-1px' }}>
@@ -166,7 +172,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                         <span className="text-sm font-black text-slate-900 tracking-tighter uppercase leading-none block">PSI Maps</span>
                         <span className="text-[9px] font-bold text-blue-600 uppercase tracking-[0.2em] mt-0.5">Premier</span>
                     </div>
-                </div>
+                </button>
 
                 {/* Middle Left: Search and Dropdowns (Hidden on Mobile) */}
                 <div className="hidden md:flex items-center gap-2 flex-1 max-w-4xl justify-center">
