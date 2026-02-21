@@ -176,6 +176,64 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
         </div>
       )}
 
+      {/* Active Filter Chips — floating above the bottom dock */}
+      {(developerFilter !== 'All' && developerFilter !== '' || statusFilter !== 'All' && statusFilter !== '' || selectedCity || selectedCommunity) && (
+        <div className="absolute bottom-[88px] left-1/2 -translate-x-1/2 z-[4500] flex flex-wrap gap-2 pointer-events-none justify-center px-4 w-full max-w-3xl">
+
+          {/* Developer chip */}
+          {developerFilter && developerFilter !== 'All' && (
+            <div className="pointer-events-auto flex items-center gap-1.5 bg-blue-600 text-white px-3 py-1.5 rounded-full shadow-lg text-xs font-black uppercase tracking-wide">
+              <span>{developerFilter}</span>
+              <button
+                onClick={() => setDeveloperFilter('All')}
+                className="w-4 h-4 flex items-center justify-center hover:bg-blue-700 rounded-full transition-colors"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+          )}
+
+          {/* Status chip */}
+          {statusFilter && statusFilter !== 'All' && (
+            <div className="pointer-events-auto flex items-center gap-1.5 bg-slate-800 text-white px-3 py-1.5 rounded-full shadow-lg text-xs font-black uppercase tracking-wide">
+              <span>{statusFilter}</span>
+              <button
+                onClick={() => setStatusFilter('All')}
+                className="w-4 h-4 flex items-center justify-center hover:bg-slate-700 rounded-full transition-colors"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+          )}
+
+          {/* City chip */}
+          {selectedCity && (
+            <div className="pointer-events-auto flex items-center gap-1.5 bg-emerald-600 text-white px-3 py-1.5 rounded-full shadow-lg text-xs font-black uppercase tracking-wide">
+              <span className="capitalize">{selectedCity}</span>
+              <button
+                onClick={() => { props.setSelectedCity(''); props.setSelectedCommunity(''); props.onCloseProject(); }}
+                className="w-4 h-4 flex items-center justify-center hover:bg-emerald-700 rounded-full transition-colors"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+          )}
+
+          {/* Community chip */}
+          {selectedCommunity && (
+            <div className="pointer-events-auto flex items-center gap-1.5 bg-violet-600 text-white px-3 py-1.5 rounded-full shadow-lg text-xs font-black uppercase tracking-wide">
+              <span className="capitalize">{selectedCommunity}</span>
+              <button
+                onClick={() => { props.setSelectedCommunity(''); props.onCloseProject(); }}
+                className="w-4 h-4 flex items-center justify-center hover:bg-violet-700 rounded-full transition-colors"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* The New Bottom Dock */}
       <BottomControlBar
         projects={liveProjects}

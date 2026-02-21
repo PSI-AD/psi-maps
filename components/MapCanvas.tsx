@@ -184,7 +184,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                     source-layer="building"
                     filter={['==', 'extrude', 'true']}
                     type="fill-extrusion"
-                    minzoom={15}
+                    minzoom={14}
                     paint={{
                         'fill-extrusion-color': '#e2e8f0',
                         'fill-extrusion-height': ['get', 'height'],

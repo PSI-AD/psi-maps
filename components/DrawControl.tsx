@@ -24,7 +24,7 @@ const DrawControl = (props: DrawControlProps) => {
         }
         return new (DrawClass as any)({
           displayControlsDefault: false,
-          controls: { polygon: true, trash: true },
+          controls: {},
           defaultMode: 'simple_select'
         });
       } catch (e) {

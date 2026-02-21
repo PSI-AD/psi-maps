@@ -58,7 +58,9 @@ export const useMapState = (filteredProjects: Project[]) => {
         mapRef.current?.flyTo({
             center: [longitude, latitude],
             zoom: zoom ?? 16,
-            duration: 1000,
+            pitch: 60,
+            bearing: 20,
+            duration: 2000,
             essential: true
         });
     }, []);
