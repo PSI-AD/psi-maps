@@ -42,6 +42,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
   const [optimizeProgress, setOptimizeProgress] = useState<{ current: number; total: number; optimized: number; failed: number } | null>(null);
   const [osmCommunity, setOsmCommunity] = useState('');
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const [projectSearchTerm, setProjectSearchTerm] = useState('');
+  const [mapSearchQuery, setMapSearchQuery] = useState('');
 
   // Nearbys CMS Filters
   const [nearbysCategoryFilter, setNearbysCategoryFilter] = useState<string>('All');
@@ -62,6 +64,35 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
   const uniqueProjectDevelopers = useMemo(() => {
     return Array.from(new Set(liveProjects.map(p => p.developerName).filter(Boolean))).sort() as string[];
   }, [liveProjects]);
+
+  const filteredAdminProjects = useMemo(() => {
+    return liveProjects.filter(p =>
+      (p.name?.toLowerCase() || '').includes(projectSearchTerm.toLowerCase()) ||
+      (p.developerName?.toLowerCase() || '').includes(projectSearchTerm.toLowerCase()) ||
+      (p.community?.toLowerCase() || '').includes(projectSearchTerm.toLowerCase())
+    ).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  }, [liveProjects, projectSearchTerm]);
+
+  const availableProjectCommunities = useMemo(() => {
+    if (!stagedProject?.city) return uniqueProjectCommunities;
+    return Array.from(new Set(
+      liveProjects.filter(p => p.city === stagedProject.city).map(p => p.community).filter(Boolean)
+    )).sort() as string[];
+  }, [liveProjects, stagedProject?.city, uniqueProjectCommunities]);
+
+  const handleMapSearch = async () => {
+    if (!mapSearchQuery.trim()) return;
+    try {
+      const res = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(mapSearchQuery)}.json?access_token=${PUBLIC_MAPBOX_TOKEN}&country=ae`);
+      const data = await res.json();
+      if (data.features && data.features.length > 0) {
+        const [lng, lat] = data.features[0].center;
+        setStagedProject(prev => prev ? { ...prev, latitude: lat, longitude: lng } : prev);
+      } else {
+        alert('Location not found. Try a different search term.');
+      }
+    } catch (e) { console.error('Geocoding error', e); }
+  };
 
   const filteredLandmarks = useMemo(() => {
     return liveLandmarks.filter(l => {
@@ -645,6 +676,24 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
 
           {activeTab === 'general' && !stagedProject && (
             <section className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+              {/* Live search bar */}
+              <div className="p-4 border-b border-slate-100">
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder="Search by name, developer, or community…"
+                    value={projectSearchTerm}
+                    onChange={e => setProjectSearchTerm(e.target.value)}
+                    className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-4 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm placeholder:font-normal"
+                  />
+                </div>
+                {projectSearchTerm && (
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2 ml-1">
+                    {filteredAdminProjects.length} result{filteredAdminProjects.length !== 1 ? 's' : ''}
+                  </p>
+                )}
+              </div>
               <div className="w-full overflow-x-auto hide-scrollbar">
                 <table className="w-full text-left min-w-[600px]">
                   <thead className="bg-slate-50 border-b border-slate-100">
@@ -655,7 +704,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
-                    {[...liveProjects].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map((p) => (
+                    {filteredAdminProjects.map((p) => (
                       <tr key={p.id} className="hover:bg-slate-50 transition-all group">
                         <td className="px-8 py-5 font-bold text-slate-800">{p.name}</td>
                         <td className="px-8 py-5 text-sm text-slate-500 font-medium">{p.developerName}</td>
@@ -715,7 +764,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Community</label>
                   <select className="h-12 w-full bg-slate-50 border border-slate-100 rounded-xl px-4 text-base md:text-sm text-slate-800 font-medium appearance-none" value={stagedProject.community || ''} onChange={(e) => setStagedProject({ ...stagedProject, community: e.target.value })}>
                     <option value="">Select Community...</option>
-                    {uniqueProjectCommunities.map(c => <option key={c} value={c}>{c}</option>)}
+                    {availableProjectCommunities.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
                 {/* Type */}
@@ -768,19 +817,132 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                 </div>
               </div>
 
+              {/* ── Map Picker & Geocoder ── */}
+              <div className="flex flex-col gap-2 mb-8 p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                  <MapPin className="w-4 h-4" /> Location Coordinates
+                </h4>
+                {/* Manual Lat/Lng inputs */}
+                <div className="flex gap-2 mb-3">
+                  <input
+                    type="number" step="any" placeholder="Latitude"
+                    value={stagedProject.latitude || ''}
+                    onChange={e => setStagedProject({ ...stagedProject, latitude: parseFloat(e.target.value) })}
+                    className="h-12 flex-1 bg-white border border-slate-200 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                  <input
+                    type="number" step="any" placeholder="Longitude"
+                    value={stagedProject.longitude || ''}
+                    onChange={e => setStagedProject({ ...stagedProject, longitude: parseFloat(e.target.value) })}
+                    className="h-12 flex-1 bg-white border border-slate-200 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+                {/* Geocoding search */}
+                <div className="flex gap-2 mb-4">
+                  <input
+                    type="text"
+                    placeholder="Search building name or address in UAE…"
+                    value={mapSearchQuery}
+                    onChange={e => setMapSearchQuery(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleMapSearch()}
+                    className="h-12 flex-1 bg-white border border-slate-200 rounded-xl px-4 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                  <button
+                    onClick={handleMapSearch}
+                    className="px-6 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors shadow-md flex items-center gap-2 shrink-0"
+                  >
+                    <Search className="w-4 h-4" /> Find
+                  </button>
+                </div>
+                {/* Interactive map pin dropper */}
+                <div className="h-72 rounded-xl overflow-hidden border border-blue-100 relative shadow-inner">
+                  <div className="absolute top-2 left-2 z-10 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg shadow-sm text-[10px] font-black uppercase text-blue-600 pointer-events-none">
+                    Click map to move pin
+                  </div>
+                  <Map
+                    mapboxAccessToken={PUBLIC_MAPBOX_TOKEN}
+                    initialViewState={{
+                      longitude: Number(stagedProject.longitude) || 54.39,
+                      latitude: Number(stagedProject.latitude) || 24.49,
+                      zoom: 13
+                    }}
+                    mapStyle="mapbox://styles/mapbox/streets-v12"
+                    style={{ width: '100%', height: '100%' }}
+                    onClick={(e) => setStagedProject({ ...stagedProject, longitude: e.lngLat.lng, latitude: e.lngLat.lat })}
+                  >
+                    {stagedProject.longitude && stagedProject.latitude && (
+                      <Marker
+                        longitude={Number(stagedProject.longitude)}
+                        latitude={Number(stagedProject.latitude)}
+                        color="#2563eb"
+                      />
+                    )}
+                  </Map>
+                </div>
+              </div>
+
+              {/* ── Media Manager ── */}
+              <div className="flex flex-col gap-2 mb-8 p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4" /> Media Management
+                </h4>
+                {/* Current images grid */}
+                {((stagedProject as any).images?.length > 0) ? (
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
+                    {((stagedProject as any).images as string[]).map((img: string, idx: number) => (
+                      <div key={idx} className="relative group rounded-xl overflow-hidden h-24 bg-white border border-slate-200 shadow-sm">
+                        <img src={img} alt="" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <button
+                            onClick={() => setStagedProject({ ...stagedProject, images: ((stagedProject as any).images as string[]).filter((_: string, i: number) => i !== idx) } as any)}
+                            className="p-2 bg-rose-500 hover:bg-rose-600 text-white rounded-full shadow-lg scale-90 group-hover:scale-100 transition-all"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-400 font-medium mb-4">No images yet. Add one below.</p>
+                )}
+                {/* Add image URL */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    id="admin-new-image-url"
+                    placeholder="Paste new image URL here…"
+                    className="h-12 flex-1 bg-white border border-slate-200 rounded-xl px-4 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                  <button
+                    onClick={() => {
+                      const input = document.getElementById('admin-new-image-url') as HTMLInputElement;
+                      if (input?.value.trim()) {
+                        setStagedProject({ ...stagedProject, images: [...(((stagedProject as any).images as string[]) || []), input.value.trim()] } as any);
+                        input.value = '';
+                      }
+                    }}
+                    className="px-6 h-12 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors flex items-center gap-2 shadow-md shrink-0"
+                  >
+                    <Plus className="w-4 h-4" /> Add
+                  </button>
+                </div>
+              </div>
+
               <button
                 onClick={async () => {
                   setIsSaving(true);
                   try {
                     await updateDoc(doc(db, 'projects', stagedProject.id), stagedProject);
-                    alert("Project Updated!");
+                    alert('Project Updated!');
                     setStagedProject(null);
                   } catch (e) { console.error(e); }
                   setIsSaving(false);
                 }}
-                className="w-full py-6 bg-blue-600 text-white rounded-2xl font-black uppercase text-sm tracking-widest"
+                disabled={isSaving}
+                className="w-full py-6 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-2xl font-black uppercase text-sm tracking-widest transition-all shadow-lg"
               >
-                Save Changes
+                {isSaving ? 'Saving…' : 'Save Changes'}
               </button>
             </section>
           )}
