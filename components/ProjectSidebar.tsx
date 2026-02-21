@@ -2,26 +2,40 @@ import React, { useState } from 'react';
 import { Project } from '../types';
 import { X, MapPin, BedDouble, Bath, Square, Calendar, ArrowRight, Activity, Building, LayoutTemplate } from 'lucide-react';
 import { getOptimizedImageUrl } from '../utils/imageHelpers';
+import TextModal from './TextModal';
+import FloorPlanModal from './FloorPlanModal';
 
 interface ProjectSidebarProps {
   project: Project | null;
   onClose: () => void;
   onDiscoverNeighborhood: (lat: number, lng: number) => Promise<void>;
   onQuickFilter?: (type: 'community' | 'developer', value: string) => void;
+  setFullscreenImage: (url: string | null) => void;
 }
 
-const ProjectSidebar: React.FC<ProjectSidebarProps> = ({ project, onClose, onDiscoverNeighborhood, onQuickFilter }) => {
+const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
+  project,
+  onClose,
+  onDiscoverNeighborhood,
+  onQuickFilter,
+  setFullscreenImage,
+}) => {
   const [activeImage, setActiveImage] = useState<string | null>(null);
-  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [isDiscovering, setIsDiscovering] = useState(false);
+  const [isTextModalOpen, setIsTextModalOpen] = useState(false);
+  const [isFloorPlanModalOpen, setIsFloorPlanModalOpen] = useState(false);
 
   if (!project) return null;
 
   const handleDiscovery = async () => {
     setIsDiscovering(true);
-    await new Promise(r => setTimeout(r, 800)); // Cinematic delay
+    await new Promise(r => setTimeout(r, 800));
     await onDiscoverNeighborhood(project.latitude, project.longitude);
     setIsDiscovering(false);
+  };
+
+  const scrollToMap = () => {
+    document.getElementById('sidebar-map-section')?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const images = project.images && project.images.length > 0 ? project.images : [project.thumbnailUrl];
@@ -32,12 +46,24 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({ project, onClose, onDis
     project.priceRange !== '0.00' &&
     !project.priceRange.startsWith('AED 0');
 
+  const DESCRIPTION_LIMIT = 250;
+  const rawDescription = project.description || '';
+  // Strip HTML tags for length check, but render HTML in display
+  const plainText = rawDescription.replace(/<[^>]*>/g, '');
+  const isDescriptionLong = plainText.length > DESCRIPTION_LIMIT;
+  const truncatedHtml = isDescriptionLong
+    ? rawDescription.replace(/<[^>]*>/g, '').slice(0, DESCRIPTION_LIMIT)
+    : rawDescription;
+
   return (
     <>
       <div className="h-full flex flex-col bg-white text-slate-800 font-sans shadow-2xl relative border-l border-slate-200">
 
-        {/* 1. Clean Hero Image — click to fullscreen */}
-        <div className="relative h-64 w-full shrink-0 bg-slate-100 group cursor-zoom-in" onClick={() => setFullscreenImage(displayImage)}>
+        {/* 1. Hero Image — click to fullscreen */}
+        <div
+          className="relative h-64 w-full shrink-0 bg-slate-100 group cursor-zoom-in"
+          onClick={() => setFullscreenImage(displayImage)}
+        >
           <img
             src={getOptimizedImageUrl(displayImage, 1200, 800)}
             alt={project.name}
@@ -80,7 +106,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({ project, onClose, onDis
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto custom-scrollbar bg-white">
 
-          {/* 3. The New Top Hierarchy (Name -> Location -> Developer) */}
+          {/* 3. Top Hierarchy: Name → Location → Developer */}
           <div className="px-6 pt-6 pb-6 border-b border-slate-100">
             <h1 className="text-3xl font-black text-slate-900 leading-tight tracking-tight mb-2">
               {project.name}
@@ -112,10 +138,9 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({ project, onClose, onDis
 
           <div className="px-6 py-6 space-y-8">
 
-            {/* 4. Data Grid - Strict Hide Rules */}
+            {/* 4. Data Grid */}
             <div className="grid grid-cols-2 gap-4">
 
-              {/* Price (Hidden if 0 or invalid) */}
               {hasValidPrice && (
                 <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3 col-span-2">
                   <Building className="w-5 h-5 text-blue-600 mt-0.5" />
@@ -126,7 +151,6 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({ project, onClose, onDis
                 </div>
               )}
 
-              {/* Type (Hidden if empty or just "apartment") */}
               {project.type && project.type.toLowerCase() !== 'apartment' && project.type !== 'N/A' && (
                 <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3">
                   <LayoutTemplate className="w-5 h-5 text-blue-600 mt-0.5" />
@@ -178,17 +202,31 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({ project, onClose, onDis
               )}
             </div>
 
-            {/* 5. Description */}
-            {project.description && (
+            {/* 5. Description with truncation + Read More */}
+            {rawDescription && (
               <div>
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
                   <Activity className="w-4 h-4 mr-2 text-blue-600" />
                   About The Project
                 </h3>
-                <div
-                  className="prose prose-sm text-slate-600 leading-relaxed max-w-none prose-p:mb-2 prose-strong:text-slate-900"
-                  dangerouslySetInnerHTML={{ __html: project.description }}
-                />
+                {isDescriptionLong ? (
+                  <div>
+                    <p className="prose prose-sm text-slate-600 leading-relaxed max-w-none">
+                      {truncatedHtml}…
+                    </p>
+                    <button
+                      onClick={() => setIsTextModalOpen(true)}
+                      className="mt-2 text-blue-600 hover:text-blue-800 text-xs font-black uppercase tracking-widest transition-colors cursor-pointer"
+                    >
+                      Read More →
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    className="prose prose-sm text-slate-600 leading-relaxed max-w-none prose-p:mb-2 prose-strong:text-slate-900"
+                    dangerouslySetInnerHTML={{ __html: rawDescription }}
+                  />
+                )}
               </div>
             )}
 
@@ -210,13 +248,16 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({ project, onClose, onDis
               </div>
             )}
 
+            {/* 7. Placeholder for map section anchor */}
+            <div id="sidebar-map-section" />
+
           </div>
         </div>
 
         {/* Footer Actions */}
         <div className="p-6 bg-white border-t border-slate-100 z-10 shrink-0 space-y-3 shadow-[0_-4px_20px_rgba(0,0,0,0.02)]">
           <button
-            onClick={handleDiscovery}
+            onClick={scrollToMap}
             disabled={isDiscovering}
             className="w-full bg-slate-900 hover:bg-slate-800 text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest transition-all hover:shadow-xl hover:shadow-slate-200 active:scale-[0.99] disabled:opacity-70 flex items-center justify-center gap-3"
           >
@@ -232,32 +273,22 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({ project, onClose, onDis
               </>
             )}
           </button>
-          <a href={project.projectUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center w-full py-4 border border-slate-200 hover:border-blue-600 text-slate-800 hover:text-blue-700 bg-slate-50 hover:bg-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all gap-2 group">
+          <button
+            onClick={() => setIsFloorPlanModalOpen(true)}
+            className="flex items-center justify-center w-full py-4 border border-slate-200 hover:border-blue-600 text-slate-800 hover:text-blue-700 bg-slate-50 hover:bg-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all gap-2 group"
+          >
             <span>Request Floor Plans</span>
             <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-          </a>
+          </button>
         </div>
       </div>
 
-      {/* Fullscreen Lightbox Modal */}
-      {fullscreenImage && (
-        <div
-          className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm"
-          onClick={() => setFullscreenImage(null)}
-        >
-          <button
-            className="absolute top-6 right-6 text-white p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
-            onClick={(e) => { e.stopPropagation(); setFullscreenImage(null); }}
-          >
-            <X className="w-6 h-6" />
-          </button>
-          <img
-            src={fullscreenImage}
-            alt="Fullscreen Property"
-            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
+      {/* Modals */}
+      {isTextModalOpen && (
+        <TextModal text={rawDescription} onClose={() => setIsTextModalOpen(false)} />
+      )}
+      {isFloorPlanModalOpen && (
+        <FloorPlanModal onClose={() => setIsFloorPlanModalOpen(false)} />
       )}
     </>
   );

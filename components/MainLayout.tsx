@@ -5,6 +5,7 @@ import ProjectSidebar from './ProjectSidebar';
 import FloatingMapTools from './FloatingMapTools';
 import MapStyleSwitcher from './MapStyleSwitcher';
 import BottomControlBar from './BottomControlBar';
+import FullscreenImageModal from './FullscreenImageModal';
 import { Loader2 } from 'lucide-react';
 
 interface MainLayoutProps {
@@ -74,6 +75,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
   } = props;
 
   const [isNearbyToolsOpen, setIsNearbyToolsOpen] = useState(false);
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
 
   const handleSearchSelect = (project: Project) => {
     if (!project) return;
@@ -171,6 +173,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
             }}
             onDiscoverNeighborhood={onDiscoverNeighborhood}
             onQuickFilter={onQuickFilter}
+            setFullscreenImage={setFullscreenImage}
           />
         </div>
       )}
@@ -198,6 +201,11 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
         onToggleDraw={onToggleDraw}
         handleLocationSelect={handleLocationSelect}
       />
+
+      {/* Fullscreen Image Lightbox — rendered at MainLayout level to cover full viewport */}
+      {fullscreenImage && (
+        <FullscreenImageModal imageUrl={fullscreenImage} onClose={() => setFullscreenImage(null)} />
+      )}
     </div>
   );
 };

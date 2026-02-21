@@ -269,11 +269,18 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                             <div className="flex w-[300px] h-[110px] bg-white rounded-2xl overflow-hidden shadow-2xl border border-slate-100 p-0 m-[-10px] group">
                                 <div className="w-[100px] h-full shrink-0 bg-slate-100 relative overflow-hidden">
                                     <img
-                                        src={getOptimizedImageUrl(activeProject.thumbnailUrl, 200, 200)}
+                                        src={getOptimizedImageUrl(
+                                            activeProject.thumbnailUrl ||
+                                            activeProject.images?.[0] ||
+                                            (activeProject as any).image ||
+                                            '/placeholder-image.png',
+                                            200, 200
+                                        )}
                                         loading="lazy"
                                         decoding="async"
                                         className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                         alt=""
+                                        onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder-image.png'; }}
                                     />
                                 </div>
                                 <div className="p-2.5 w-48 flex flex-col justify-center bg-white overflow-hidden">
