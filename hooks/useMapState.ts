@@ -57,7 +57,7 @@ export const useMapState = (filteredProjects: Project[]) => {
     const handleFlyTo = useCallback((longitude: number, latitude: number, zoom?: number) => {
         mapRef.current?.flyTo({
             center: [longitude, latitude],
-            zoom: zoom || 14.5,
+            zoom: zoom ?? 16,
             duration: 1000,
             essential: true
         });

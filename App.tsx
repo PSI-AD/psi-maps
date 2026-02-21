@@ -129,13 +129,13 @@ const App: React.FC = () => {
       setSelectedCommunity(p.community || '');
 
       if (p.latitude && p.longitude && !isNaN(p.latitude) && !isNaN(p.longitude)) {
-        handleFlyTo(p.longitude, p.latitude);
+        handleFlyTo(p.longitude, p.latitude, 16);
       }
     }
   };
 
   const handleSearchSelect = (project: Project) => {
-    handleFlyTo(project.longitude, project.latitude, 14.5);
+    handleFlyTo(project.longitude, project.latitude, 16);
     setSelectedProjectId(project.id);
     setSelectedLandmarkId(null);
     setIsAnalysisOpen(true);

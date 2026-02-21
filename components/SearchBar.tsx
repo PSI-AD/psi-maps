@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Project } from '../types';
-import { Search, MapPin, Building, ArrowRight } from 'lucide-react';
+import { Search, ArrowRight, X } from 'lucide-react';
 
 interface SearchBarProps {
     projects: Project[];
@@ -11,17 +11,27 @@ const SearchBar: React.FC<SearchBarProps> = ({ projects, onSelectProject }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [suggestions, setSuggestions] = useState<Project[]>([]);
     const [isOpen, setIsOpen] = useState(false);
+    const [isMobileExpanded, setIsMobileExpanded] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
                 setIsOpen(false);
+                setIsMobileExpanded(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    // Auto-focus input when mobile expands
+    useEffect(() => {
+        if (isMobileExpanded) {
+            setTimeout(() => inputRef.current?.focus(), 50);
+        }
+    }, [isMobileExpanded]);
 
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
@@ -31,8 +41,9 @@ const SearchBar: React.FC<SearchBarProps> = ({ projects, onSelectProject }) => {
             const filtered = projects.filter(p =>
                 p.name?.toLowerCase().includes(value.toLowerCase()) ||
                 p.city?.toLowerCase().includes(value.toLowerCase()) ||
+                p.developerName?.toLowerCase().includes(value.toLowerCase()) ||
                 p.community?.toLowerCase().includes(value.toLowerCase())
-            ).slice(0, 8); // Limit suggestions
+            ).slice(0, 8);
             setSuggestions(filtered);
             setIsOpen(true);
         } else {
@@ -42,61 +53,110 @@ const SearchBar: React.FC<SearchBarProps> = ({ projects, onSelectProject }) => {
     };
 
     const handleSelect = (project: Project) => {
-        setSearchTerm(project.name);
+        setSearchTerm('');
         setIsOpen(false);
+        setIsMobileExpanded(false);
         onSelectProject(project);
-        setSearchTerm(''); // Clear after selection or keep? Usually clear for map apps.
     };
 
+    const handleClear = () => {
+        setSearchTerm('');
+        setSuggestions([]);
+        setIsOpen(false);
+        inputRef.current?.focus();
+    };
+
+    const inputEl = (
+        <div className="relative flex items-center">
+            <div className="absolute left-4 text-slate-400 pointer-events-none">
+                <Search className="w-4 h-4" />
+            </div>
+            <input
+                ref={inputRef}
+                type="text"
+                value={searchTerm}
+                onChange={handleSearch}
+                onFocus={() => searchTerm.length > 1 && setIsOpen(true)}
+                placeholder="Search property, community or city…"
+                className="w-full h-11 bg-white/95 backdrop-blur-md border border-slate-200 rounded-full pl-11 pr-10 text-sm font-medium text-slate-800 shadow-md outline-none focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-slate-400"
+            />
+            {searchTerm && (
+                <button
+                    onClick={handleClear}
+                    className="absolute right-4 text-slate-400 hover:text-slate-700 transition-colors"
+                >
+                    <X className="w-4 h-4" />
+                </button>
+            )}
+        </div>
+    );
+
+    const dropdown = isOpen && suggestions.length > 0 && (
+        <div className="absolute bottom-full left-0 w-full mb-3 bg-white border border-slate-100 rounded-2xl shadow-2xl shadow-slate-200/60 overflow-hidden animate-in fade-in slide-in-from-bottom-2 z-[2000]">
+            <div className="py-1.5">
+                {suggestions.map((project) => (
+                    <button
+                        key={project.id}
+                        onClick={() => handleSelect(project)}
+                        className="w-full text-left px-4 py-3 hover:bg-slate-50 flex items-center gap-3 transition-colors group border-b border-slate-50 last:border-0"
+                    >
+                        {/* Thumbnail */}
+                        <div className="w-10 h-10 rounded-xl bg-slate-100 shrink-0 overflow-hidden shadow-sm">
+                            <img
+                                src={project.thumbnailUrl}
+                                loading="lazy"
+                                decoding="async"
+                                className="w-full h-full object-cover"
+                                alt=""
+                            />
+                        </div>
+
+                        {/* Text hierarchy */}
+                        <div className="flex flex-col overflow-hidden w-full text-left">
+                            <span className="font-black text-sm text-slate-900 truncate leading-tight">
+                                {project.name}
+                            </span>
+                            <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest truncate mt-0.5">
+                                {project.developerName || 'Exclusive Developer'}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-medium truncate mt-0.5">
+                                {project.community}{project.city ? ` / ${project.city}` : ''}
+                            </span>
+                        </div>
+
+                        {/* Arrow hint */}
+                        <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 transition-all shrink-0 -translate-x-1 group-hover:translate-x-0 opacity-0 group-hover:opacity-100" />
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+
     return (
-        <div className="relative w-full max-w-md" ref={containerRef}>
-            <div className="relative flex items-center">
-                <div className="absolute left-4 text-slate-400">
-                    <Search className="w-5 h-5" />
-                </div>
-                <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={handleSearch}
-                    onFocus={() => searchTerm.length > 1 && setIsOpen(true)}
-                    placeholder="Search Property, Community, or City..."
-                    className="w-full h-12 bg-white/90 backdrop-blur-md border border-slate-200 rounded-full pl-12 pr-4 text-sm font-medium text-slate-800 shadow-lg shadow-slate-200/50 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-slate-400"
-                />
+        <div className="relative w-full" ref={containerRef}>
+            {/* Desktop — always visible full input */}
+            <div className="hidden md:block relative w-full">
+                {inputEl}
+                {dropdown}
             </div>
 
-            {isOpen && suggestions.length > 0 && (
-                <div className="absolute bottom-full left-0 w-full mb-4 bg-white border border-slate-100 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 z-[2000]">
-                    <div className="py-2">
-                        {suggestions.map((project) => (
-                            <button
-                                key={project.id}
-                                onClick={() => handleSelect(project)}
-                                className="w-full text-left px-4 py-3 hover:bg-slate-50 flex items-center justify-between transition-colors group border-b border-slate-50 last:border-0"
-                            >
-                                <div className="flex items-center gap-3 overflow-hidden">
-                                    <div className="w-8 h-8 rounded-lg bg-slate-100 shrink-0 overflow-hidden">
-                                        <img src={project.thumbnailUrl} loading="lazy" decoding="async" className="w-full h-full object-cover" alt="" />
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                        <div className="flex justify-between items-start">
-                                            <p className="font-bold text-slate-900 text-sm truncate">{project.name}</p>
-                                            <span className="text-[9px] font-black text-blue-600 uppercase tracking-wider bg-blue-50 px-1.5 py-0.5 rounded ml-2 whitespace-nowrap">{project.type}</span>
-                                        </div>
-                                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wide truncate mt-0.5">
-                                            {project.developerName || 'Unknown Developer'}
-                                        </p>
-                                        <p className="text-[10px] text-slate-400 font-medium flex items-center truncate mt-0.5">
-                                            <MapPin className="w-3 h-3 mr-0.5 inline" />
-                                            {project.community || project.city}
-                                        </p>
-                                    </div>
-                                </div>
-                                <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-blue-600 transition-colors -translate-x-2 group-hover:translate-x-0 opacity-0 group-hover:opacity-100" />
-                            </button>
-                        ))}
+            {/* Mobile — icon button that expands to full input */}
+            <div className="md:hidden">
+                {!isMobileExpanded ? (
+                    <button
+                        onClick={() => setIsMobileExpanded(true)}
+                        className="w-11 h-11 flex items-center justify-center bg-white border border-slate-200 rounded-full shadow-md text-slate-500 hover:text-blue-600 hover:border-blue-300 transition-all"
+                        title="Search properties"
+                    >
+                        <Search className="w-5 h-5" />
+                    </button>
+                ) : (
+                    <div className="relative w-72 animate-in fade-in slide-in-from-right-4 duration-200">
+                        {inputEl}
+                        {dropdown}
                     </div>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     );
 };
