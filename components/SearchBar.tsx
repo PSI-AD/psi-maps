@@ -80,7 +80,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ projects, onSelectProject, always
                 onChange={handleSearch}
                 onFocus={() => searchTerm.length > 1 && setIsOpen(true)}
                 placeholder="Search property, community or city…"
-                className="w-full h-12 bg-white/95 backdrop-blur-md border border-slate-200 rounded-full pl-11 pr-10 text-sm font-medium text-slate-800 shadow-md outline-none focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-slate-400"
+                className="w-full h-12 bg-white/95 backdrop-blur-md border border-slate-200 rounded-full pl-11 pr-10 text-base md:text-sm font-medium text-slate-800 shadow-md outline-none focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-slate-400"
             />
             {searchTerm && (
                 <button onClick={handleClear} className="absolute right-4 text-slate-400 hover:text-slate-700 transition-colors">

@@ -54,6 +54,28 @@ const clusterLayer: CircleLayer = {
     }
 };
 
+const unclusteredLabelLayer: SymbolLayer = {
+    id: 'unclustered-point-label',
+    type: 'symbol',
+    source: 'projects',
+    filter: ['!', ['has', 'point_count']],
+    minzoom: 13.5,
+    layout: {
+        'text-field': ['get', 'name'],
+        'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+        'text-size': 12,
+        'text-offset': [0, 1.2],
+        'text-anchor': 'top',
+        'text-allow-overlap': false,
+        'text-max-width': 12
+    },
+    paint: {
+        'text-color': '#0f172a',
+        'text-halo-color': '#ffffff',
+        'text-halo-width': 2
+    }
+};
+
 const clusterCountLayer: SymbolLayer = {
     id: 'cluster-count',
     type: 'symbol',
@@ -159,7 +181,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
             const source: any = map.getSource('projects');
             source.getClusterExpansionZoom(clusterId, (err: any, zoom: number) => {
                 if (err) return;
-                map.easeTo({ center: feature.geometry.coordinates, zoom: zoom, duration: 800 });
+                map.flyTo({ center: feature.geometry.coordinates, zoom: zoom + 0.5, duration: 1200 });
             });
         } else {
             onMarkerClick(feature.properties.id);
@@ -180,7 +202,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
             mapboxAccessToken={PUBLIC_MAPBOX_TOKEN}
             attributionControl={false}
             className="w-full h-full"
-            interactiveLayerIds={['clusters', 'unclustered-point', 'unclustered-point-hit']}
+            interactiveLayerIds={['clusters', 'cluster-count', 'unclustered-point', 'unclustered-point-hit']}
             onClick={(e) => {
                 const features = e.features || [];
                 if (features.length > 0) handleLayerClick(e);
@@ -195,7 +217,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
             onMouseLeave={() => setHoveredProjectId(null)}
         >
             <AttributionControl position="bottom-left" />
-            <NavigationControl position="bottom-right" style={{ marginBottom: '130px', marginRight: '12px' }} />
+            <NavigationControl position="top-right" />
             <DrawControl position="top-right" onCreate={onDrawCreate} onUpdate={onDrawUpdate} onDelete={onDrawDelete} onReference={(draw) => { drawRef.current = draw; }} />
 
             {mapFeatures?.show3D && (
@@ -285,6 +307,8 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                         'circle-radius': 25
                     }}
                 />
+                {/* Project name labels — visible at zoom ≥ 13.5 */}
+                <Layer {...unclusteredLabelLayer} />
             </Source>
 
             {filteredAmenities.map(amenity => (
