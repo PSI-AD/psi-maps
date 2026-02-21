@@ -17,10 +17,10 @@ export const optimizeAndUploadImage = async (
     index: number
 ): Promise<string | null> => {
     try {
-        // Use a reliable CORS proxy to bypass external server restrictions
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(originalUrl)}`;
+        // Switched to codetabs proxy — more stable for large binary files
+        const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(originalUrl)}`;
         const response = await fetch(proxyUrl);
-        if (!response.ok) throw new Error(`Proxy fetch failed: ${response.status}`);
+        if (!response.ok) throw new Error(`Proxy fetch failed: ${response.statusText}`);
         const blob = await response.blob();
 
         // Load the blob into an <img> element so Canvas can draw it
@@ -45,15 +45,28 @@ export const optimizeAndUploadImage = async (
         // Revoke the object URL to free memory
         URL.revokeObjectURL(image.src);
 
-        // Encode as WebP at 70% quality — massive savings over JPEG/PNG
+        // Encode as WebP at 75% quality — massive savings over JPEG/PNG
         const compressedBlob = await new Promise<Blob | null>((resolve) => {
-            canvas.toBlob((b) => resolve(b), 'image/webp', 0.7);
+            canvas.toBlob((b) => resolve(b), 'image/webp', 0.75);
         });
 
         if (!compressedBlob) throw new Error('Canvas toBlob returned null');
 
-        // Upload to Firebase Storage under a deterministic path
-        const storageRef = ref(storage, `optimized_properties/${projectId}/img_${index}.webp`);
+        // Intelligent filename extraction — preserves original base name
+        let filename = `image_${index}`;
+        try {
+            const pathSegments = new URL(originalUrl).pathname.split('/');
+            let baseName = pathSegments[pathSegments.length - 1] || filename;
+            baseName = baseName.replace(/\.[^/.]+$/, '');        // strip extension
+            baseName = baseName.replace(/[^a-zA-Z0-9-_]/g, '_'); // sanitise
+            if (baseName.length > 0) filename = baseName;
+        } catch {
+            console.warn('Could not extract filename from URL, using generic fallback.');
+        }
+        const finalFileName = `${filename}_optimized.webp`;
+
+        // Upload to Firebase Storage with meaningful filename
+        const storageRef = ref(storage, `optimized_properties/${projectId}/${finalFileName}`);
         await uploadBytes(storageRef, compressedBlob);
         const optimizedUrl = await getDownloadURL(storageRef);
 
