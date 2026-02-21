@@ -45,6 +45,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
     return Array.from(new Set(liveLandmarks.map(l => l.community).filter(Boolean))).sort();
   }, [liveLandmarks]);
 
+  const uniqueProjectCommunities = useMemo(() => {
+    return Array.from(new Set(liveProjects.map(p => p.community).filter(Boolean))).sort() as string[];
+  }, [liveProjects]);
+
+  const uniqueProjectCities = useMemo(() => {
+    return Array.from(new Set(liveProjects.map(p => p.city).filter(Boolean))).sort() as string[];
+  }, [liveProjects]);
+
   const filteredLandmarks = useMemo(() => {
     return liveLandmarks.filter(l => {
       if (nearbysCategoryFilter !== 'All' && l.category !== nearbysCategoryFilter) return false;
@@ -284,8 +292,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest ml-1">Community</label>
-                      <input type="text" value={stagedLandmark.community || ''} onChange={(e) => setStagedLandmark({ ...stagedLandmark, community: e.target.value })}
-                        className="h-12 bg-white border border-blue-200 rounded-xl px-4 text-slate-800 font-medium outline-none focus:ring-4 focus:ring-blue-100" />
+                      <select
+                        value={stagedLandmark.community || ''}
+                        onChange={(e) => setStagedLandmark({ ...stagedLandmark, community: e.target.value })}
+                        className="h-12 bg-white border border-blue-200 rounded-xl px-4 text-slate-800 font-medium outline-none focus:ring-4 focus:ring-blue-100"
+                      >
+                        <option value="">Select Community...</option>
+                        {uniqueProjectCommunities.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest ml-1">Lat</label>
@@ -543,14 +557,63 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                 <button onClick={() => setStagedProject(null)} className="text-xs font-black text-rose-400 uppercase">Discard</button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
+                {/* Project Name */}
+                <div className="flex flex-col gap-1.5 lg:col-span-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Project Name</label>
+                  <input className="h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-slate-800 font-medium" value={stagedProject.name || ''} onChange={(e) => setStagedProject({ ...stagedProject, name: e.target.value })} />
+                </div>
+                {/* Developer */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Developer</label>
+                  <input className="h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-slate-800 font-medium" value={stagedProject.developerName || ''} onChange={(e) => setStagedProject({ ...stagedProject, developerName: e.target.value })} />
+                </div>
+                {/* Status */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Status</label>
+                  <select className="h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-slate-800 font-medium" value={stagedProject.status || 'Completed'} onChange={(e) => setStagedProject({ ...stagedProject, status: e.target.value })}>
+                    <option value="Completed">Completed</option>
+                    <option value="Off-Plan">Off-Plan</option>
+                  </select>
+                </div>
+                {/* City */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">City</label>
-                  <input className="h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-slate-800 font-medium" value={stagedProject.city || ''} onChange={(e) => setStagedProject({ ...stagedProject, city: e.target.value })} />
+                  <select className="h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-slate-800 font-medium" value={stagedProject.city || ''} onChange={(e) => setStagedProject({ ...stagedProject, city: e.target.value })}>
+                    <option value="">Select City...</option>
+                    {uniqueProjectCities.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
                 </div>
+                {/* Community */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Community</label>
-                  <input className="h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-slate-800 font-medium" value={stagedProject.community || ''} onChange={(e) => setStagedProject({ ...stagedProject, community: e.target.value })} />
+                  <select className="h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-slate-800 font-medium" value={stagedProject.community || ''} onChange={(e) => setStagedProject({ ...stagedProject, community: e.target.value })}>
+                    <option value="">Select Community...</option>
+                    {uniqueProjectCommunities.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                {/* Type */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Property Type</label>
+                  <select className="h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-slate-800 font-medium" value={stagedProject.type || 'apartment'} onChange={(e) => setStagedProject({ ...stagedProject, type: e.target.value as 'apartment' | 'villa' })}>
+                    <option value="apartment">Apartment</option>
+                    <option value="villa">Villa / Townhouse</option>
+                  </select>
+                </div>
+                {/* Price Range */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Price Range</label>
+                  <input className="h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-slate-800 font-medium" placeholder="e.g. 1500000-3000000" value={stagedProject.priceRange || ''} onChange={(e) => setStagedProject({ ...stagedProject, priceRange: e.target.value })} />
+                </div>
+                {/* Bedrooms */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Bedrooms</label>
+                  <input className="h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-slate-800 font-medium" placeholder="e.g. 1, 2, 3" value={String(stagedProject.bedrooms || '')} onChange={(e) => setStagedProject({ ...stagedProject, bedrooms: e.target.value })} />
+                </div>
+                {/* Completion Date */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Completion Date</label>
+                  <input className="h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-slate-800 font-medium" placeholder="e.g. Q4 2026" value={stagedProject.completionDate || ''} onChange={(e) => setStagedProject({ ...stagedProject, completionDate: e.target.value })} />
                 </div>
               </div>
 
