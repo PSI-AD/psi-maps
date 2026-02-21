@@ -37,6 +37,7 @@ export interface Landmark {
   community: string;
   isHidden?: boolean;
   thumbnailUrl?: string;
+  modelUrl?: string; // URL to a .glb / .gltf 3D model file
 }
 
 export interface MapViewState {

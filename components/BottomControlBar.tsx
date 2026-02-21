@@ -24,6 +24,8 @@ interface BottomControlBarProps {
     isDrawing: boolean;
     onToggleDraw: () => void;
     handleLocationSelect: (locationType: 'city' | 'community', locationName: string, projectsInLocation: Project[]) => void;
+    mapFeatures: { show3D: boolean; showAnalytics: boolean; showCommunityBorders: boolean };
+    setMapFeatures: React.Dispatch<React.SetStateAction<{ show3D: boolean; showAnalytics: boolean; showCommunityBorders: boolean }>>;
 }
 
 const uaeEmirates = ['abu dhabi', 'dubai', 'sharjah', 'ajman', 'umm al quwain', 'ras al khaimah', 'fujairah'];
@@ -48,7 +50,9 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
     handleFitBounds,
     isDrawing,
     onToggleDraw,
-    handleLocationSelect
+    handleLocationSelect,
+    mapFeatures,
+    setMapFeatures
 }) => {
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
     const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
@@ -320,6 +324,20 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                         </div>
 
 
+                        {/* 3D Buildings Toggle */}
+                        <div className="flex items-center justify-between p-4 bg-blue-50 rounded-2xl border border-blue-100 mb-8">
+                            <div>
+                                <p className="font-black text-sm text-slate-800">3D Buildings</p>
+                                <p className="text-xs text-slate-500 mt-0.5">Show architectural extrusions</p>
+                            </div>
+                            <button
+                                onClick={() => setMapFeatures(prev => ({ ...prev, show3D: !prev.show3D }))}
+                                className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${mapFeatures.show3D ? 'bg-blue-600' : 'bg-slate-300'}`}
+                            >
+                                <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow transition-transform duration-300 ${mapFeatures.show3D ? 'translate-x-6' : 'translate-x-0'}`} />
+                            </button>
+                        </div>
+
                         {/* Status Filter */}
                         <div className="mb-10">
                             <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-5">Construction Status</h4>
@@ -370,7 +388,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                         <div className="sticky bottom-0 pt-6 bg-white border-t border-slate-50">
                             <button
                                 onClick={() => setIsFilterModalOpen(false)}
-                                className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] shadow-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
+                                className="w-full py-5 bg-blue-800 text-white rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] shadow-xl hover:bg-blue-900 transition-all flex items-center justify-center gap-2"
                             >
                                 Apply
                                 <span>{projects.length} Results</span>

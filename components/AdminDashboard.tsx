@@ -297,6 +297,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                       <input type="number" value={stagedLandmark.longitude || ''} onChange={(e) => setStagedLandmark({ ...stagedLandmark, longitude: parseFloat(e.target.value) })}
                         className="h-12 bg-white border border-blue-200 rounded-xl px-4 text-slate-800 font-medium outline-none focus:ring-4 focus:ring-blue-100" />
                     </div>
+                    {/* 3D Model URL — full-width row */}
+                    <div className="flex flex-col gap-1.5 lg:col-span-2">
+                      <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest ml-1">3D Model URL (.glb format) <span className="text-slate-400 normal-case font-medium">— optional</span></label>
+                      <input
+                        type="text"
+                        placeholder="https://example.com/model.glb"
+                        value={(stagedLandmark as any).modelUrl || ''}
+                        onChange={(e) => setStagedLandmark({ ...stagedLandmark, modelUrl: e.target.value } as any)}
+                        className="h-12 bg-white border border-blue-200 rounded-xl px-4 text-slate-800 font-medium outline-none focus:ring-4 focus:ring-blue-100 font-mono text-sm"
+                      />
+                    </div>
                     <div className="flex items-end lg:col-span-2">
                       <button
                         onClick={async () => {

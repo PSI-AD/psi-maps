@@ -180,6 +180,21 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
       {(developerFilter !== 'All' && developerFilter !== '' || statusFilter !== 'All' && statusFilter !== '' || selectedCity || selectedCommunity) && (
         <div className="absolute bottom-[88px] left-1/2 -translate-x-1/2 z-[4500] flex flex-wrap gap-2 pointer-events-none justify-center px-4 w-full max-w-3xl">
 
+          {/* Reset All chip */}
+          <button
+            className="pointer-events-auto flex items-center gap-1.5 bg-white text-blue-700 border border-blue-600 px-3 py-1.5 rounded-full shadow-lg text-xs font-black uppercase tracking-wide hover:bg-blue-50 transition-colors"
+            onClick={() => {
+              setDeveloperFilter('All');
+              setStatusFilter('All');
+              props.setSelectedCity('');
+              props.setSelectedCommunity('');
+              props.onCloseProject();
+              props.handleLocationSelect('city', '', props.liveProjects);
+            }}
+          >
+            ↺ Reset All
+          </button>
+
           {/* Developer chip */}
           {developerFilter && developerFilter !== 'All' && (
             <div className="pointer-events-auto flex items-center gap-1.5 bg-blue-600 text-white px-3 py-1.5 rounded-full shadow-lg text-xs font-black uppercase tracking-wide">
@@ -193,25 +208,30 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
             </div>
           )}
 
-          {/* Status chip */}
+          {/* Status chip — blue-800, not black */}
           {statusFilter && statusFilter !== 'All' && (
-            <div className="pointer-events-auto flex items-center gap-1.5 bg-slate-800 text-white px-3 py-1.5 rounded-full shadow-lg text-xs font-black uppercase tracking-wide">
+            <div className="pointer-events-auto flex items-center gap-1.5 bg-blue-800 text-white px-3 py-1.5 rounded-full shadow-lg text-xs font-black uppercase tracking-wide">
               <span>{statusFilter}</span>
               <button
                 onClick={() => setStatusFilter('All')}
-                className="w-4 h-4 flex items-center justify-center hover:bg-slate-700 rounded-full transition-colors"
+                className="w-4 h-4 flex items-center justify-center hover:bg-blue-900 rounded-full transition-colors"
               >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
           )}
 
-          {/* City chip */}
+          {/* City chip — cascade: dismissing falls back to full UAE bounds */}
           {selectedCity && (
             <div className="pointer-events-auto flex items-center gap-1.5 bg-emerald-600 text-white px-3 py-1.5 rounded-full shadow-lg text-xs font-black uppercase tracking-wide">
               <span className="capitalize">{selectedCity}</span>
               <button
-                onClick={() => { props.setSelectedCity(''); props.setSelectedCommunity(''); props.onCloseProject(); }}
+                onClick={() => {
+                  props.setSelectedCity('');
+                  props.setSelectedCommunity('');
+                  props.onCloseProject();
+                  props.handleLocationSelect('city', '', props.liveProjects);
+                }}
                 className="w-4 h-4 flex items-center justify-center hover:bg-emerald-700 rounded-full transition-colors"
               >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -219,12 +239,20 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
             </div>
           )}
 
-          {/* Community chip */}
+          {/* Community chip — cascade: dismissing falls back to selected city view */}
           {selectedCommunity && (
             <div className="pointer-events-auto flex items-center gap-1.5 bg-violet-600 text-white px-3 py-1.5 rounded-full shadow-lg text-xs font-black uppercase tracking-wide">
               <span className="capitalize">{selectedCommunity}</span>
               <button
-                onClick={() => { props.setSelectedCommunity(''); props.onCloseProject(); }}
+                onClick={() => {
+                  props.setSelectedCommunity('');
+                  props.onCloseProject();
+                  if (selectedCity) {
+                    props.handleLocationSelect('city', selectedCity, props.liveProjects.filter(p => p.city === selectedCity));
+                  } else {
+                    props.handleLocationSelect('city', '', props.liveProjects);
+                  }
+                }}
                 className="w-4 h-4 flex items-center justify-center hover:bg-violet-700 rounded-full transition-colors"
               >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -256,6 +284,8 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
         isDrawing={isDrawing}
         onToggleDraw={onToggleDraw}
         handleLocationSelect={handleLocationSelect}
+        mapFeatures={mapFeatures}
+        setMapFeatures={setMapFeatures}
       />
 
       {/* Fullscreen Image Lightbox — rendered at MainLayout level to cover full viewport */}

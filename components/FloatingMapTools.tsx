@@ -79,7 +79,7 @@ const FloatingMapTools: React.FC<FloatingMapToolsProps> = ({
                 {/* Footer Apply */}
                 <button
                     onClick={toggleOpen}
-                    className="w-full mt-6 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] shadow-xl hover:bg-slate-800 transition-all"
+                    className="w-full mt-6 py-4 bg-blue-800 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] shadow-xl hover:bg-blue-900 transition-all"
                 >
                     Done
                 </button>

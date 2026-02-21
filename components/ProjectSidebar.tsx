@@ -259,7 +259,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
           <button
             onClick={scrollToMap}
             disabled={isDiscovering}
-            className="w-full bg-slate-900 hover:bg-slate-800 text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest transition-all hover:shadow-xl hover:shadow-slate-200 active:scale-[0.99] disabled:opacity-70 flex items-center justify-center gap-3"
+            className="w-full bg-blue-800 hover:bg-blue-900 text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest transition-all hover:shadow-xl hover:shadow-blue-200 active:scale-[0.99] disabled:opacity-70 flex items-center justify-center gap-3"
           >
             {isDiscovering ? (
               <>

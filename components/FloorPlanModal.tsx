@@ -36,7 +36,7 @@ const FloorPlanModal: React.FC<FloorPlanModalProps> = ({ onClose }) => (
 
             <button
                 onClick={onClose}
-                className="mt-6 w-full py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-black text-xs uppercase tracking-widest transition-all"
+                className="mt-6 w-full py-4 bg-blue-800 hover:bg-blue-900 text-white rounded-xl font-black text-xs uppercase tracking-widest transition-all"
             >
                 Close
             </button>
