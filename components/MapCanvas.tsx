@@ -33,6 +33,7 @@ interface MapCanvasProps {
     activeIsochrone?: { mode: 'driving' | 'walking'; minutes: number } | null;
     selectedLandmarkForSearch?: Landmark | null;
     hoveredProjectId?: string | null;
+    onBoundsChange?: (bounds: any) => void;
 }
 
 // 🚨 PERMANENT FIX: Base64 decoded token. Passed only via component prop.
@@ -114,7 +115,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
     selectedProjectId,
     setHoveredProjectId, setHoveredLandmarkId,
     selectedLandmark, selectedProject, hoveredProject, projects = [], mapFeatures,
-    activeBoundary, activeIsochrone, selectedLandmarkForSearch, hoveredProjectId
+    activeBoundary, activeIsochrone, selectedLandmarkForSearch, hoveredProjectId, onBoundsChange
 }) => {
 
     // Safety check for valid GPS coordinates
@@ -199,6 +200,10 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                 e.target.resize();
                 // Failsafe for slower DOM layout paints
                 setTimeout(() => e.target.resize(), 100);
+                if (onBoundsChange) onBoundsChange(e.target.getBounds());
+            }}
+            onMoveEnd={(e) => {
+                if (onBoundsChange) onBoundsChange((e.target as any).getBounds());
             }}
             mapStyle={mapStyle}
             mapboxAccessToken={PUBLIC_MAPBOX_TOKEN}
