@@ -7,6 +7,7 @@ import MapStyleSwitcher from './MapStyleSwitcher';
 import BottomControlBar from './BottomControlBar';
 import FullscreenImageModal from './FullscreenImageModal';
 import NearbyPanel from './NearbyPanel';
+import FilteredProjectsCarousel from './FilteredProjectsCarousel';
 import { Loader2 } from 'lucide-react';
 
 interface MainLayoutProps {
@@ -91,6 +92,16 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
 
   const [isNearbyToolsOpen, setIsNearbyToolsOpen] = useState(false);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
+
+  // Carousel + chip animation logic
+  const isAnyFilterActive = Boolean(
+    (developerFilter && developerFilter !== 'All') ||
+    (statusFilter && statusFilter !== 'All') ||
+    selectedCity ||
+    selectedCommunity
+  );
+  const showCarousel = isAnyFilterActive && !selectedProject;
+  const chipsBottomClass = showCarousel ? 'bottom-[245px] md:bottom-[235px]' : 'bottom-[88px]';
 
   const handleSearchSelect = (project: Project) => {
     if (!project) return;
@@ -199,7 +210,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
 
       {/* Active Filter Chips — floating above the bottom dock */}
       {(developerFilter !== 'All' && developerFilter !== '' || statusFilter !== 'All' && statusFilter !== '' || selectedCity || selectedCommunity) && (
-        <div className="absolute bottom-[88px] left-1/2 -translate-x-1/2 z-[4500] flex flex-wrap gap-2 pointer-events-none justify-center px-4 w-full max-w-3xl">
+        <div className={`absolute ${chipsBottomClass} left-1/2 -translate-x-1/2 z-[4500] flex flex-wrap gap-2 pointer-events-none justify-center px-4 w-full max-w-3xl transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]`}>
 
           {/* Reset All chip */}
           <button
@@ -291,6 +302,20 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
           onClose={() => setShowNearbyPanel(false)}
         />
       )}
+
+      {/* Filtered results carousel — appears above dock when any filter is active */}
+      <FilteredProjectsCarousel
+        projects={props.filteredProjects}
+        onSelectProject={handleSearchSelect}
+        isVisible={showCarousel}
+        onDismiss={() => {
+          setDeveloperFilter('All');
+          setStatusFilter('All');
+          props.setSelectedCity('');
+          props.setSelectedCommunity('');
+          props.handleLocationSelect('city', '', props.liveProjects);
+        }}
+      />
 
       {/* The New Bottom Dock */}
       <BottomControlBar
