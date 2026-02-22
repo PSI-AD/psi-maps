@@ -5,7 +5,7 @@ import useSupercluster from 'use-supercluster';
 import { Project } from '../types';
 
 
-export const useMapState = (filteredProjects: Project[]) => {
+export const useMapState = (filteredProjects: Project[], cameraDuration: number = 2000) => {
     const mapRef = useRef<MapRef>(null);
     const drawRef = useRef<any>(null);
 
@@ -60,10 +60,10 @@ export const useMapState = (filteredProjects: Project[]) => {
             zoom: zoom ?? 16,
             pitch: 60,
             bearing: 20,
-            duration: 2000,
+            duration: cameraDuration,
             essential: true
         });
-    }, []);
+    }, [cameraDuration]);
 
     const handleToggleDraw = () => {
         if (!drawRef.current) return;

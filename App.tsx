@@ -34,10 +34,12 @@ const App: React.FC = () => {
     statusFilter, setStatusFilter
   } = useProjectData();
 
+  const [cameraDuration, setCameraDuration] = useState(2000);
+
   const {
     viewState, setViewState, mapStyle, setMapStyle, bounds, updateBounds,
     isDrawing, setIsDrawing, mapRef, drawRef, handleFlyTo, handleToggleDraw
-  } = useMapState(filteredProjects);
+  } = useMapState(filteredProjects, cameraDuration);
 
   // Super Admin Toggles
   const [mapFeatures, setMapFeatures] = useState({ show3D: true, showAnalytics: true, showCommunityBorders: true });
@@ -63,7 +65,9 @@ const App: React.FC = () => {
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'settings', 'global'), (snap) => {
       if (snap.exists()) {
-        setShowWelcomeBanner(snap.data().showWelcomeBanner ?? false);
+        const data = snap.data();
+        setShowWelcomeBanner(data.showWelcomeBanner ?? false);
+        setCameraDuration(data.cameraDuration ?? 2000);
       }
     });
     return () => unsub();
@@ -288,6 +292,7 @@ const App: React.FC = () => {
       hoveredProjectId={hoveredProjectId}
       setHoveredProjectId={setHoveredProjectId}
       onBoundsChange={setMapBounds}
+      cameraDuration={cameraDuration}
     >
       <WelcomeBanner show={showWelcomeBanner} />
       <ErrorBoundary>

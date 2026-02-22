@@ -64,6 +64,7 @@ interface MainLayoutProps {
   setHoveredProjectId: (id: string | null) => void;
   viewportProjects: Project[];
   onBoundsChange: (bounds: any) => void;
+  cameraDuration: number;
 }
 
 const MainLayout: React.FC<MainLayoutProps> = (props) => {
@@ -96,6 +97,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
     setHoveredProjectId,
     viewportProjects,
     onBoundsChange,
+    cameraDuration,
   } = props;
 
   const [isNearbyToolsOpen, setIsNearbyToolsOpen] = useState(false);
@@ -146,6 +148,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
           mapFeatures={mapFeatures}
           setMapFeatures={setMapFeatures}
           showWelcomeBanner={showWelcomeBanner}
+          cameraDuration={cameraDuration}
         />
       )}
 

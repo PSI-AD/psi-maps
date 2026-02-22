@@ -21,6 +21,7 @@ interface AdminDashboardProps {
   mapFeatures: { show3D: boolean; showAnalytics: boolean; showCommunityBorders: boolean };
   setMapFeatures: React.Dispatch<React.SetStateAction<{ show3D: boolean; showAnalytics: boolean; showCommunityBorders: boolean }>>;
   showWelcomeBanner?: boolean;
+  cameraDuration?: number;
 }
 
 type TabType = 'general' | 'location' | 'media' | 'settings' | 'nearbys';
@@ -606,6 +607,35 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                     <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-transform duration-300 ${props.showWelcomeBanner ? 'left-7' : 'left-1'
                       }`} />
                   </button>
+                </div>
+
+                {/* ── Camera Flight Speed ── */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between p-5 bg-slate-50 rounded-2xl border border-slate-100 mb-4 gap-4">
+                  <div className="flex-1">
+                    <p className="font-bold text-slate-800 flex items-center gap-2">
+                      Camera Flight Speed
+                      <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] uppercase tracking-widest font-black">
+                        {props.cameraDuration ?? 2000}ms
+                      </span>
+                    </p>
+                    <p className="text-xs text-slate-500 font-medium mt-1">Control how fast the map camera transitions between locations. Lower is faster, higher is smoother.</p>
+                  </div>
+                  <div className="w-full md:w-64 flex items-center gap-3">
+                    <span className="text-[10px] font-black text-slate-400 uppercase shrink-0">Fast</span>
+                    <input
+                      type="range"
+                      min="500"
+                      max="4000"
+                      step="100"
+                      value={props.cameraDuration ?? 2000}
+                      onChange={async (e) => {
+                        const ref = doc(db, 'settings', 'global');
+                        await setDoc(ref, { cameraDuration: Number(e.target.value) }, { merge: true });
+                      }}
+                      className="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                    />
+                    <span className="text-[10px] font-black text-slate-400 uppercase shrink-0">Smooth</span>
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
