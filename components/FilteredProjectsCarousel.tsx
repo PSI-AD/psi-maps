@@ -1,6 +1,7 @@
-import React, { useRef, useEffect, useMemo } from 'react';
+import React, { useRef, useEffect, useMemo, useState } from 'react';
+import * as turf from '@turf/turf';
 import { Project } from '../types';
-import { MapPin, Building, BedDouble, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { MapPin, Building, BedDouble, ChevronLeft, ChevronRight, X, Play, Square } from 'lucide-react';
 import { getOptimizedImageUrl } from '../utils/imageHelpers';
 
 interface FilteredProjectsCarouselProps {
@@ -28,7 +29,11 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
     const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
     const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // ── Group projects by community (alphabetical) ──────────────────────────
+    // ── Presentation engine state ───────────────────────────────────────────
+    const [playingCommunity, setPlayingCommunity] = useState<string | null>(null);
+    const [playIndex, setPlayIndex] = useState(0);
+
+    // ── Nearest-neighbor spatial sort + group by community ──────────────────
     const groupedProjects = useMemo(() => {
         const groups: Record<string, Project[]> = {};
         projects.forEach(p => {
@@ -36,18 +41,97 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
             if (!groups[comm]) groups[comm] = [];
             groups[comm].push(p);
         });
-        return Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0]));
+
+        const sortedGroups = Object.entries(groups).map(([comm, projs]) => {
+            // Need valid coords to sort; filter out nulls first
+            const valid = projs.filter(p => {
+                const lng = Number(p.longitude);
+                const lat = Number(p.latitude);
+                return !isNaN(lng) && !isNaN(lat) && lng !== 0 && lat !== 0;
+            });
+            const invalid = projs.filter(p => {
+                const lng = Number(p.longitude);
+                const lat = Number(p.latitude);
+                return isNaN(lng) || isNaN(lat) || lng === 0 || lat === 0;
+            });
+
+            if (valid.length <= 1) return [comm, [...valid, ...invalid]] as [string, Project[]];
+
+            // Nearest-neighbor greedy chain starting from the first project
+            const sorted: Project[] = [valid[0]];
+            const remaining = valid.slice(1);
+
+            while (remaining.length > 0) {
+                const current = sorted[sorted.length - 1];
+                let nearestIdx = 0;
+                let minDist = Infinity;
+
+                remaining.forEach((p, idx) => {
+                    const dist = turf.distance(
+                        [Number(current.longitude), Number(current.latitude)],
+                        [Number(p.longitude), Number(p.latitude)],
+                        { units: 'kilometers' }
+                    );
+                    if (dist < minDist) {
+                        minDist = dist;
+                        nearestIdx = idx;
+                    }
+                });
+
+                sorted.push(remaining[nearestIdx]);
+                remaining.splice(nearestIdx, 1);
+            }
+
+            return [comm, [...sorted, ...invalid]] as [string, Project[]];
+        });
+
+        return sortedGroups.sort((a, b) => a[0].localeCompare(b[0]));
     }, [projects]);
 
-    // ── Two-way sync: auto-scroll to the active / hovered project ──────────
+    // ── Presentation interval ───────────────────────────────────────────────
+    useEffect(() => {
+        if (!playingCommunity) return;
+
+        const commProjects = groupedProjects.find(g => g[0] === playingCommunity)?.[1];
+        if (!commProjects || commProjects.length === 0) {
+            setPlayingCommunity(null);
+            return;
+        }
+
+        const interval = setInterval(() => {
+            setPlayIndex(prev => {
+                const next = (prev + 1) % commProjects.length;
+                const nextProj = commProjects[next];
+                onSelectProject(nextProj);
+                // Fly to project
+                const lng = Number(nextProj.longitude);
+                const lat = Number(nextProj.latitude);
+                if (onFlyTo && !isNaN(lng) && !isNaN(lat) && lng !== 0 && lat !== 0) {
+                    onFlyTo(lng, lat, 16);
+                }
+                // Scroll panel to project
+                setTimeout(() => {
+                    itemRefs.current[nextProj.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 50);
+                return next;
+            });
+        }, 5000);
+
+        return () => clearInterval(interval);
+    }, [playingCommunity, groupedProjects, onSelectProject, onFlyTo]);
+
+    // ── Two-way sync: auto-scroll to hovered / selected project ────────────
     useEffect(() => {
         const targetId = hoveredProjectId || selectedProjectId;
         if (!targetId) return;
         const el = itemRefs.current[targetId];
-        if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-        }
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     }, [hoveredProjectId, selectedProjectId]);
+
+    // Stop tour if the projects list changes significantly (e.g. filter change)
+    useEffect(() => {
+        setPlayingCommunity(null);
+    }, [projects]);
 
     if (!isVisible || projects.length === 0) return null;
 
@@ -55,7 +139,30 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
         scrollRef.current?.scrollBy({ left: dir === 'left' ? -400 : 400, behavior: 'smooth' });
     };
 
-    // Render a single project card (shared between grouped mobile + desktop)
+    const togglePlay = (community: string, commProjects: Project[]) => {
+        if (playingCommunity === community) {
+            // Stop
+            setPlayingCommunity(null);
+        } else {
+            // Start — select first project immediately
+            setPlayingCommunity(community);
+            setPlayIndex(0);
+            const first = commProjects[0];
+            if (first) {
+                onSelectProject(first);
+                const lng = Number(first.longitude);
+                const lat = Number(first.latitude);
+                if (onFlyTo && !isNaN(lng) && !isNaN(lat) && lng !== 0 && lat !== 0) {
+                    onFlyTo(lng, lat, 16);
+                }
+                setTimeout(() => {
+                    itemRefs.current[first.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 50);
+            }
+        }
+    };
+
+    // ── Single card renderer ────────────────────────────────────────────────
     const renderCard = (project: Project, idx: number) => {
         const isSelected = selectedProjectId === project.id;
         const isHovered = hoveredProjectId === project.id;
@@ -72,9 +179,7 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                     const lat = Number(project.latitude);
                     if (onFlyTo && !isNaN(lng) && !isNaN(lat) && lng !== 0 && lat !== 0) {
                         if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
-                        hoverTimeout.current = setTimeout(() => {
-                            onFlyTo(lng, lat, 16);
-                        }, 300);
+                        hoverTimeout.current = setTimeout(() => onFlyTo(lng, lat, 16), 300);
                     }
                 }}
                 onMouseLeave={() => {
@@ -86,8 +191,7 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                     md:w-full md:shrink-0 md:rounded-none
                     ${idx === 0 ? '' : 'md:border-t md:border-slate-100'}
                     bg-white rounded-2xl p-3 flex gap-3 cursor-pointer
-                    transition-all duration-200
-                    border-2
+                    transition-all duration-200 border-2
                     ${isActive
                         ? 'border-blue-500 shadow-lg shadow-blue-500/15 md:bg-blue-50/60 md:border-0 md:border-l-4 md:border-l-blue-500'
                         : 'border-slate-100 shadow-md hover:border-blue-300 hover:shadow-lg md:border-0 md:border-l-4 md:border-l-transparent hover:md:border-l-blue-300 hover:md:bg-slate-50/60'
@@ -163,19 +267,19 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
             <div className="hidden md:flex items-center justify-between px-5 py-3.5 bg-white/95 backdrop-blur-xl border border-slate-200/80 rounded-t-3xl pointer-events-auto shadow-lg shrink-0">
                 <div>
                     <p className="text-[9px] font-black text-blue-500 uppercase tracking-[0.2em]">Filtered Results</p>
-                    <h3 className="font-black text-slate-900 tracking-tight text-base">{projects.length} Propert{projects.length === 1 ? 'y' : 'ies'}</h3>
+                    <h3 className="font-black text-slate-900 tracking-tight text-base">
+                        {projects.length} Propert{projects.length === 1 ? 'y' : 'ies'}
+                    </h3>
                 </div>
-                <div className="flex items-center gap-2">
-                    {onDismiss && (
-                        <button
-                            onClick={onDismiss}
-                            title="Clear filters"
-                            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors pointer-events-auto"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
-                    )}
-                </div>
+                {onDismiss && (
+                    <button
+                        onClick={onDismiss}
+                        title="Clear filters"
+                        className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors pointer-events-auto"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                )}
             </div>
 
             {/* ── Mobile count badge + dismiss ── */}
@@ -221,20 +325,38 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                         pointer-events-auto hide-scrollbar scroll-smooth
                     "
                 >
-                    {/* Mobile: flat list of cards  |  Desktop: grouped with sticky headers */}
-                    {groupedProjects.map(([communityName, commProjects]) => (
-                        <React.Fragment key={communityName}>
-                            {/* Desktop-only sticky community header */}
-                            <div className="hidden md:flex sticky top-0 z-10 bg-slate-50/95 backdrop-blur-md py-2 px-3 border-b border-slate-100 items-center gap-2 shrink-0">
-                                <MapPin className="w-3 h-3 text-blue-500 shrink-0" />
-                                <span className="text-[9px] font-black text-slate-600 uppercase tracking-[0.18em] truncate flex-1">{communityName}</span>
-                                <span className="text-[9px] font-bold text-slate-400 shrink-0">{commProjects.length}</span>
-                            </div>
+                    {groupedProjects.map(([communityName, commProjects]) => {
+                        const isPlaying = playingCommunity === communityName;
+                        return (
+                            <React.Fragment key={communityName}>
+                                {/* Desktop-only sticky community header with Play Tour button */}
+                                <div className="hidden md:flex sticky top-0 z-10 bg-slate-50/95 backdrop-blur-md py-2 px-3 border-b border-slate-100 items-center gap-2 shrink-0">
+                                    <MapPin className="w-3 h-3 text-blue-500 shrink-0" />
+                                    <span className="text-[9px] font-black text-slate-600 uppercase tracking-[0.18em] truncate flex-1">
+                                        {communityName}
+                                    </span>
+                                    <span className="text-[9px] font-bold text-slate-400 shrink-0 mr-1">
+                                        {commProjects.length}
+                                    </span>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); togglePlay(communityName, commProjects); }}
+                                        className={`px-2.5 py-1 rounded-md text-[8px] font-black uppercase tracking-widest transition-all flex items-center gap-1 shrink-0 ${isPlaying
+                                                ? 'bg-rose-500 text-white shadow-md hover:bg-rose-600'
+                                                : 'bg-blue-600 text-white shadow-sm hover:bg-blue-700'
+                                            }`}
+                                    >
+                                        {isPlaying
+                                            ? <><Square className="w-2.5 h-2.5 fill-current" /> Stop</>
+                                            : <><Play className="w-2.5 h-2.5 fill-current" /> Tour</>
+                                        }
+                                    </button>
+                                </div>
 
-                            {/* Project cards for this community */}
-                            {commProjects.map((project, idx) => renderCard(project, idx))}
-                        </React.Fragment>
-                    ))}
+                                {/* Project cards for this community */}
+                                {commProjects.map((project, idx) => renderCard(project, idx))}
+                            </React.Fragment>
+                        );
+                    })}
                 </div>
 
                 {/* Right arrow — mobile only */}
