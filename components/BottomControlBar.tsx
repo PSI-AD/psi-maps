@@ -131,6 +131,8 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
 
     const handleCommunityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const val = e.target.value;
+        const proj = projects.find(p => p.community === val);
+        if (proj && proj.city) setSelectedCity(proj.city);
         setSelectedCommunity(val);
         if (handleLocationSelect) {
             handleLocationSelect('community', val, projects.filter(p => p.community === val));
