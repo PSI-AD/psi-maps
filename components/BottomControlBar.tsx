@@ -179,12 +179,15 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                                 if (type === 'city') {
                                     setSelectedCity(name);
                                     setSelectedCommunity('');
-                                    handleLocationSelect?.('city', name, projects.filter(p => p.city === name));
+                                    setDeveloperFilter('All');
+                                    handleFitBounds(projects.filter(p => p.city?.toLowerCase() === name.toLowerCase()));
                                 } else {
-                                    const proj = projects.find(p => p.community === name);
+                                    // Community — look up parent city for the city lock
+                                    const proj = projects.find(p => p.community?.toLowerCase() === name.toLowerCase());
                                     if (proj?.city) setSelectedCity(proj.city);
                                     setSelectedCommunity(name);
-                                    handleLocationSelect?.('community', name, projects.filter(p => p.community === name));
+                                    setDeveloperFilter('All');
+                                    handleFitBounds(projects.filter(p => p.community?.toLowerCase() === name.toLowerCase()));
                                 }
                             }}
                         />
