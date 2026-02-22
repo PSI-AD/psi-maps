@@ -32,6 +32,7 @@ interface MapCanvasProps {
     activeBoundary?: any;
     activeIsochrone?: { mode: 'driving' | 'walking'; minutes: number } | null;
     selectedLandmarkForSearch?: Landmark | null;
+    hoveredProjectId?: string | null;
 }
 
 // 🚨 PERMANENT FIX: Base64 decoded token. Passed only via component prop.
@@ -113,7 +114,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
     selectedProjectId,
     setHoveredProjectId, setHoveredLandmarkId,
     selectedLandmark, selectedProject, hoveredProject, projects = [], mapFeatures,
-    activeBoundary, activeIsochrone, selectedLandmarkForSearch
+    activeBoundary, activeIsochrone, selectedLandmarkForSearch, hoveredProjectId
 }) => {
 
     // Safety check for valid GPS coordinates
@@ -283,6 +284,19 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                         'circle-stroke-width': 3,
                         'circle-stroke-color': '#ffffff',
                         'circle-color-transition': { duration: 300 }
+                    }}
+                />
+                <Layer
+                    id="hovered-point"
+                    type="circle"
+                    source="projects"
+                    filter={['==', ['get', 'id'], hoveredProjectId || '']}
+                    paint={{
+                        'circle-color': '#60a5fa',
+                        'circle-radius': 12,
+                        'circle-stroke-width': 3,
+                        'circle-stroke-color': '#ffffff',
+                        'circle-color-transition': { duration: 200 }
                     }}
                 />
                 <Layer

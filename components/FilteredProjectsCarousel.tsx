@@ -26,6 +26,7 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
 }) => {
     const scrollRef = useRef<HTMLDivElement>(null);
     const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
+    const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // ── Two-way sync: auto-scroll to the active / hovered project ──────────
     useEffect(() => {
@@ -132,10 +133,16 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                                     const lng = Number(project.longitude);
                                     const lat = Number(project.latitude);
                                     if (onFlyTo && !isNaN(lng) && !isNaN(lat) && lng !== 0 && lat !== 0) {
-                                        onFlyTo(lng, lat, 16);
+                                        if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
+                                        hoverTimeout.current = setTimeout(() => {
+                                            onFlyTo(lng, lat, 16);
+                                        }, 300);
                                     }
                                 }}
-                                onMouseLeave={() => setHoveredProjectId?.(null)}
+                                onMouseLeave={() => {
+                                    setHoveredProjectId?.(null);
+                                    if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
+                                }}
                                 className={`
                                     /* mobile card */
                                     shrink-0 w-[82vw] sm:w-[300px] snap-center

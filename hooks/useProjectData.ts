@@ -108,6 +108,14 @@ export const useProjectData = () => {
     const filteredProjects = useMemo(() => {
         let projects = liveProjects;
 
+        // Location filters — applied first (most restrictive)
+        if (selectedCity) {
+            projects = projects.filter(p => p.city?.toLowerCase().trim() === selectedCity.toLowerCase().trim());
+        }
+        if (selectedCommunity) {
+            projects = projects.filter(p => p.community?.toLowerCase().trim() === selectedCommunity.toLowerCase().trim());
+        }
+
         if (propertyType !== 'All') {
             projects = projects.filter(p => p.type?.toLowerCase() === propertyType.toLowerCase());
         }
@@ -133,7 +141,7 @@ export const useProjectData = () => {
 
         const within = turf.pointsWithinPolygon(points, filterPolygon);
         return within.features.map(f => f.properties as Project);
-    }, [liveProjects, filterPolygon, propertyType, developerFilter, statusFilter]);
+    }, [liveProjects, filterPolygon, propertyType, developerFilter, statusFilter, selectedCity, selectedCommunity]);
 
     const filteredAmenities = useMemo(() => {
         if (activeAmenities.length === 0) return [];

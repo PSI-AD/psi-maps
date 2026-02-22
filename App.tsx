@@ -287,6 +287,7 @@ const App: React.FC = () => {
           activeBoundary={activeBoundary}
           activeIsochrone={activeIsochrone}
           selectedLandmarkForSearch={selectedLandmarkForSearch}
+          hoveredProjectId={hoveredProjectId}
         />
       </ErrorBoundary>
       {/* Reverse Search: floating nearby projects panel */}

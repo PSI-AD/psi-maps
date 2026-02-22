@@ -13,11 +13,17 @@ interface SearchBarProps {
 interface LocationResult {
     name: string;
     type: 'city' | 'community';
+    count: number;
+}
+
+interface DeveloperResult {
+    name: string;
+    count: number;
 }
 
 interface SearchResults {
     projects: Project[];
-    developers: string[];
+    developers: DeveloperResult[];
     locations: LocationResult[];
 }
 
@@ -96,18 +102,26 @@ const SearchBar: React.FC<SearchBarProps> = ({
             .filter(p => normalize(p.name).includes(q))
             .slice(0, 5);
 
-        const uniqueDevelopers = Array.from(new Set(projects.map(p => p.developerName).filter(Boolean))) as string[];
-        const matchedDevelopers = uniqueDevelopers.filter(d => normalize(d).includes(q)).slice(0, 3);
+        // Count projects per developer
+        const devCounts: Record<string, number> = {};
+        projects.forEach(p => { if (p.developerName) devCounts[p.developerName] = (devCounts[p.developerName] || 0) + 1; });
+        const matchedDevelopers: DeveloperResult[] = Object.entries(devCounts)
+            .filter(([dev]) => normalize(dev).includes(q))
+            .map(([name, count]) => ({ name, count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 3);
 
-        // Typed locations: cities first, then communities
-        const locationResults: LocationResult[] = [];
-        (Array.from(new Set(projects.map(p => p.city).filter(Boolean))) as string[]).forEach(c => {
-            if (normalize(c).includes(q)) locationResults.push({ name: c, type: 'city' });
+        // Count projects per city / community
+        const locCounts: Record<string, { type: 'city' | 'community'; count: number }> = {};
+        projects.forEach(p => {
+            if (p.city) { if (!locCounts[p.city]) locCounts[p.city] = { type: 'city', count: 0 }; locCounts[p.city].count++; }
+            if (p.community) { if (!locCounts[p.community]) locCounts[p.community] = { type: 'community', count: 0 }; locCounts[p.community].count++; }
         });
-        (Array.from(new Set(projects.map(p => p.community).filter(Boolean))) as string[]).forEach(c => {
-            if (normalize(c).includes(q)) locationResults.push({ name: c, type: 'community' });
-        });
-        const matchedLocations = locationResults.slice(0, 4);
+        const matchedLocations: LocationResult[] = Object.entries(locCounts)
+            .filter(([name]) => normalize(name).includes(q))
+            .map(([name, data]) => ({ name, type: data.type, count: data.count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 4);
 
         const next = { projects: matchedProjects, developers: matchedDevelopers, locations: matchedLocations };
         setResults(next);
@@ -164,21 +178,21 @@ const SearchBar: React.FC<SearchBarProps> = ({
                     </div>
                     {results.developers.map(dev => (
                         <button
-                            key={dev}
-                            onClick={() => handleSelectDeveloper(dev)}
+                            key={dev.name}
+                            onClick={() => handleSelectDeveloper(dev.name)}
                             className="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center gap-3 transition-colors group border-b border-slate-50 last:border-0"
                         >
                             <img
-                                src={getDeveloperLogo(dev)}
+                                src={getDeveloperLogo(dev.name)}
                                 alt=""
                                 className="w-8 h-8 rounded-full object-cover shadow-sm bg-slate-100 shrink-0"
                                 onError={(e) => {
-                                    e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(dev)}&background=0f172a&color=ffffff&size=64&bold=true&rounded=true`;
+                                    e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(dev.name)}&background=0f172a&color=ffffff&size=64&bold=true&rounded=true`;
                                 }}
                             />
                             <div className="flex flex-col overflow-hidden flex-1">
-                                <span className="font-bold text-sm text-slate-800 truncate">{dev}</span>
-                                <span className="text-[9px] text-slate-400 uppercase tracking-widest">Developer</span>
+                                <span className="font-bold text-sm text-slate-800 truncate">{dev.name}</span>
+                                <span className="text-[9px] text-slate-400 uppercase tracking-widest">Developer · <span className="text-emerald-500 font-black">{dev.count}</span> projects</span>
                             </div>
                             <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-500 shrink-0 opacity-0 group-hover:opacity-100 transition-all" />
                         </button>
@@ -204,7 +218,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
                             </div>
                             <div className="flex flex-col overflow-hidden flex-1">
                                 <span className="font-bold text-sm text-slate-800 truncate">{loc.name}</span>
-                                <span className="text-[9px] text-slate-400 uppercase tracking-widest">{loc.type}</span>
+                                <span className="text-[9px] text-slate-400 uppercase tracking-widest capitalize">{loc.type} · <span className="text-rose-500 font-black">{loc.count}</span> properties</span>
                             </div>
                             <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-rose-500 shrink-0 opacity-0 group-hover:opacity-100 transition-all" />
                         </button>
