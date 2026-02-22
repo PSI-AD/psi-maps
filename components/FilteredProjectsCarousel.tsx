@@ -38,6 +38,8 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
     const [playingCommunity, setPlayingCommunity] = useState<string | null>(null);
     const [playIndex, setPlayIndex] = useState(0);
     const [playProgress, setPlayProgress] = useState(0); // 0–100 for the SVG ring
+    // Stable ref holds the active tour's project array — decoupled from render cycle
+    const activeTourRef = useRef<{ community: string; projects: Project[] } | null>(null);
 
     // ── Nearest-neighbor spatial sort + group by community ──────────────────
     const groupedProjects = useMemo(() => {
@@ -83,50 +85,46 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
         return sortedGroups.sort((a, b) => a[0].localeCompare(b[0]));
     }, [projects]);
 
-    // ── Resilient tick-based presentation timer (50ms tick = 100 ticks per 5s) ──
+    // ── Resilient tick-based presentation timer ─────────────────────────────
+    // Uses activeTourRef so the closure doesn't capture groupedProjects,
+    // which changes on every map camera move via onBoundsChange → viewportProjects.
     useEffect(() => {
         let ticker: ReturnType<typeof setInterval>;
 
-        if (playingCommunity) {
-            const commProjects = groupedProjects.find(g => g[0] === playingCommunity)?.[1] || [];
-
-            if (commProjects.length > 0) {
-                ticker = setInterval(() => {
-                    setPlayProgress(prev => {
-                        if (prev >= 100) {
-                            // Advance to next project — use refs so the closure is never stale
-                            setPlayIndex(curr => {
-                                const next = (curr + 1) % commProjects.length;
-                                const nextProj = commProjects[next];
-                                // Defer external state mutations to next microtask to avoid render clashes
-                                setTimeout(() => {
-                                    onSelectRef.current(nextProj);
-                                    const lng = Number(nextProj.longitude);
-                                    const lat = Number(nextProj.latitude);
-                                    if (!isNaN(lng) && !isNaN(lat) && lng !== 0 && lat !== 0) {
-                                        onFlyToRef.current?.(lng, lat, 16);
-                                    }
-                                    itemRefs.current[nextProj.id]?.scrollIntoView({
-                                        behavior: 'smooth', block: 'center', inline: 'center'
-                                    });
-                                }, 0);
-                                return next;
-                            });
-                            return 0; // reset the ring
-                        }
-                        return prev + 1; // 1% per 50ms → 5 000ms total
-                    });
-                }, 50);
-            } else {
-                setPlayingCommunity(null);
-            }
+        if (playingCommunity && activeTourRef.current) {
+            ticker = setInterval(() => {
+                setPlayProgress(prev => {
+                    if (prev >= 100) {
+                        setPlayIndex(curr => {
+                            const tourProjects = activeTourRef.current!.projects;
+                            const next = (curr + 1) % tourProjects.length;
+                            const nextProj = tourProjects[next];
+                            // Defer external mutations to next tick — prevents render clashes
+                            setTimeout(() => {
+                                onSelectRef.current(nextProj);
+                                const lng = Number(nextProj.longitude);
+                                const lat = Number(nextProj.latitude);
+                                if (!isNaN(lng) && !isNaN(lat) && lng !== 0 && lat !== 0) {
+                                    onFlyToRef.current?.(lng, lat, 16);
+                                }
+                                itemRefs.current[nextProj.id]?.scrollIntoView({
+                                    behavior: 'smooth', block: 'center', inline: 'center'
+                                });
+                            }, 0);
+                            return next;
+                        });
+                        return 0; // reset progress ring
+                    }
+                    return prev + 1; // 1% per 50ms → 5 000ms per project
+                });
+            }, 50);
         } else {
             setPlayProgress(0);
         }
 
         return () => clearInterval(ticker);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [playingCommunity, groupedProjects]); // onSelectProject intentionally omitted — accessed via ref
+    }, [playingCommunity]); // groupedProjects intentionally omitted — data accessed via activeTourRef
 
     // ── Two-way sync: auto-scroll to hovered / selected project ────────────
     useEffect(() => {
@@ -150,9 +148,13 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
 
     const togglePlay = (community: string, commProjects: Project[]) => {
         if (playingCommunity === community) {
+            // Stop
             setPlayingCommunity(null);
             setPlayProgress(0);
+            activeTourRef.current = null;
         } else {
+            // Start — populate ref BEFORE setting state so the effect reads it immediately
+            activeTourRef.current = { community, projects: commProjects };
             setPlayingCommunity(community);
             setPlayIndex(0);
             setPlayProgress(0);
@@ -354,8 +356,8 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                                     <button
                                         onClick={(e) => { e.stopPropagation(); togglePlay(communityName, commProjects); }}
                                         className={`px-2.5 py-1 rounded-md text-[8px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 shrink-0 ${isPlaying
-                                                ? 'bg-rose-500 text-white shadow-md hover:bg-rose-600'
-                                                : 'bg-blue-600 text-white shadow-sm hover:bg-blue-700'
+                                            ? 'bg-rose-500 text-white shadow-md hover:bg-rose-600'
+                                            : 'bg-blue-600 text-white shadow-sm hover:bg-blue-700'
                                             }`}
                                     >
                                         {isPlaying ? (

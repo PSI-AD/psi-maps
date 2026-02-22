@@ -110,6 +110,10 @@ const App: React.FC = () => {
 
   // Projects currently visible within the map viewport
   const viewportProjects = useMemo((): Project[] => {
+    // OVERRIDE: explicit location filter → ignore map bounds, lock list to filtered set
+    if (selectedCommunity || selectedCity) return filteredProjects;
+
+    // Otherwise, restrict to what is actually visible on screen
     if (!mapBounds) return filteredProjects;
     const sw = mapBounds._sw || mapBounds.getSouthWest?.();
     const ne = mapBounds._ne || mapBounds.getNorthEast?.();
@@ -120,7 +124,7 @@ const App: React.FC = () => {
       if (isNaN(lng) || isNaN(lat) || lng === 0 || lat === 0) return false;
       return lng >= sw.lng && lng <= ne.lng && lat >= sw.lat && lat <= ne.lat;
     });
-  }, [filteredProjects, mapBounds]);
+  }, [filteredProjects, mapBounds, selectedCommunity, selectedCity]);
 
   const handleFitBounds = (projectsToFit: Project[], isDefault = false) => {
     if (!mapRef.current) return;
