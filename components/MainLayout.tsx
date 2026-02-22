@@ -60,6 +60,8 @@ interface MainLayoutProps {
   setShowNearbyPanel: (v: boolean) => void;
   projectSpecificLandmarks: Landmark[];
   showWelcomeBanner: boolean;
+  hoveredProjectId: string | null;
+  setHoveredProjectId: (id: string | null) => void;
 }
 
 const MainLayout: React.FC<MainLayoutProps> = (props) => {
@@ -88,6 +90,8 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
     setShowNearbyPanel,
     projectSpecificLandmarks,
     showWelcomeBanner,
+    hoveredProjectId,
+    setHoveredProjectId,
   } = props;
 
   const [isNearbyToolsOpen, setIsNearbyToolsOpen] = useState(false);
@@ -100,8 +104,13 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
     selectedCity ||
     selectedCommunity
   );
-  const showCarousel = isAnyFilterActive && !selectedProject;
-  const chipsBottomClass = showCarousel ? 'bottom-[245px] md:bottom-[235px]' : 'bottom-[88px]';
+  // Desktop: stays visible even when a project is open (side-by-side layout)
+  // Mobile: hides when a project is selected to avoid overlap
+  const showCarousel = isAnyFilterActive;
+  // Chips: on mobile lift above carousel height; on desktop lift just above dock
+  const chipsBottomClass = showCarousel && !selectedProject
+    ? 'bottom-[245px] md:bottom-[96px]'
+    : 'bottom-[88px]';
 
   const handleSearchSelect = (project: Project) => {
     if (!project) return;
@@ -303,19 +312,25 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
         />
       )}
 
-      {/* Filtered results carousel — appears above dock when any filter is active */}
-      <FilteredProjectsCarousel
-        projects={props.filteredProjects}
-        onSelectProject={handleSearchSelect}
-        isVisible={showCarousel}
-        onDismiss={() => {
-          setDeveloperFilter('All');
-          setStatusFilter('All');
-          props.setSelectedCity('');
-          props.setSelectedCommunity('');
-          props.handleLocationSelect('city', '', props.liveProjects);
-        }}
-      />
+      {/* Filtered results carousel / side panel — responsive dual mode */}
+      <div className={selectedProject ? 'hidden md:block' : 'block'}>
+        <FilteredProjectsCarousel
+          projects={props.filteredProjects}
+          onSelectProject={handleSearchSelect}
+          isVisible={showCarousel}
+          selectedProjectId={selectedProject?.id}
+          hoveredProjectId={hoveredProjectId}
+          setHoveredProjectId={setHoveredProjectId}
+          onFlyTo={onFlyTo}
+          onDismiss={() => {
+            setDeveloperFilter('All');
+            setStatusFilter('All');
+            props.setSelectedCity('');
+            props.setSelectedCommunity('');
+            props.handleLocationSelect('city', '', props.liveProjects);
+          }}
+        />
+      </div>
 
       {/* The New Bottom Dock */}
       <BottomControlBar

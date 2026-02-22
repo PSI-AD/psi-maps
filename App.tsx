@@ -270,6 +270,8 @@ const App: React.FC = () => {
       setShowNearbyPanel={setShowNearbyPanel}
       projectSpecificLandmarks={projectSpecificLandmarks}
       showWelcomeBanner={showWelcomeBanner}
+      hoveredProjectId={hoveredProjectId}
+      setHoveredProjectId={setHoveredProjectId}
     >
       <WelcomeBanner show={showWelcomeBanner} />
       <ErrorBoundary>
