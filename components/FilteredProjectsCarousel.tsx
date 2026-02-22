@@ -37,7 +37,8 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
     // ── Presentation engine state ───────────────────────────────────────────
     const [playingCommunity, setPlayingCommunity] = useState<string | null>(null);
     const [playIndex, setPlayIndex] = useState(0);
-    const [playProgress, setPlayProgress] = useState(0); // 0–100 for the SVG ring
+    const [playProgress, setPlayProgress] = useState(0);
+    const [isCollapsed, setIsCollapsed] = useState(false); // desktop slide-out toggle
     // Stable ref holds the active tour's project array — decoupled from render cycle
     const activeTourRef = useRef<{ community: string; projects: Project[] } | null>(null);
 
@@ -270,12 +271,23 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
     };
 
     return (
-        <div className="absolute z-[4000] pointer-events-none transition-all duration-500
+        <div className={`
+            absolute z-[4000] pointer-events-none
             bottom-[88px] left-0 w-full
-            md:bottom-[96px] md:top-[80px] md:left-6 md:w-[360px]
+            md:bottom-[96px] md:top-[80px] md:left-0 md:w-[360px]
             flex flex-col
-            animate-in fade-in slide-in-from-bottom-6 md:slide-in-from-left-6 duration-400"
-        >
+            transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]
+            ${isCollapsed ? 'md:-translate-x-full' : 'md:translate-x-6'}
+        `}>
+            {/* ── Desktop: Collapse toggle button — sticks out from right edge ── */}
+            <button
+                onClick={(e) => { e.stopPropagation(); setIsCollapsed(!isCollapsed); }}
+                className="hidden md:flex absolute top-1/2 -right-11 -translate-y-1/2 w-11 h-16 bg-white/95 backdrop-blur-xl border border-slate-200/80 rounded-r-2xl items-center justify-center shadow-[4px_0_15px_rgba(0,0,0,0.06)] pointer-events-auto hover:bg-slate-50 transition-colors z-20"
+                title={isCollapsed ? 'Show panel' : 'Hide panel'}
+            >
+                <ChevronLeft className={`w-5 h-5 text-slate-500 transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`} />
+            </button>
+
             {/* ── Desktop panel header ── */}
             <div className="hidden md:flex items-center justify-between px-5 py-3.5 bg-white/95 backdrop-blur-xl border border-slate-200/80 rounded-t-3xl pointer-events-auto shadow-lg shrink-0">
                 <div>

@@ -192,7 +192,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                             }}
                         />
                     </div>
-                    <div className="hidden xl:flex items-center gap-3">
+                    <div className="flex items-center gap-3">
                         <select value={selectedCity} onChange={handleCityChange} className="bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-50/20 transition-all cursor-pointer min-w-[150px]">
                             <option value="">All Emirates</option>
                             {cityOptions.map(city => <option key={city.id} value={city.id}>{city.label}</option>)}
@@ -369,6 +369,34 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                                         <option key={dev.name} value={dev.name}>{dev.name} ({dev.count})</option>
                                     ))}
                                 </select>
+                            </div>
+
+                            {/* Location Filters */}
+                            <div className="mb-10">
+                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-5">Location</h4>
+                                <div className="flex flex-col gap-3">
+                                    <select
+                                        value={selectedCity}
+                                        onChange={handleCityChange}
+                                        className={selectCls}
+                                    >
+                                        <option value="">All Emirates</option>
+                                        {cityOptions.map(city => (
+                                            <option key={city.id} value={city.id}>{city.label}</option>
+                                        ))}
+                                    </select>
+                                    <select
+                                        value={selectedCommunity}
+                                        onChange={handleCommunityChange}
+                                        disabled={!selectedCity}
+                                        className={`${selectCls} disabled:opacity-50`}
+                                    >
+                                        <option value="">All Communities</option>
+                                        {availableCommunities.map(([name, count]) => (
+                                            <option key={name} value={name}>{name} ({count})</option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
 
                             {/* Spatial Tools */}

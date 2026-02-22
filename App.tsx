@@ -236,15 +236,18 @@ const App: React.FC = () => {
   };
 
   const handleQuickFilter = (type: 'community' | 'developer', value: string) => {
-    if (type === 'community' && setSelectedCommunity && handleLocationSelect) {
+    if (type === 'community') {
+      // Preserve the city lock — look up the parent city for this community
+      const parentProj = liveProjects.find(p => p.community?.toLowerCase() === value.toLowerCase());
+      if (parentProj?.city) setSelectedCity(parentProj.city);
       setSelectedCommunity(value);
-      setSelectedCity('');
-      handleLocationSelect('community', value, liveProjects.filter(p => p.community === value));
-    } else if (type === 'developer' && setDeveloperFilter) {
+      setDeveloperFilter('All');
+      handleFitBounds(liveProjects.filter(p => p.community?.toLowerCase() === value.toLowerCase()));
+    } else if (type === 'developer') {
       setDeveloperFilter(value);
       handleFitBounds(liveProjects.filter(p => p.developerName === value));
     }
-    setIsAnalysisOpen(false); // Close sidebar to show map results
+    setIsAnalysisOpen(false);
   };
 
   return (
