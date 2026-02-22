@@ -166,7 +166,26 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                 {/* Search + Dropdowns */}
                 <div className="hidden md:flex items-center gap-2 flex-1 max-w-4xl justify-center">
                     <div className="flex-1 max-w-sm">
-                        <SearchBar projects={projects} onSelectProject={onSelectProject} />
+                        <SearchBar
+                            projects={projects}
+                            onSelectProject={onSelectProject}
+                            onSelectDeveloper={(dev) => {
+                                setDeveloperFilter(dev);
+                                handleFitBounds(projects.filter(p => p.developerName === dev));
+                            }}
+                            onSelectLocation={(name, type) => {
+                                if (type === 'city') {
+                                    setSelectedCity(name);
+                                    setSelectedCommunity('');
+                                    handleLocationSelect?.('city', name, projects.filter(p => p.city === name));
+                                } else {
+                                    const proj = projects.find(p => p.community === name);
+                                    if (proj?.city) setSelectedCity(proj.city);
+                                    setSelectedCommunity(name);
+                                    handleLocationSelect?.('community', name, projects.filter(p => p.community === name));
+                                }
+                            }}
+                        />
                     </div>
                     <div className="flex items-center gap-3">
                         <select value={selectedCity} onChange={handleCityChange} className="bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-50/20 transition-all cursor-pointer min-w-[150px]">
@@ -251,6 +270,24 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                                 alwaysOpen={true}
                                 projects={projects}
                                 onSelectProject={(p) => { onSelectProject(p); setIsMobileSearchOpen(false); }}
+                                onSelectDeveloper={(dev) => {
+                                    setDeveloperFilter(dev);
+                                    handleFitBounds(projects.filter(p => p.developerName === dev));
+                                    setIsMobileSearchOpen(false);
+                                }}
+                                onSelectLocation={(name, type) => {
+                                    if (type === 'city') {
+                                        setSelectedCity(name);
+                                        setSelectedCommunity('');
+                                        handleLocationSelect?.('city', name, projects.filter(p => p.city === name));
+                                    } else {
+                                        const proj = projects.find(p => p.community === name);
+                                        if (proj?.city) setSelectedCity(proj.city);
+                                        setSelectedCommunity(name);
+                                        handleLocationSelect?.('community', name, projects.filter(p => p.community === name));
+                                    }
+                                    setIsMobileSearchOpen(false);
+                                }}
                             />
                         </div>
 

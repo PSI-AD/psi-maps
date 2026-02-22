@@ -5,19 +5,60 @@ import { Search, ArrowRight, X, Building2, MapPin, User } from 'lucide-react';
 interface SearchBarProps {
     projects: Project[];
     onSelectProject: (project: Project) => void;
-    onQuickFilter?: (type: 'community' | 'developer', value: string) => void;
+    onSelectDeveloper?: (developerName: string) => void;
+    onSelectLocation?: (locationName: string, type: 'city' | 'community') => void;
     alwaysOpen?: boolean;
+}
+
+interface LocationResult {
+    name: string;
+    type: 'city' | 'community';
 }
 
 interface SearchResults {
     projects: Project[];
     developers: string[];
-    locations: string[];
+    locations: LocationResult[];
 }
 
 const EMPTY: SearchResults = { projects: [], developers: [], locations: [] };
 
-const SearchBar: React.FC<SearchBarProps> = ({ projects, onSelectProject, onQuickFilter, alwaysOpen }) => {
+// ── Clearbit logo engine with ui-avatars fallback ──────────────────────────
+const DOMAIN_MAP: Record<string, string> = {
+    'aldar': 'aldar.com',
+    'damac': 'damacproperties.com',
+    'emaar': 'emaar.com',
+    'nakheel': 'nakheel.com',
+    'mismak': 'mismak.ae',
+    'burooj': 'burooj.ae',
+    'tameer': 'tameer.net',
+    'meraas': 'meraas.ae',
+    'sobha': 'sobharealty.com',
+    'imkan': 'imkan.ae',
+    'bloom': 'bloombuild.ae',
+    'deyaar': 'deyaar.com',
+    'azizi': 'azizidevelopments.com',
+    'omniyat': 'omniyat.com',
+    'ellington': 'ellingtonproperties.com',
+    'binghatti': 'binghatti.com',
+    'majid': 'majidalfuttaim.com',
+};
+
+const getDeveloperLogo = (name: string): string => {
+    if (!name) return '';
+    const key = Object.keys(DOMAIN_MAP).find(k => name.toLowerCase().includes(k));
+    return key
+        ? `https://logo.clearbit.com/${DOMAIN_MAP[key]}`
+        : `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0f172a&color=ffffff&size=64&bold=true&rounded=true`;
+};
+
+const SearchBar: React.FC<SearchBarProps> = ({
+    projects,
+    onSelectProject,
+    onSelectDeveloper,
+    onSelectLocation,
+    alwaysOpen,
+}) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [results, setResults] = useState<SearchResults>(EMPTY);
     const [isOpen, setIsOpen] = useState(false);
@@ -25,24 +66,22 @@ const SearchBar: React.FC<SearchBarProps> = ({ projects, onSelectProject, onQuic
     const containerRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
+    const close = () => { setIsOpen(false); setIsMobileExpanded(false); setSearchTerm(''); setResults(EMPTY); };
+
     // Close on outside click (only when not alwaysOpen)
     React.useEffect(() => {
         if (alwaysOpen) return;
         const handler = (e: MouseEvent) => {
             if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-                setIsOpen(false);
-                setIsMobileExpanded(false);
+                setIsOpen(false); setIsMobileExpanded(false);
             }
         };
         document.addEventListener('mousedown', handler);
         return () => document.removeEventListener('mousedown', handler);
     }, [alwaysOpen]);
 
-    // Auto-focus when mobile expands or alwaysOpen mounts
     React.useEffect(() => {
-        if (isMobileExpanded || alwaysOpen) {
-            setTimeout(() => inputRef.current?.focus(), 80);
-        }
+        if (isMobileExpanded || alwaysOpen) setTimeout(() => inputRef.current?.focus(), 80);
     }, [isMobileExpanded, alwaysOpen]);
 
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -59,36 +98,25 @@ const SearchBar: React.FC<SearchBarProps> = ({ projects, onSelectProject, onQuic
         const uniqueDevelopers = Array.from(new Set(projects.map(p => p.developerName).filter(Boolean))) as string[];
         const matchedDevelopers = uniqueDevelopers.filter(d => d.toLowerCase().includes(q)).slice(0, 3);
 
-        const uniqueLocations = Array.from(new Set([
-            ...projects.map(p => p.community),
-            ...projects.map(p => p.city),
-        ].filter(Boolean))) as string[];
-        const matchedLocations = uniqueLocations.filter(l => l.toLowerCase().includes(q)).slice(0, 3);
+        // Typed locations: cities first, then communities
+        const locationResults: LocationResult[] = [];
+        (Array.from(new Set(projects.map(p => p.city).filter(Boolean))) as string[]).forEach(c => {
+            if (c.toLowerCase().includes(q)) locationResults.push({ name: c, type: 'city' });
+        });
+        (Array.from(new Set(projects.map(p => p.community).filter(Boolean))) as string[]).forEach(c => {
+            if (c.toLowerCase().includes(q)) locationResults.push({ name: c, type: 'community' });
+        });
+        const matchedLocations = locationResults.slice(0, 4);
 
         const next = { projects: matchedProjects, developers: matchedDevelopers, locations: matchedLocations };
         setResults(next);
         setIsOpen(next.projects.length > 0 || next.developers.length > 0 || next.locations.length > 0);
     };
 
-    const handleSelectProject = (project: Project) => {
-        setSearchTerm(''); setResults(EMPTY); setIsOpen(false); setIsMobileExpanded(false);
-        onSelectProject(project);
-    };
-
-    const handleSelectDeveloper = (dev: string) => {
-        setSearchTerm(''); setResults(EMPTY); setIsOpen(false); setIsMobileExpanded(false);
-        onQuickFilter?.('developer', dev);
-    };
-
-    const handleSelectLocation = (loc: string) => {
-        setSearchTerm(''); setResults(EMPTY); setIsOpen(false); setIsMobileExpanded(false);
-        onQuickFilter?.('community', loc);
-    };
-
-    const handleClear = () => {
-        setSearchTerm(''); setResults(EMPTY); setIsOpen(false);
-        inputRef.current?.focus();
-    };
+    const handleSelectProject = (project: Project) => { close(); onSelectProject(project); };
+    const handleSelectDeveloper = (dev: string) => { close(); onSelectDeveloper?.(dev); };
+    const handleSelectLocation = (loc: LocationResult) => { close(); onSelectLocation?.(loc.name, loc.type); };
+    const handleClear = () => { setSearchTerm(''); setResults(EMPTY); setIsOpen(false); inputRef.current?.focus(); };
 
     const hasResults = results.projects.length > 0 || results.developers.length > 0 || results.locations.length > 0;
 
@@ -139,10 +167,18 @@ const SearchBar: React.FC<SearchBarProps> = ({ projects, onSelectProject, onQuic
                             onClick={() => handleSelectDeveloper(dev)}
                             className="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center gap-3 transition-colors group border-b border-slate-50 last:border-0"
                         >
-                            <div className="w-9 h-9 rounded-xl bg-emerald-50 shrink-0 flex items-center justify-center">
-                                <User className="w-4 h-4 text-emerald-500" />
+                            <img
+                                src={getDeveloperLogo(dev)}
+                                alt=""
+                                className="w-8 h-8 rounded-full object-cover shadow-sm bg-slate-100 shrink-0"
+                                onError={(e) => {
+                                    e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(dev)}&background=0f172a&color=ffffff&size=64&bold=true&rounded=true`;
+                                }}
+                            />
+                            <div className="flex flex-col overflow-hidden flex-1">
+                                <span className="font-bold text-sm text-slate-800 truncate">{dev}</span>
+                                <span className="text-[9px] text-slate-400 uppercase tracking-widest">Developer</span>
                             </div>
-                            <span className="font-bold text-sm text-slate-800 flex-1 truncate">{dev}</span>
                             <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-500 shrink-0 opacity-0 group-hover:opacity-100 transition-all" />
                         </button>
                     ))}
@@ -158,14 +194,17 @@ const SearchBar: React.FC<SearchBarProps> = ({ projects, onSelectProject, onQuic
                     </div>
                     {results.locations.map(loc => (
                         <button
-                            key={loc}
+                            key={`${loc.type}-${loc.name}`}
                             onClick={() => handleSelectLocation(loc)}
                             className="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center gap-3 transition-colors group border-b border-slate-50 last:border-0"
                         >
-                            <div className="w-9 h-9 rounded-xl bg-rose-50 shrink-0 flex items-center justify-center">
-                                <MapPin className="w-4 h-4 text-rose-500" />
+                            <div className="w-8 h-8 rounded-full bg-rose-50 shrink-0 flex items-center justify-center">
+                                <MapPin className="w-3.5 h-3.5 text-rose-500" />
                             </div>
-                            <span className="font-bold text-sm text-slate-800 flex-1 truncate">{loc}</span>
+                            <div className="flex flex-col overflow-hidden flex-1">
+                                <span className="font-bold text-sm text-slate-800 truncate">{loc.name}</span>
+                                <span className="text-[9px] text-slate-400 uppercase tracking-widest">{loc.type}</span>
+                            </div>
                             <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-rose-500 shrink-0 opacity-0 group-hover:opacity-100 transition-all" />
                         </button>
                     ))}
