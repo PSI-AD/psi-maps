@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Map, AttributionControl, NavigationControl, Source, Layer, Popup } from 'react-map-gl';
+import { Map, AttributionControl, NavigationControl, Source, Layer, Popup, Marker } from 'react-map-gl';
 import type { CircleLayer, SymbolLayer, FillLayer, LineLayer } from 'react-map-gl';
 import { Project, Landmark } from '../types';
 import DrawControl from './DrawControl';
@@ -31,6 +31,7 @@ interface MapCanvasProps {
     mapFeatures?: { show3D: boolean; showAnalytics: boolean; showCommunityBorders: boolean };
     activeBoundary?: any;
     activeIsochrone?: { mode: 'driving' | 'walking'; minutes: number } | null;
+    selectedLandmarkForSearch?: Landmark | null;
 }
 
 // 🚨 PERMANENT FIX: Base64 decoded token. Passed only via component prop.
@@ -112,7 +113,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
     selectedProjectId,
     setHoveredProjectId, setHoveredLandmarkId,
     selectedLandmark, selectedProject, hoveredProject, projects = [], mapFeatures,
-    activeBoundary, activeIsochrone
+    activeBoundary, activeIsochrone, selectedLandmarkForSearch
 }) => {
 
     // Safety check for valid GPS coordinates
@@ -217,7 +218,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
             onMouseLeave={() => setHoveredProjectId(null)}
         >
             <AttributionControl position="bottom-left" />
-            <NavigationControl position="top-right" />
+            <NavigationControl position="top-right" showCompass={false} style={{ marginTop: '20px' }} />
             <DrawControl position="top-right" onCreate={onDrawCreate} onUpdate={onDrawUpdate} onDelete={onDrawDelete} onReference={(draw) => { drawRef.current = draw; }} />
 
             {mapFeatures?.show3D && (
@@ -314,6 +315,26 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
             {filteredAmenities.map(amenity => (
                 <AmenityMarker key={amenity.id} amenity={amenity} onClick={() => onLandmarkClick(amenity)} onMouseEnter={() => setHoveredLandmarkId(amenity.id)} onMouseLeave={() => setHoveredLandmarkId(null)} />
             ))}
+
+            {/* Gold bounce marker for active reverse-search landmark */}
+            {selectedLandmarkForSearch &&
+                !isNaN(Number(selectedLandmarkForSearch.longitude)) &&
+                !isNaN(Number(selectedLandmarkForSearch.latitude)) && (
+                    <Marker
+                        longitude={Number(selectedLandmarkForSearch.longitude)}
+                        latitude={Number(selectedLandmarkForSearch.latitude)}
+                        anchor="bottom"
+                    >
+                        <div className="flex flex-col items-center">
+                            <div className="w-10 h-10 bg-amber-500 border-4 border-white rounded-full flex items-center justify-center shadow-2xl animate-bounce">
+                                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" /></svg>
+                            </div>
+                            <div className="mt-1 bg-amber-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-md uppercase tracking-wide whitespace-nowrap max-w-[120px] truncate">
+                                {selectedLandmarkForSearch.name}
+                            </div>
+                        </div>
+                    </Marker>
+                )}
 
             <div className="hidden md:block">
                 {(() => {

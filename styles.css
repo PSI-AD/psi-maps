@@ -1,0 +1,13 @@
+/* ── Mapbox Navigation Controls — larger, compass-free ── */
+.mapboxgl-ctrl-group button {
+    width: 40px !important;
+    height: 40px !important;
+}
+.mapboxgl-ctrl-icon {
+    transform: scale(1.4);
+}
+.mapboxgl-ctrl-group {
+    border-radius: 12px !important;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18) !important;
+}

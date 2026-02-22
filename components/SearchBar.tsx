@@ -89,22 +89,23 @@ const SearchBar: React.FC<SearchBarProps> = ({
         setSearchTerm(value);
         if (value.length < 2) { setResults(EMPTY); setIsOpen(false); return; }
 
-        const q = value.toLowerCase();
+        const normalize = (s: string) => (s ?? '').toLowerCase().replace(/\s+/g, ' ').trim();
+        const q = normalize(value);
 
         const matchedProjects = projects
-            .filter(p => p.name?.toLowerCase().includes(q))
+            .filter(p => normalize(p.name).includes(q))
             .slice(0, 5);
 
         const uniqueDevelopers = Array.from(new Set(projects.map(p => p.developerName).filter(Boolean))) as string[];
-        const matchedDevelopers = uniqueDevelopers.filter(d => d.toLowerCase().includes(q)).slice(0, 3);
+        const matchedDevelopers = uniqueDevelopers.filter(d => normalize(d).includes(q)).slice(0, 3);
 
         // Typed locations: cities first, then communities
         const locationResults: LocationResult[] = [];
         (Array.from(new Set(projects.map(p => p.city).filter(Boolean))) as string[]).forEach(c => {
-            if (c.toLowerCase().includes(q)) locationResults.push({ name: c, type: 'city' });
+            if (normalize(c).includes(q)) locationResults.push({ name: c, type: 'city' });
         });
         (Array.from(new Set(projects.map(p => p.community).filter(Boolean))) as string[]).forEach(c => {
-            if (c.toLowerCase().includes(q)) locationResults.push({ name: c, type: 'community' });
+            if (normalize(c).includes(q)) locationResults.push({ name: c, type: 'community' });
         });
         const matchedLocations = locationResults.slice(0, 4);
 

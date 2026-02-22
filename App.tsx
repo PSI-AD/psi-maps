@@ -11,6 +11,7 @@ import MapCanvas from './components/MapCanvas';
 import ErrorBoundary from './components/ErrorBoundary';
 import { Project, Landmark } from './types';
 import WelcomeBanner from './components/WelcomeBanner';
+import PropertyResultsList from './components/PropertyResultsList';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -55,6 +56,7 @@ const App: React.FC = () => {
   const [activeIsochrone, setActiveIsochrone] = useState<{ mode: 'driving' | 'walking'; minutes: number } | null>(null);
   const [showNearbyPanel, setShowNearbyPanel] = useState(false);
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
+  const [selectedLandmarkForSearch, setSelectedLandmarkForSearch] = useState<Landmark | null>(null);
 
   // Real-time listener: settings/global.showWelcomeBanner
   useEffect(() => {
@@ -90,6 +92,16 @@ const App: React.FC = () => {
     }
     return topLandmarks;
   }, [selectedProject, liveLandmarks, showNearbyPanel]);
+
+  // Projects within 5km of selected landmark for Reverse Search
+  const nearbyProjects = useMemo((): Project[] => {
+    if (!selectedLandmarkForSearch) return [];
+    const lCoord: [number, number] = [Number(selectedLandmarkForSearch.longitude), Number(selectedLandmarkForSearch.latitude)];
+    return filteredProjects.filter(p => {
+      if (!p.longitude || !p.latitude || isNaN(Number(p.longitude)) || isNaN(Number(p.latitude))) return false;
+      return turf.distance(lCoord, [Number(p.longitude), Number(p.latitude)]) <= 5;
+    });
+  }, [selectedLandmarkForSearch, filteredProjects]);
 
   const handleFitBounds = (projectsToFit: Project[], isDefault = false) => {
     if (!mapRef.current) return;
@@ -184,8 +196,9 @@ const App: React.FC = () => {
   const handleLandmarkClick = (l: any) => {
     setSelectedLandmarkId(l.id);
     setSelectedProjectId(null);
+    setSelectedLandmarkForSearch(l as Landmark);
     if (l.latitude && l.longitude && !isNaN(l.latitude) && !isNaN(l.longitude)) {
-      handleFlyTo(l.longitude, l.latitude);
+      handleFlyTo(l.longitude, l.latitude, 14);
     }
   };
 
@@ -200,6 +213,7 @@ const App: React.FC = () => {
     setIsAnalysisOpen(false);
     setActiveIsochrone(null);
     setShowNearbyPanel(false);
+    setSelectedLandmarkForSearch(null);
   };
 
   const handleGlobalReset = () => {
@@ -214,6 +228,7 @@ const App: React.FC = () => {
     setStatusFilter('All');
     setPropertyType('All');
     handleFitBounds([], true);
+    setSelectedLandmarkForSearch(null);
   };
 
   const handleQuickFilter = (type: 'community' | 'developer', value: string) => {
@@ -269,8 +284,19 @@ const App: React.FC = () => {
           mapFeatures={mapFeatures}
           activeBoundary={activeBoundary}
           activeIsochrone={activeIsochrone}
+          selectedLandmarkForSearch={selectedLandmarkForSearch}
         />
       </ErrorBoundary>
+      {/* Reverse Search: floating nearby projects panel */}
+      {selectedLandmarkForSearch && nearbyProjects.length > 0 && (
+        <PropertyResultsList
+          landmark={selectedLandmarkForSearch}
+          projects={nearbyProjects}
+          onClose={() => setSelectedLandmarkForSearch(null)}
+          onHoverProject={setHoveredProjectId}
+          onSelectProject={handleMarkerClick}
+        />
+      )}
     </MainLayout>
   );
 };

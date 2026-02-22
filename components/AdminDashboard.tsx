@@ -84,6 +84,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
     )).sort() as string[];
   }, [liveProjects, stagedProject?.city, uniqueProjectCommunities]);
 
+  // Formats stored completionDate strings like "Q3 2026" or ISO dates
+  const formatCompletionDate = (dateStr?: string): string => {
+    if (!dateStr || dateStr.trim() === '') return 'N/A';
+    // Already in Q# YYYY format
+    if (/^Q[1-4]\s+\d{4}$/.test(dateStr.trim())) return dateStr.trim();
+    // Try to parse as a date
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime()) || d.getFullYear() < 1990) return 'N/A';
+      const q = Math.ceil((d.getMonth() + 1) / 3);
+      return `Q${q} ${d.getFullYear()}`;
+    } catch { return dateStr; }
+  };
+
   const fetchMapSuggestions = async (query: string) => {
     setMapSearchQuery(query);
     if (!query.trim()) { setMapSearchResults([]); return; }
@@ -375,8 +389,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                       key={tab}
                       onClick={() => setNearbysCategoryFilter(tab)}
                       className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border ${nearbysCategoryFilter === tab
-                          ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-200'
-                          : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-600'
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-200'
+                        : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-600'
                         }`}
                     >
                       {tab}
@@ -736,6 +750,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                       <tr>
                         <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Project Name</th>
                         <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Developer</th>
+                        <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Completion</th>
                         <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Action</th>
                       </tr>
                     </thead>
@@ -744,6 +759,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                         <tr key={p.id} className="hover:bg-slate-50 transition-all group">
                           <td className="px-8 py-5 font-bold text-slate-800">{p.name}</td>
                           <td className="px-8 py-5 text-sm text-slate-500 font-medium">{p.developerName}</td>
+                          <td className="px-8 py-5 text-sm text-slate-400 font-medium font-mono">{formatCompletionDate(p.completionDate)}</td>
                           <td className="px-8 py-5 text-right">
                             <button onClick={() => setStagedProject(p)} className="text-blue-600 hover:text-blue-800 text-[10px] font-black uppercase tracking-widest border border-blue-200 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-all">Edit Asset</button>
                           </td>

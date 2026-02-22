@@ -1,0 +1,79 @@
+import React from 'react';
+import { Project, Landmark } from '../types';
+import { X, MapPin } from 'lucide-react';
+
+interface PropertyResultsListProps {
+    landmark: any;
+    projects: Project[];
+    onClose: () => void;
+    onHoverProject: (id: string | null) => void;
+    onSelectProject: (id: string) => void;
+}
+
+const PropertyResultsList: React.FC<PropertyResultsListProps> = ({
+    landmark,
+    projects,
+    onClose,
+    onHoverProject,
+    onSelectProject,
+}) => {
+    if (!landmark || projects.length === 0) return null;
+
+    return (
+        <div className="fixed top-1/2 right-4 -translate-y-1/2 z-[3000] w-72 bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-slate-100 overflow-hidden animate-in slide-in-from-right-4 fade-in duration-300">
+            {/* Header */}
+            <div className="px-5 py-4 bg-amber-50 border-b border-amber-100 flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-8 h-8 bg-amber-500 rounded-full flex items-center justify-center shrink-0 shadow-md">
+                        <MapPin className="w-4 h-4 text-white" />
+                    </div>
+                    <div className="min-w-0">
+                        <p className="text-[9px] font-black text-amber-600 uppercase tracking-[0.2em]">Nearby — {landmark.category}</p>
+                        <p className="font-black text-sm text-slate-900 truncate">{landmark.name}</p>
+                    </div>
+                </div>
+                <button
+                    onClick={onClose}
+                    className="p-1.5 bg-white rounded-full shadow-sm text-slate-400 hover:text-slate-700 transition-colors shrink-0 mt-0.5"
+                >
+                    <X className="w-3.5 h-3.5" />
+                </button>
+            </div>
+
+            {/* Result count */}
+            <div className="px-5 py-2.5 border-b border-slate-50 bg-slate-50">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                    {projects.length} project{projects.length !== 1 ? 's' : ''} within 5 km
+                </p>
+            </div>
+
+            {/* Projects list */}
+            <div className="overflow-y-auto max-h-[60vh] py-2">
+                {projects.map(project => (
+                    <button
+                        key={project.id}
+                        onClick={() => onSelectProject(project.id)}
+                        onMouseEnter={() => onHoverProject(project.id)}
+                        onMouseLeave={() => onHoverProject(null)}
+                        className="w-full text-left px-4 py-2.5 hover:bg-blue-50 flex items-center gap-3 transition-colors group border-b border-slate-50 last:border-0"
+                    >
+                        <div className="w-12 h-9 rounded-lg overflow-hidden bg-slate-100 shrink-0 shadow-sm">
+                            <img
+                                src={(project as any).thumbnailUrl || (project as any).image || ''}
+                                alt=""
+                                className="w-full h-full object-cover"
+                            />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <h4 className="text-xs font-bold text-slate-900 truncate leading-tight">{project.name}</h4>
+                            <p className="text-[10px] text-slate-500 truncate">{project.community}</p>
+                            <p className="text-[9px] font-black text-blue-500 uppercase tracking-wide truncate mt-0.5">{project.developerName}</p>
+                        </div>
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+export default PropertyResultsList;
