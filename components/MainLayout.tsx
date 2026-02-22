@@ -62,8 +62,6 @@ interface MainLayoutProps {
   showWelcomeBanner: boolean;
   hoveredProjectId: string | null;
   setHoveredProjectId: (id: string | null) => void;
-  viewportProjects: Project[];
-  onBoundsChange: (bounds: any) => void;
   cameraDuration: number;
 }
 
@@ -95,8 +93,6 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
     showWelcomeBanner,
     hoveredProjectId,
     setHoveredProjectId,
-    viewportProjects,
-    onBoundsChange,
     cameraDuration,
   } = props;
 
@@ -322,7 +318,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
       {/* Filtered results carousel / side panel — responsive dual mode */}
       <div className={selectedProject ? 'hidden md:block' : 'block'}>
         <FilteredProjectsCarousel
-          projects={props.viewportProjects}
+          projects={props.filteredProjects}
           onSelectProject={handleSearchSelect}
           isVisible={showCarousel}
           selectedProjectId={selectedProject?.id}

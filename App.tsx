@@ -59,7 +59,6 @@ const App: React.FC = () => {
   const [showNearbyPanel, setShowNearbyPanel] = useState(false);
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
   const [selectedLandmarkForSearch, setSelectedLandmarkForSearch] = useState<Landmark | null>(null);
-  const [mapBounds, setMapBounds] = useState<any>(null);
 
   // Real-time listener: settings/global.showWelcomeBanner
   useEffect(() => {
@@ -107,24 +106,6 @@ const App: React.FC = () => {
       return turf.distance(lCoord, [Number(p.longitude), Number(p.latitude)]) <= 5;
     });
   }, [selectedLandmarkForSearch, filteredProjects]);
-
-  // Projects currently visible within the map viewport
-  const viewportProjects = useMemo((): Project[] => {
-    // OVERRIDE: explicit location filter → ignore map bounds, lock list to filtered set
-    if (selectedCommunity || selectedCity) return filteredProjects;
-
-    // Otherwise, restrict to what is actually visible on screen
-    if (!mapBounds) return filteredProjects;
-    const sw = mapBounds._sw || mapBounds.getSouthWest?.();
-    const ne = mapBounds._ne || mapBounds.getNorthEast?.();
-    if (!sw || !ne) return filteredProjects;
-    return filteredProjects.filter(p => {
-      const lng = Number(p.longitude);
-      const lat = Number(p.latitude);
-      if (isNaN(lng) || isNaN(lat) || lng === 0 || lat === 0) return false;
-      return lng >= sw.lng && lng <= ne.lng && lat >= sw.lat && lat <= ne.lat;
-    });
-  }, [filteredProjects, mapBounds, selectedCommunity, selectedCity]);
 
   const handleFitBounds = (projectsToFit: Project[], isDefault = false) => {
     if (!mapRef.current) return;
@@ -271,7 +252,7 @@ const App: React.FC = () => {
       viewMode={viewMode} setViewMode={setViewMode} isAdminOpen={isAdminOpen} setIsAdminOpen={setIsAdminOpen}
       isAnalysisOpen={isAnalysisOpen} setIsAnalysisOpen={setIsAnalysisOpen} liveProjects={liveProjects} setLiveProjects={setLiveProjects}
       liveLandmarks={liveLandmarks} setLiveLandmarks={setLiveLandmarks}
-      selectedProject={selectedProject} filteredProjects={filteredProjects} viewportProjects={viewportProjects} isRefreshing={isRefreshing} onRefresh={loadInitialData}
+      selectedProject={selectedProject} filteredProjects={filteredProjects} isRefreshing={isRefreshing} onRefresh={loadInitialData}
       onProjectClick={handleMarkerClick} onCloseProject={onCloseProject} filterPolygon={filterPolygon}
       activeAmenities={activeAmenities} onToggleAmenity={handleToggleAmenity} isDrawing={isDrawing} onToggleDraw={handleToggleDraw}
       mapStyle={mapStyle} setMapStyle={setMapStyle} onDiscoverNeighborhood={(lat, lng) => fetchNearbyAmenities(lat, lng)}
@@ -295,7 +276,6 @@ const App: React.FC = () => {
       showWelcomeBanner={showWelcomeBanner}
       hoveredProjectId={hoveredProjectId}
       setHoveredProjectId={setHoveredProjectId}
-      onBoundsChange={setMapBounds}
       cameraDuration={cameraDuration}
     >
       <WelcomeBanner show={showWelcomeBanner} />
@@ -313,7 +293,6 @@ const App: React.FC = () => {
           activeIsochrone={activeIsochrone}
           selectedLandmarkForSearch={selectedLandmarkForSearch}
           hoveredProjectId={hoveredProjectId}
-          onBoundsChange={setMapBounds}
         />
       </ErrorBoundary>
       {/* Reverse Search: floating nearby projects panel */}
