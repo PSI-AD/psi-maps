@@ -167,7 +167,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
 
                 {/* Search + Dropdowns */}
                 <div className="hidden md:flex items-center gap-2 flex-1 max-w-4xl justify-center">
-                    <div className="flex-1 max-w-sm">
+                    <div className="flex-1 min-w-[250px] max-w-sm">
                         <SearchBar
                             projects={projects}
                             onSelectProject={onSelectProject}
@@ -189,7 +189,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                             }}
                         />
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="hidden xl:flex items-center gap-3">
                         <select value={selectedCity} onChange={handleCityChange} className="bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-50/20 transition-all cursor-pointer min-w-[150px]">
                             <option value="">All Emirates</option>
                             {cityOptions.map(city => <option key={city.id} value={city.id}>{city.label}</option>)}

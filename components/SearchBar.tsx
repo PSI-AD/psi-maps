@@ -69,11 +69,10 @@ const SearchBar: React.FC<SearchBarProps> = ({
     const [results, setResults] = useState<SearchResults>(EMPTY);
     const [isOpen, setIsOpen] = useState(false);
     const [isMobileExpanded, setIsMobileExpanded] = useState(false);
-    const [isExpanded, setIsExpanded] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    const close = () => { setIsOpen(false); setIsMobileExpanded(false); setSearchTerm(''); setResults(EMPTY); setIsExpanded(false); };
+    const close = () => { setIsOpen(false); setIsMobileExpanded(false); setSearchTerm(''); setResults(EMPTY); };
 
     // Close on outside click (only when not alwaysOpen)
     React.useEffect(() => {
@@ -94,7 +93,6 @@ const SearchBar: React.FC<SearchBarProps> = ({
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         setSearchTerm(value);
-        setIsExpanded(false); // collapse on new search term
         if (value.length < 2) { setResults(EMPTY); setIsOpen(false); return; }
 
         const normalize = (s: string) => (s ?? '').toLowerCase().replace(/\s+/g, ' ').trim();
@@ -137,35 +135,18 @@ const SearchBar: React.FC<SearchBarProps> = ({
 
     const hasResults = results.projects.length > 0 || results.developers.length > 0 || results.locations.length > 0;
     const totalResultCount = results.projects.length + results.developers.length + results.locations.length;
-    const LIMIT = 6;
-
-    // Build a flat ordered list of items [type, payload] so we can slice across categories
-    type FlatItem =
-        | { kind: 'project'; payload: Project }
-        | { kind: 'developer'; payload: DeveloperResult }
-        | { kind: 'location'; payload: LocationResult };
-
-    const flatItems: FlatItem[] = [
-        ...results.projects.map(p => ({ kind: 'project' as const, payload: p })),
-        ...results.developers.map(d => ({ kind: 'developer' as const, payload: d })),
-        ...results.locations.map(l => ({ kind: 'location' as const, payload: l })),
-    ];
-    const visibleItems = isExpanded ? flatItems : flatItems.slice(0, LIMIT);
-    const visibleProjects = visibleItems.filter(i => i.kind === 'project').map(i => i.payload as Project);
-    const visibleDevelopers = visibleItems.filter(i => i.kind === 'developer').map(i => i.payload as DeveloperResult);
-    const visibleLocations = visibleItems.filter(i => i.kind === 'location').map(i => i.payload as LocationResult);
 
     const dropdown = isOpen && hasResults && (
         <div className={`absolute ${alwaysOpen ? 'top-full mt-2' : 'bottom-full mb-3'} left-0 w-full bg-white border border-slate-100 rounded-2xl shadow-2xl shadow-slate-200/60 overflow-hidden animate-in fade-in z-[2000]`}>
 
             {/* ── Projects ── */}
-            {visibleProjects.length > 0 && (
+            {results.projects.length > 0 && (
                 <div>
                     <div className="flex items-center gap-2 px-4 pt-3 pb-1.5">
                         <Building2 className="w-3 h-3 text-blue-500" />
                         <span className="text-[9px] font-black text-blue-500 uppercase tracking-[0.2em]">Projects</span>
                     </div>
-                    {visibleProjects.map(project => (
+                    {results.projects.map(project => (
                         <button
                             key={project.id}
                             onClick={() => handleSelectProject(project)}
@@ -190,13 +171,13 @@ const SearchBar: React.FC<SearchBarProps> = ({
             )}
 
             {/* ── Developers ── */}
-            {visibleDevelopers.length > 0 && (
+            {results.developers.length > 0 && (
                 <div className="border-t border-slate-50">
                     <div className="flex items-center gap-2 px-4 pt-3 pb-1.5">
                         <User className="w-3 h-3 text-emerald-500" />
                         <span className="text-[9px] font-black text-emerald-500 uppercase tracking-[0.2em]">Developers</span>
                     </div>
-                    {visibleDevelopers.map(dev => (
+                    {results.developers.map(dev => (
                         <button
                             key={dev.name}
                             onClick={() => handleSelectDeveloper(dev.name)}
@@ -221,13 +202,13 @@ const SearchBar: React.FC<SearchBarProps> = ({
             )}
 
             {/* ── Locations ── */}
-            {visibleLocations.length > 0 && (
+            {results.locations.length > 0 && (
                 <div className="border-t border-slate-50">
                     <div className="flex items-center gap-2 px-4 pt-3 pb-1.5">
                         <MapPin className="w-3 h-3 text-rose-500" />
                         <span className="text-[9px] font-black text-rose-500 uppercase tracking-[0.2em]">Communities &amp; Cities</span>
                     </div>
-                    {visibleLocations.map(loc => (
+                    {results.locations.map(loc => (
                         <button
                             key={`${loc.type}-${loc.name}`}
                             onClick={() => handleSelectLocation(loc)}
@@ -246,20 +227,10 @@ const SearchBar: React.FC<SearchBarProps> = ({
                 </div>
             )}
 
-            {/* ── View More button ── */}
-            {!isExpanded && totalResultCount > LIMIT && (
-                <button
-                    onClick={(e) => { e.preventDefault(); setIsExpanded(true); }}
-                    className="w-full text-center py-2.5 text-[10px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 hover:bg-blue-100 transition-colors border-t border-blue-100"
-                >
-                    View {totalResultCount - LIMIT} More Results ↓
-                </button>
-            )}
-
             {/* Footer count */}
             <div className="px-4 py-2.5 bg-slate-50 border-t border-slate-100">
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                    {visibleItems.length}{isExpanded ? '' : totalResultCount > LIMIT ? ` of ${totalResultCount}` : ''} result{visibleItems.length !== 1 ? 's' : ''} shown
+                    {totalResultCount} result{totalResultCount !== 1 ? 's' : ''} found
                 </p>
             </div>
         </div>
