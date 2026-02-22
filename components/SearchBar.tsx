@@ -1,16 +1,25 @@
 import React, { useState, useRef } from 'react';
 import { Project } from '../types';
-import { Search, ArrowRight, X } from 'lucide-react';
+import { Search, ArrowRight, X, Building2, MapPin, User } from 'lucide-react';
 
 interface SearchBarProps {
     projects: Project[];
     onSelectProject: (project: Project) => void;
+    onQuickFilter?: (type: 'community' | 'developer', value: string) => void;
     alwaysOpen?: boolean;
 }
 
-const SearchBar: React.FC<SearchBarProps> = ({ projects, onSelectProject, alwaysOpen }) => {
+interface SearchResults {
+    projects: Project[];
+    developers: string[];
+    locations: string[];
+}
+
+const EMPTY: SearchResults = { projects: [], developers: [], locations: [] };
+
+const SearchBar: React.FC<SearchBarProps> = ({ projects, onSelectProject, onQuickFilter, alwaysOpen }) => {
     const [searchTerm, setSearchTerm] = useState('');
-    const [suggestions, setSuggestions] = useState<Project[]>([]);
+    const [results, setResults] = useState<SearchResults>(EMPTY);
     const [isOpen, setIsOpen] = useState(false);
     const [isMobileExpanded, setIsMobileExpanded] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -19,14 +28,14 @@ const SearchBar: React.FC<SearchBarProps> = ({ projects, onSelectProject, always
     // Close on outside click (only when not alwaysOpen)
     React.useEffect(() => {
         if (alwaysOpen) return;
-        const handleClickOutside = (event: MouseEvent) => {
-            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        const handler = (e: MouseEvent) => {
+            if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
                 setIsOpen(false);
                 setIsMobileExpanded(false);
             }
         };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
     }, [alwaysOpen]);
 
     // Auto-focus when mobile expands or alwaysOpen mounts
@@ -39,34 +48,138 @@ const SearchBar: React.FC<SearchBarProps> = ({ projects, onSelectProject, always
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         setSearchTerm(value);
-        if (value.length > 1) {
-            const filtered = projects.filter(p =>
-                p.name?.toLowerCase().includes(value.toLowerCase()) ||
-                p.city?.toLowerCase().includes(value.toLowerCase()) ||
-                p.developerName?.toLowerCase().includes(value.toLowerCase()) ||
-                p.community?.toLowerCase().includes(value.toLowerCase())
-            ).slice(0, 8);
-            setSuggestions(filtered);
-            setIsOpen(true);
-        } else {
-            setSuggestions([]);
-            setIsOpen(false);
-        }
+        if (value.length < 2) { setResults(EMPTY); setIsOpen(false); return; }
+
+        const q = value.toLowerCase();
+
+        const matchedProjects = projects
+            .filter(p => p.name?.toLowerCase().includes(q))
+            .slice(0, 5);
+
+        const uniqueDevelopers = Array.from(new Set(projects.map(p => p.developerName).filter(Boolean))) as string[];
+        const matchedDevelopers = uniqueDevelopers.filter(d => d.toLowerCase().includes(q)).slice(0, 3);
+
+        const uniqueLocations = Array.from(new Set([
+            ...projects.map(p => p.community),
+            ...projects.map(p => p.city),
+        ].filter(Boolean))) as string[];
+        const matchedLocations = uniqueLocations.filter(l => l.toLowerCase().includes(q)).slice(0, 3);
+
+        const next = { projects: matchedProjects, developers: matchedDevelopers, locations: matchedLocations };
+        setResults(next);
+        setIsOpen(next.projects.length > 0 || next.developers.length > 0 || next.locations.length > 0);
     };
 
-    const handleSelect = (project: Project) => {
-        setSearchTerm('');
-        setIsOpen(false);
-        setIsMobileExpanded(false);
+    const handleSelectProject = (project: Project) => {
+        setSearchTerm(''); setResults(EMPTY); setIsOpen(false); setIsMobileExpanded(false);
         onSelectProject(project);
     };
 
+    const handleSelectDeveloper = (dev: string) => {
+        setSearchTerm(''); setResults(EMPTY); setIsOpen(false); setIsMobileExpanded(false);
+        onQuickFilter?.('developer', dev);
+    };
+
+    const handleSelectLocation = (loc: string) => {
+        setSearchTerm(''); setResults(EMPTY); setIsOpen(false); setIsMobileExpanded(false);
+        onQuickFilter?.('community', loc);
+    };
+
     const handleClear = () => {
-        setSearchTerm('');
-        setSuggestions([]);
-        setIsOpen(false);
+        setSearchTerm(''); setResults(EMPTY); setIsOpen(false);
         inputRef.current?.focus();
     };
+
+    const hasResults = results.projects.length > 0 || results.developers.length > 0 || results.locations.length > 0;
+
+    const dropdown = isOpen && hasResults && (
+        <div className={`absolute ${alwaysOpen ? 'top-full mt-2' : 'bottom-full mb-3'} left-0 w-full bg-white border border-slate-100 rounded-2xl shadow-2xl shadow-slate-200/60 overflow-hidden animate-in fade-in z-[2000]`}>
+
+            {/* ── Projects ── */}
+            {results.projects.length > 0 && (
+                <div>
+                    <div className="flex items-center gap-2 px-4 pt-3 pb-1.5">
+                        <Building2 className="w-3 h-3 text-blue-500" />
+                        <span className="text-[9px] font-black text-blue-500 uppercase tracking-[0.2em]">Projects</span>
+                    </div>
+                    {results.projects.map(project => (
+                        <button
+                            key={project.id}
+                            onClick={() => handleSelectProject(project)}
+                            className="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center gap-3 transition-colors group border-b border-slate-50 last:border-0"
+                        >
+                            <div className="w-9 h-9 rounded-xl bg-slate-100 shrink-0 overflow-hidden shadow-sm">
+                                <img src={project.thumbnailUrl} loading="lazy" decoding="async" className="w-full h-full object-cover" alt="" />
+                            </div>
+                            <div className="flex flex-col overflow-hidden flex-1">
+                                <span className="font-black text-sm text-slate-900 truncate leading-tight">{project.name}</span>
+                                <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest truncate mt-0.5">
+                                    {project.developerName || 'Exclusive Developer'}
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-medium truncate">
+                                    {project.community}{project.city ? ` / ${project.city}` : ''}
+                                </span>
+                            </div>
+                            <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 shrink-0 -translate-x-1 group-hover:translate-x-0 opacity-0 group-hover:opacity-100 transition-all" />
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            {/* ── Developers ── */}
+            {results.developers.length > 0 && (
+                <div className="border-t border-slate-50">
+                    <div className="flex items-center gap-2 px-4 pt-3 pb-1.5">
+                        <User className="w-3 h-3 text-emerald-500" />
+                        <span className="text-[9px] font-black text-emerald-500 uppercase tracking-[0.2em]">Developers</span>
+                    </div>
+                    {results.developers.map(dev => (
+                        <button
+                            key={dev}
+                            onClick={() => handleSelectDeveloper(dev)}
+                            className="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center gap-3 transition-colors group border-b border-slate-50 last:border-0"
+                        >
+                            <div className="w-9 h-9 rounded-xl bg-emerald-50 shrink-0 flex items-center justify-center">
+                                <User className="w-4 h-4 text-emerald-500" />
+                            </div>
+                            <span className="font-bold text-sm text-slate-800 flex-1 truncate">{dev}</span>
+                            <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-500 shrink-0 opacity-0 group-hover:opacity-100 transition-all" />
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            {/* ── Locations ── */}
+            {results.locations.length > 0 && (
+                <div className="border-t border-slate-50">
+                    <div className="flex items-center gap-2 px-4 pt-3 pb-1.5">
+                        <MapPin className="w-3 h-3 text-rose-500" />
+                        <span className="text-[9px] font-black text-rose-500 uppercase tracking-[0.2em]">Communities &amp; Cities</span>
+                    </div>
+                    {results.locations.map(loc => (
+                        <button
+                            key={loc}
+                            onClick={() => handleSelectLocation(loc)}
+                            className="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center gap-3 transition-colors group border-b border-slate-50 last:border-0"
+                        >
+                            <div className="w-9 h-9 rounded-xl bg-rose-50 shrink-0 flex items-center justify-center">
+                                <MapPin className="w-4 h-4 text-rose-500" />
+                            </div>
+                            <span className="font-bold text-sm text-slate-800 flex-1 truncate">{loc}</span>
+                            <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-rose-500 shrink-0 opacity-0 group-hover:opacity-100 transition-all" />
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            {/* Footer count */}
+            <div className="px-4 py-2.5 bg-slate-50 border-t border-slate-100">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                    {results.projects.length + results.developers.length + results.locations.length} result{results.projects.length + results.developers.length + results.locations.length !== 1 ? 's' : ''} found
+                </p>
+            </div>
+        </div>
+    );
 
     const inputEl = (
         <div className="relative flex items-center">
@@ -79,7 +192,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ projects, onSelectProject, always
                 value={searchTerm}
                 onChange={handleSearch}
                 onFocus={() => searchTerm.length > 1 && setIsOpen(true)}
-                placeholder="Search property, community or city…"
+                placeholder="Search property, developer or community…"
                 className="w-full h-12 bg-white/95 backdrop-blur-md border border-slate-200 rounded-full pl-11 pr-10 text-base md:text-sm font-medium text-slate-800 shadow-md outline-none focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-slate-400"
             />
             {searchTerm && (
@@ -87,35 +200,6 @@ const SearchBar: React.FC<SearchBarProps> = ({ projects, onSelectProject, always
                     <X className="w-4 h-4" />
                 </button>
             )}
-        </div>
-    );
-
-    // Dropdown opens upward (bottom-full) for the dock search, downward (top-full) for modal
-    const dropdown = isOpen && suggestions.length > 0 && (
-        <div className={`absolute ${alwaysOpen ? 'top-full mt-2' : 'bottom-full mb-3'} left-0 w-full bg-white border border-slate-100 rounded-2xl shadow-2xl shadow-slate-200/60 overflow-hidden animate-in fade-in z-[2000]`}>
-            <div className="py-1.5">
-                {suggestions.map((project) => (
-                    <button
-                        key={project.id}
-                        onClick={() => handleSelect(project)}
-                        className="w-full text-left px-4 py-3 hover:bg-slate-50 flex items-center gap-3 transition-colors group border-b border-slate-50 last:border-0"
-                    >
-                        <div className="w-10 h-10 rounded-xl bg-slate-100 shrink-0 overflow-hidden shadow-sm">
-                            <img src={project.thumbnailUrl} loading="lazy" decoding="async" className="w-full h-full object-cover" alt="" />
-                        </div>
-                        <div className="flex flex-col overflow-hidden w-full text-left">
-                            <span className="font-black text-sm text-slate-900 truncate leading-tight">{project.name}</span>
-                            <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest truncate mt-0.5">
-                                {project.developerName || 'Exclusive Developer'}
-                            </span>
-                            <span className="text-[10px] text-slate-400 font-medium truncate mt-0.5">
-                                {project.community}{project.city ? ` / ${project.city}` : ''}
-                            </span>
-                        </div>
-                        <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 transition-all shrink-0 -translate-x-1 group-hover:translate-x-0 opacity-0 group-hover:opacity-100" />
-                    </button>
-                ))}
-            </div>
         </div>
     );
 

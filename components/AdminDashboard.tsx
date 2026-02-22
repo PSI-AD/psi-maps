@@ -88,8 +88,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
     setMapSearchQuery(query);
     if (!query.trim()) { setMapSearchResults([]); return; }
     try {
+      const proximity = `${mapModalViewState.longitude},${mapModalViewState.latitude}`;
       const res = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${PUBLIC_MAPBOX_TOKEN}&country=ae&types=poi,address,neighborhood,locality`
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${PUBLIC_MAPBOX_TOKEN}&country=ae&proximity=${proximity}&types=poi,address,neighborhood,locality,place`
       );
       const data = await res.json();
       setMapSearchResults(data.features || []);
@@ -367,19 +368,27 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                   </div>
                 </div>
 
-                {/* Filters Row */}
+                {/* Sub-tab pill bar */}
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {['All', 'Hotel', 'School', 'Retail', 'Culture', 'Hospital'].map(tab => (
+                    <button
+                      key={tab}
+                      onClick={() => setNearbysCategoryFilter(tab)}
+                      className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border ${nearbysCategoryFilter === tab
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-200'
+                          : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-600'
+                        }`}
+                    >
+                      {tab}
+                    </button>
+                  ))}
+                  <div className="ml-auto text-xs font-black text-slate-400 uppercase tracking-widest self-center">
+                    {filteredLandmarks.length} Result{filteredLandmarks.length !== 1 ? 's' : ''}
+                  </div>
+                </div>
+
+                {/* Community filter (keep as select, less important) */}
                 <div className="flex gap-4 mb-6">
-                  <select
-                    value={nearbysCategoryFilter}
-                    onChange={e => setNearbysCategoryFilter(e.target.value)}
-                    className="h-11 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-blue-100"
-                  >
-                    <option value="All">All Categories</option>
-                    <option value="School">Schools</option>
-                    <option value="Retail">Retail</option>
-                    <option value="Culture">Culture</option>
-                    <option value="Hospital">Hospitals</option>
-                  </select>
                   <select
                     value={nearbysCommunityFilter}
                     onChange={e => setNearbysCommunityFilter(e.target.value)}
@@ -390,9 +399,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                       <option key={c} value={c}>{c}</option>
                     ))}
                   </select>
-                  <div className="ml-auto text-xs font-black text-slate-400 uppercase tracking-widest self-center">
-                    {filteredLandmarks.length} Result{filteredLandmarks.length !== 1 ? 's' : ''}
-                  </div>
                 </div>
 
                 {/* Landmark Editor Form */}
@@ -739,7 +745,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                           <td className="px-8 py-5 font-bold text-slate-800">{p.name}</td>
                           <td className="px-8 py-5 text-sm text-slate-500 font-medium">{p.developerName}</td>
                           <td className="px-8 py-5 text-right">
-                            <button onClick={() => setStagedProject(p)} className="text-blue-600 hover:text-blue-800 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all">Edit Asset</button>
+                            <button onClick={() => setStagedProject(p)} className="text-blue-600 hover:text-blue-800 text-[10px] font-black uppercase tracking-widest border border-blue-200 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-all">Edit Asset</button>
                           </td>
                         </tr>
                       ))}
