@@ -28,10 +28,16 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
     const scrollRef = useRef<HTMLDivElement>(null);
     const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
     const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // Keep a stable ref to onSelectProject so the interval closure doesn't go stale
+    const onSelectRef = useRef(onSelectProject);
+    const onFlyToRef = useRef(onFlyTo);
+    useEffect(() => { onSelectRef.current = onSelectProject; }, [onSelectProject]);
+    useEffect(() => { onFlyToRef.current = onFlyTo; }, [onFlyTo]);
 
     // ── Presentation engine state ───────────────────────────────────────────
     const [playingCommunity, setPlayingCommunity] = useState<string | null>(null);
     const [playIndex, setPlayIndex] = useState(0);
+    const [playProgress, setPlayProgress] = useState(0); // 0–100 for the SVG ring
 
     // ── Nearest-neighbor spatial sort + group by community ──────────────────
     const groupedProjects = useMemo(() => {
@@ -43,82 +49,84 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
         });
 
         const sortedGroups = Object.entries(groups).map(([comm, projs]) => {
-            // Need valid coords to sort; filter out nulls first
             const valid = projs.filter(p => {
-                const lng = Number(p.longitude);
-                const lat = Number(p.latitude);
+                const lng = Number(p.longitude), lat = Number(p.latitude);
                 return !isNaN(lng) && !isNaN(lat) && lng !== 0 && lat !== 0;
             });
             const invalid = projs.filter(p => {
-                const lng = Number(p.longitude);
-                const lat = Number(p.latitude);
+                const lng = Number(p.longitude), lat = Number(p.latitude);
                 return isNaN(lng) || isNaN(lat) || lng === 0 || lat === 0;
             });
 
             if (valid.length <= 1) return [comm, [...valid, ...invalid]] as [string, Project[]];
 
-            // Nearest-neighbor greedy chain starting from the first project
+            // Greedy nearest-neighbor chain
             const sorted: Project[] = [valid[0]];
             const remaining = valid.slice(1);
-
             while (remaining.length > 0) {
                 const current = sorted[sorted.length - 1];
-                let nearestIdx = 0;
-                let minDist = Infinity;
-
+                let nearestIdx = 0, minDist = Infinity;
                 remaining.forEach((p, idx) => {
                     const dist = turf.distance(
                         [Number(current.longitude), Number(current.latitude)],
                         [Number(p.longitude), Number(p.latitude)],
                         { units: 'kilometers' }
                     );
-                    if (dist < minDist) {
-                        minDist = dist;
-                        nearestIdx = idx;
-                    }
+                    if (dist < minDist) { minDist = dist; nearestIdx = idx; }
                 });
-
                 sorted.push(remaining[nearestIdx]);
                 remaining.splice(nearestIdx, 1);
             }
-
             return [comm, [...sorted, ...invalid]] as [string, Project[]];
         });
 
         return sortedGroups.sort((a, b) => a[0].localeCompare(b[0]));
     }, [projects]);
 
-    // ── Presentation interval ───────────────────────────────────────────────
+    // ── Resilient tick-based presentation timer (50ms tick = 100 ticks per 5s) ──
     useEffect(() => {
-        if (!playingCommunity) return;
+        let ticker: ReturnType<typeof setInterval>;
 
-        const commProjects = groupedProjects.find(g => g[0] === playingCommunity)?.[1];
-        if (!commProjects || commProjects.length === 0) {
-            setPlayingCommunity(null);
-            return;
+        if (playingCommunity) {
+            const commProjects = groupedProjects.find(g => g[0] === playingCommunity)?.[1] || [];
+
+            if (commProjects.length > 0) {
+                ticker = setInterval(() => {
+                    setPlayProgress(prev => {
+                        if (prev >= 100) {
+                            // Advance to next project — use refs so the closure is never stale
+                            setPlayIndex(curr => {
+                                const next = (curr + 1) % commProjects.length;
+                                const nextProj = commProjects[next];
+                                // Defer external state mutations to next microtask to avoid render clashes
+                                setTimeout(() => {
+                                    onSelectRef.current(nextProj);
+                                    const lng = Number(nextProj.longitude);
+                                    const lat = Number(nextProj.latitude);
+                                    if (!isNaN(lng) && !isNaN(lat) && lng !== 0 && lat !== 0) {
+                                        onFlyToRef.current?.(lng, lat, 16);
+                                    }
+                                    itemRefs.current[nextProj.id]?.scrollIntoView({
+                                        behavior: 'smooth', block: 'center', inline: 'center'
+                                    });
+                                }, 0);
+                                return next;
+                            });
+                            return 0; // reset the ring
+                        }
+                        return prev + 1; // 1% per 50ms → 5 000ms total
+                    });
+                }, 50);
+            } else {
+                setPlayingCommunity(null);
+            }
+        } else {
+            setPlayProgress(0);
         }
 
-        const interval = setInterval(() => {
-            setPlayIndex(prev => {
-                const next = (prev + 1) % commProjects.length;
-                const nextProj = commProjects[next];
-                onSelectProject(nextProj);
-                // Fly to project
-                const lng = Number(nextProj.longitude);
-                const lat = Number(nextProj.latitude);
-                if (onFlyTo && !isNaN(lng) && !isNaN(lat) && lng !== 0 && lat !== 0) {
-                    onFlyTo(lng, lat, 16);
-                }
-                // Scroll panel to project
-                setTimeout(() => {
-                    itemRefs.current[nextProj.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }, 50);
-                return next;
-            });
-        }, 5000);
-
-        return () => clearInterval(interval);
-    }, [playingCommunity, groupedProjects, onSelectProject, onFlyTo]);
+        return () => clearInterval(ticker);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [playingCommunity, groupedProjects]); // onSelectProject intentionally omitted — accessed via ref
 
     // ── Two-way sync: auto-scroll to hovered / selected project ────────────
     useEffect(() => {
@@ -128,9 +136,10 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     }, [hoveredProjectId, selectedProjectId]);
 
-    // Stop tour if the projects list changes significantly (e.g. filter change)
+    // Stop tour when the projects list changes (filter change)
     useEffect(() => {
         setPlayingCommunity(null);
+        setPlayProgress(0);
     }, [projects]);
 
     if (!isVisible || projects.length === 0) return null;
@@ -141,26 +150,31 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
 
     const togglePlay = (community: string, commProjects: Project[]) => {
         if (playingCommunity === community) {
-            // Stop
             setPlayingCommunity(null);
+            setPlayProgress(0);
         } else {
-            // Start — select first project immediately
             setPlayingCommunity(community);
             setPlayIndex(0);
+            setPlayProgress(0);
             const first = commProjects[0];
             if (first) {
                 onSelectProject(first);
-                const lng = Number(first.longitude);
-                const lat = Number(first.latitude);
-                if (onFlyTo && !isNaN(lng) && !isNaN(lat) && lng !== 0 && lat !== 0) {
-                    onFlyTo(lng, lat, 16);
+                const lng = Number(first.longitude), lat = Number(first.latitude);
+                if (!isNaN(lng) && !isNaN(lat) && lng !== 0 && lat !== 0) {
+                    onFlyTo?.(lng, lat, 16);
                 }
                 setTimeout(() => {
-                    itemRefs.current[first.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }, 50);
+                    itemRefs.current[first.id]?.scrollIntoView({
+                        behavior: 'smooth', block: 'center', inline: 'center'
+                    });
+                }, 100);
             }
         }
     };
+
+    // ── SVG progress ring constants (r=14, circumference = 2π·14 ≈ 87.96 ≈ 88) ──
+    const RING_C = 88;
+    const ringOffset = RING_C - (RING_C * playProgress) / 100;
 
     // ── Single card renderer ────────────────────────────────────────────────
     const renderCard = (project: Project, idx: number) => {
@@ -175,8 +189,7 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                 onClick={() => onSelectProject(project)}
                 onMouseEnter={() => {
                     setHoveredProjectId?.(project.id);
-                    const lng = Number(project.longitude);
-                    const lat = Number(project.latitude);
+                    const lng = Number(project.longitude), lat = Number(project.latitude);
                     if (onFlyTo && !isNaN(lng) && !isNaN(lat) && lng !== 0 && lat !== 0) {
                         if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
                         hoverTimeout.current = setTimeout(() => onFlyTo(lng, lat, 16), 300);
@@ -225,12 +238,10 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                     <p className="text-[9px] font-black text-blue-500 uppercase tracking-[0.15em] truncate mt-0.5 mb-1.5">
                         {(project as any).developerName || 'Exclusive'}
                     </p>
-
                     <div className="flex items-center gap-1 text-[10px] font-medium text-slate-400 truncate mb-auto">
                         <MapPin className="w-3 h-3 text-slate-300 shrink-0" />
                         <span className="truncate">{project.community}{project.city ? `, ${project.city}` : ''}</span>
                     </div>
-
                     <div className="flex items-center gap-3 mt-2 pt-2 border-t border-slate-100">
                         {(project as any).priceRange && (
                             <div className="flex items-center gap-1">
@@ -338,21 +349,52 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                                     <span className="text-[9px] font-bold text-slate-400 shrink-0 mr-1">
                                         {commProjects.length}
                                     </span>
+
+                                    {/* Play Tour / Stop button with SVG progress ring */}
                                     <button
                                         onClick={(e) => { e.stopPropagation(); togglePlay(communityName, commProjects); }}
-                                        className={`px-2.5 py-1 rounded-md text-[8px] font-black uppercase tracking-widest transition-all flex items-center gap-1 shrink-0 ${isPlaying
+                                        className={`px-2.5 py-1 rounded-md text-[8px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 shrink-0 ${isPlaying
                                                 ? 'bg-rose-500 text-white shadow-md hover:bg-rose-600'
                                                 : 'bg-blue-600 text-white shadow-sm hover:bg-blue-700'
                                             }`}
                                     >
-                                        {isPlaying
-                                            ? <><Square className="w-2.5 h-2.5 fill-current" /> Stop</>
-                                            : <><Play className="w-2.5 h-2.5 fill-current" /> Tour</>
-                                        }
+                                        {isPlaying ? (
+                                            /* SVG progress ring wrapping stop square */
+                                            <div className="relative w-3.5 h-3.5 flex items-center justify-center">
+                                                <svg
+                                                    className="absolute inset-0 w-full h-full -rotate-90"
+                                                    viewBox="0 0 36 36"
+                                                >
+                                                    {/* Background track */}
+                                                    <circle
+                                                        cx="18" cy="18" r="14"
+                                                        fill="none"
+                                                        stroke="rgba(255,255,255,0.3)"
+                                                        strokeWidth="4"
+                                                    />
+                                                    {/* Animated fill ring */}
+                                                    <circle
+                                                        cx="18" cy="18" r="14"
+                                                        fill="none"
+                                                        stroke="white"
+                                                        strokeWidth="4"
+                                                        strokeLinecap="round"
+                                                        strokeDasharray={RING_C}
+                                                        strokeDashoffset={ringOffset}
+                                                        style={{ transition: 'stroke-dashoffset 75ms linear' }}
+                                                    />
+                                                </svg>
+                                                {/* Tiny stop square centred inside ring */}
+                                                <Square className="w-1.5 h-1.5 fill-current relative z-10" />
+                                            </div>
+                                        ) : (
+                                            <Play className="w-2.5 h-2.5 fill-current" />
+                                        )}
+                                        {isPlaying ? 'Stop' : 'Tour'}
                                     </button>
                                 </div>
 
-                                {/* Project cards for this community */}
+                                {/* Project cards */}
                                 {commProjects.map((project, idx) => renderCard(project, idx))}
                             </React.Fragment>
                         );
