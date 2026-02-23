@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { Project, Landmark, ClientPresentation } from '../types';
-import AdminDashboard from './AdminDashboard';
-import ProjectSidebar from './ProjectSidebar';
+const AdminDashboard = React.lazy(() => import('./AdminDashboard'));
+const ProjectSidebar = React.lazy(() => import('./ProjectSidebar'));
 import FloatingMapTools from './FloatingMapTools';
 import MapStyleSwitcher from './MapStyleSwitcher';
 import BottomControlBar from './BottomControlBar';
@@ -139,18 +139,24 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-900 font-sans relative">
 
       {isAdminOpen && (
-        <AdminDashboard
-          onClose={() => setIsAdminOpen(false)}
-          liveProjects={liveProjects}
-          setLiveProjects={setLiveProjects}
-          liveLandmarks={liveLandmarks}
-          setLiveLandmarks={setLiveLandmarks}
-          mapFeatures={mapFeatures}
-          setMapFeatures={setMapFeatures}
-          showWelcomeBanner={showWelcomeBanner}
-          cameraDuration={cameraDuration}
-          onLaunchPresentation={props.onLaunchPresentation}
-        />
+        <Suspense fallback={
+          <div className="fixed inset-0 z-[10001] bg-slate-50/98 flex items-center justify-center">
+            <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+          </div>
+        }>
+          <AdminDashboard
+            onClose={() => setIsAdminOpen(false)}
+            liveProjects={liveProjects}
+            setLiveProjects={setLiveProjects}
+            liveLandmarks={liveLandmarks}
+            setLiveLandmarks={setLiveLandmarks}
+            mapFeatures={mapFeatures}
+            setMapFeatures={setMapFeatures}
+            showWelcomeBanner={showWelcomeBanner}
+            cameraDuration={cameraDuration}
+            onLaunchPresentation={props.onLaunchPresentation}
+          />
+        </Suspense>
       )}
 
       {isRefreshing && (
@@ -207,22 +213,28 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
       {/* Analysis Sidebar */}
       {isAnalysisOpen && selectedProject && (
         <div className="absolute top-0 right-0 bottom-[76px] w-full md:w-[380px] z-[5000] shadow-2xl bg-white transition-transform transform translate-x-0 border-l border-slate-200 overflow-hidden flex flex-col">
-          <ProjectSidebar
-            project={selectedProject}
-            onClose={() => {
-              setIsAnalysisOpen(false);
-              onCloseProject();
-            }}
-            onDiscoverNeighborhood={onDiscoverNeighborhood}
-            onQuickFilter={onQuickFilter}
-            setSelectedCity={setSelectedCity}
-            setFullscreenImage={setFullscreenImage}
-            activeIsochrone={activeIsochrone}
-            setActiveIsochrone={setActiveIsochrone}
-            nearbyLandmarks={liveLandmarks}
-            onFlyTo={onFlyTo}
-            setShowNearbyPanel={setShowNearbyPanel}
-          />
+          <Suspense fallback={
+            <div className="h-full flex items-center justify-center bg-white">
+              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            </div>
+          }>
+            <ProjectSidebar
+              project={selectedProject}
+              onClose={() => {
+                setIsAnalysisOpen(false);
+                onCloseProject();
+              }}
+              onDiscoverNeighborhood={onDiscoverNeighborhood}
+              onQuickFilter={onQuickFilter}
+              setSelectedCity={setSelectedCity}
+              setFullscreenImage={setFullscreenImage}
+              activeIsochrone={activeIsochrone}
+              setActiveIsochrone={setActiveIsochrone}
+              nearbyLandmarks={liveLandmarks}
+              onFlyTo={onFlyTo}
+              setShowNearbyPanel={setShowNearbyPanel}
+            />
+          </Suspense>
         </div>
       )}
 

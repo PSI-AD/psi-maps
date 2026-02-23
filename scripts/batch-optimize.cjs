@@ -1,11 +1,5 @@
 /**
- * PSI MAPS - BATCH IMAGE OPTIMIZER
- * * HOW TO RUN THIS LOCALLY:
- * 1. Open your terminal in this project folder.
- * 2. Run: npm install firebase-admin sharp axios
- * 3. Go to Firebase Console -> Project Settings -> Service Accounts -> Generate New Private Key.
- * 4. Save the downloaded JSON file in this `scripts` folder and name it `service-account.json`.
- * 5. Run the script: node scripts/batch-optimize.cjs
+ * PSI MAPS - BATCH IMAGE OPTIMIZER (STRICT SEO NAMING EDITION)
  */
 
 const admin = require('firebase-admin');
@@ -14,33 +8,31 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 
-// Helper to create clean, SEO-friendly strings
 const sanitize = (str) => {
     if (!str) return 'unknown';
     return str.toString().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 };
 
-// 1. Initialize Firebase Admin
 const serviceAccountPath = path.join(__dirname, 'service-account.json');
 if (!fs.existsSync(serviceAccountPath)) {
-    console.error("❌ ERROR: service-account.json not found in the scripts folder.");
-    console.log("Please download it from Firebase Console -> Project Settings -> Service Accounts.");
+    console.error("❌ ERROR: service-account.json not found.");
     process.exit(1);
 }
 
 const serviceAccount = require(serviceAccountPath);
 
-// CORRECT BUCKET NAME APPLIED HERE
-admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    storageBucket: "psimaps-pro.firebasestorage.app"
-});
+if (!admin.apps.length) {
+    admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        storageBucket: "psimaps-pro.firebasestorage.app"
+    });
+}
 
 const db = admin.firestore();
 const bucket = admin.storage().bucket();
 
 async function optimizeImages() {
-    console.log("🚀 Starting Batch Image Optimization...");
+    console.log("🚀 Starting Full Gallery Batch Optimization (Strict SEO Naming)...");
 
     try {
         const projectsSnapshot = await db.collection('projects').get();
@@ -51,73 +43,95 @@ async function optimizeImages() {
         for (const doc of projectsSnapshot.docs) {
             const data = doc.data();
             const rawImages = data.generalImages || data.featuredImages || [];
-            const mainImageUrl = rawImages[0]?.imageURL || data.thumbnailUrl;
 
-            // Skip if no image, or if it's already an optimized webp
-            if (!mainImageUrl || mainImageUrl.includes('optimized%2F') || mainImageUrl.includes('.webp')) {
-                continue;
+            if (rawImages.length === 0 && !data.thumbnailUrl) continue;
+
+            const safeName = sanitize(data.name || data.propertyName);
+
+            // SMART CHECK: Check if the gallery exists AND if it has the sloppy naming.
+            // If it DOES NOT have the project name in the file URL, we must fix it.
+            const isAlreadyClean = data.optimizedGallery &&
+                data.optimizedGallery.length > 0 &&
+                data.optimizedGallery[0].thumb.includes(`${safeName}-`);
+
+            if (isAlreadyClean) {
+                continue; // Skip because it already has the perfect SEO name
             }
 
-            console.log(`⏳ Processing: ${data.name || doc.id}`);
+            const safeCommunity = sanitize(data.community);
+            const safeCity = sanitize(data.city);
+            const safeDeveloper = sanitize(data.developerName || data.masterDeveloper || data.Developer);
+            const dateStr = new Date().toISOString().split('T')[0];
 
-            try {
-                const response = await axios({ url: mainImageUrl, responseType: 'arraybuffer' });
-                const imageBuffer = Buffer.from(response.data, 'binary');
+            // The FULL SEO String
+            const baseName = `${safeName}-${safeCommunity}-${safeCity}-${safeDeveloper}-${dateStr}`;
+            const folderPath = `optimized/${safeName}`;
 
-                const safeName = sanitize(data.name || data.propertyName);
-                const safeCommunity = sanitize(data.community);
-                const safeCity = sanitize(data.city);
-                const safeDeveloper = sanitize(data.developerName || data.masterDeveloper || data.Developer);
-                const dateStr = new Date().toISOString().split('T')[0];
+            console.log(`\n⏳ Processing Project: ${data.name || doc.id}`);
 
-                const folderPath = `optimized/${safeName}`;
-                const baseName = `${safeName}-${safeCommunity}-${safeCity}-${safeDeveloper}-${dateStr}`;
+            let optimizedGallery = [];
+            let mainThumb = data.thumbnailUrl;
+            let mainResponsive = data.responsiveMedia || null;
 
-                const sizes = [
-                    { name: 'thumb', width: 400 },
-                    { name: 'medium', width: 800 },
-                    { name: 'large', width: 1200 }
-                ];
+            const imagesToProcess = rawImages.slice(0, 10);
 
-                const publicUrls = {};
+            for (let i = 0; i < imagesToProcess.length; i++) {
+                const imgUrl = imagesToProcess[i]?.imageURL || imagesToProcess[i];
+                if (!imgUrl || typeof imgUrl !== 'string' || imgUrl.includes('optimized%2F')) continue;
 
-                for (const size of sizes) {
-                    const optimizedBuffer = await sharp(imageBuffer)
-                        .resize({ width: size.width, withoutEnlargement: true })
-                        .webp({ quality: 80 })
-                        .toBuffer();
+                try {
+                    console.log(`  -> Downloading image ${i + 1}/${imagesToProcess.length}...`);
+                    const response = await axios({ url: imgUrl, responseType: 'arraybuffer' });
+                    const imageBuffer = Buffer.from(response.data, 'binary');
 
-                    const fileName = `${folderPath}/${baseName}-${size.name}.webp`;
-                    const file = bucket.file(fileName);
+                    // STRICT NAMING APPLIED HERE (Starting at 1 instead of 0 for clean numbering)
+                    const imageIndex = i + 1;
+                    const thumbFileName = `${folderPath}/${baseName}-gallery-${imageIndex}-thumb.webp`;
+                    const largeFileName = `${folderPath}/${baseName}-gallery-${imageIndex}-large.webp`;
 
-                    await file.save(optimizedBuffer, {
-                        metadata: { contentType: 'image/webp' }
-                    });
+                    const thumbBuffer = await sharp(imageBuffer).resize({ width: 400, withoutEnlargement: true }).webp({ quality: 80 }).toBuffer();
+                    const thumbFile = bucket.file(thumbFileName);
+                    await thumbFile.save(thumbBuffer, { metadata: { contentType: 'image/webp' } });
+                    const thumbPublicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(thumbFileName)}?alt=media`;
 
-                    publicUrls[size.name] = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileName)}?alt=media`;
-                }
+                    const largeBuffer = await sharp(imageBuffer).resize({ width: 1200, withoutEnlargement: true }).webp({ quality: 85 }).toBuffer();
+                    const largeFile = bucket.file(largeFileName);
+                    await largeFile.save(largeBuffer, { metadata: { contentType: 'image/webp' } });
+                    const largePublicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(largeFileName)}?alt=media`;
 
-                await doc.ref.update({
-                    thumbnailUrl: publicUrls.thumb, // Keeps existing UI working
-                    responsiveMedia: {
-                        thumb: publicUrls.thumb,
-                        medium: publicUrls.medium,
-                        large: publicUrls.large
+                    optimizedGallery.push({ thumb: thumbPublicUrl, large: largePublicUrl });
+
+                    if (i === 0) {
+                        const mediumFileName = `${folderPath}/${baseName}-gallery-${imageIndex}-medium.webp`;
+                        const mediumBuffer = await sharp(imageBuffer).resize({ width: 800, withoutEnlargement: true }).webp({ quality: 80 }).toBuffer();
+                        const mediumFile = bucket.file(mediumFileName);
+                        await mediumFile.save(mediumBuffer, { metadata: { contentType: 'image/webp' } });
+                        const mediumPublicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(mediumFileName)}?alt=media`;
+
+                        mainThumb = thumbPublicUrl;
+                        mainResponsive = { thumb: thumbPublicUrl, medium: mediumPublicUrl, large: largePublicUrl };
                     }
+
+                } catch (err) {
+                    console.error(`  ⚠️ Failed image ${i + 1}: ${err.message}`);
+                }
+            }
+
+            if (optimizedGallery.length > 0) {
+                await doc.ref.update({
+                    thumbnailUrl: mainThumb,
+                    responsiveMedia: mainResponsive,
+                    optimizedGallery: optimizedGallery
                 });
-
-                console.log(`✅ Success: ${data.name || doc.id} optimized (3 sizes) and updated.`);
+                console.log(`✅ Success: ${data.name || doc.id} folder populated with PERFECT SEO naming.`);
                 processedCount++;
-
-            } catch (imgError) {
-                console.error(`⚠️ Failed to process image for ${data.name || doc.id}:`, imgError.message);
             }
         }
 
-        console.log(`🎉 Optimization Complete! Successfully processed ${processedCount} images.`);
+        console.log(`\n🎉 Complete! Fixed and upgraded ${processedCount} projects to full SEO responsive galleries.`);
 
     } catch (error) {
-        console.error("❌ Fatal Error during optimization:", error);
+        console.error("❌ Fatal Error:", error);
     }
 }
 
