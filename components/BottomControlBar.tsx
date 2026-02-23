@@ -131,6 +131,13 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
         setSelectedCity(val);
         setSelectedCommunity('');
         setDeveloperFilter('All');
+
+        if (val) {
+            const cityProjects = projects.filter(p => p.city?.toLowerCase() === val.toLowerCase());
+            if (cityProjects.length > 0) handleFitBounds(cityProjects);
+        } else {
+            handleFitBounds(projects);
+        }
     };
 
     // ── Community handler ───────────

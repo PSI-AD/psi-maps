@@ -130,8 +130,12 @@ const App: React.FC = () => {
     if (!mapRef.current) return;
     const defaultBounds: [number, number, number, number] = [51.5, 22.5, 56.5, 26.0];
 
+    const uiPadding = typeof window !== 'undefined' && window.innerWidth > 768
+      ? { top: 80, bottom: 80, left: 420, right: 80 }
+      : { top: 80, bottom: 300, left: 40, right: 40 };
+
     if (isDefault || !projectsToFit.length) {
-      mapRef.current.getMap().fitBounds(defaultBounds, { padding: 50, duration: 1500 });
+      mapRef.current.getMap().fitBounds(defaultBounds, { padding: uiPadding, duration: 1500 });
       return;
     }
 
@@ -154,14 +158,14 @@ const App: React.FC = () => {
     }
 
     if (!validProjects.length) {
-      mapRef.current.getMap().fitBounds(defaultBounds, { padding: 50, duration: 1500 });
+      mapRef.current.getMap().fitBounds(defaultBounds, { padding: uiPadding, duration: 1500 });
       return;
     }
 
     const lats = validProjects.map(p => Number(p.latitude));
     const lngs = validProjects.map(p => Number(p.longitude));
     const bbox: [number, number, number, number] = [Math.min(...lngs), Math.min(...lats), Math.max(...lngs), Math.max(...lats)];
-    mapRef.current.getMap().fitBounds(bbox, { padding: 80, duration: 1200, maxZoom: 15 });
+    mapRef.current.getMap().fitBounds(bbox, { padding: uiPadding, duration: 1200, maxZoom: 15 });
   };
 
   const handleLocationSelect = async (locationType: 'city' | 'community', locationName: string, projectsInLocation: Project[]) => {
@@ -180,7 +184,10 @@ const App: React.FC = () => {
           if (geojson) {
             setActiveBoundary(geojson);
             const bbox = turf.bbox(geojson) as [number, number, number, number];
-            mapRef.current?.getMap().fitBounds(bbox, { padding: 80, duration: 1500 });
+            const uiPadding = typeof window !== 'undefined' && window.innerWidth > 768
+              ? { top: 80, bottom: 80, left: 420, right: 80 }
+              : { top: 80, bottom: 300, left: 40, right: 40 };
+            mapRef.current?.getMap().fitBounds(bbox, { padding: uiPadding, duration: 1500 });
             return;
           }
         } catch (e) { console.error(e); }
