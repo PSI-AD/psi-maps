@@ -156,6 +156,13 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
     // Isochrone drive-time polygon state
     const [isochroneGeoJSON, setIsochroneGeoJSON] = useState<any>(null);
 
+    // Defer heavy React DOM markers so initial paint + map GL tiles get priority
+    const [markersReady, setMarkersReady] = useState(false);
+    useEffect(() => {
+        const timer = setTimeout(() => setMarkersReady(true), 800);
+        return () => clearTimeout(timer);
+    }, []);
+
     useEffect(() => {
         if (activeIsochrone && selectedProject) {
             const { mode, minutes } = activeIsochrone;
@@ -313,12 +320,13 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                 <Layer {...unclusteredLabelLayer} />
             </Source>
 
-            {filteredAmenities.map(amenity => (
+            {/* Amenity markers — deferred 800ms to unblock initial paint */}
+            {markersReady && filteredAmenities.map(amenity => (
                 <AmenityMarker key={amenity.id} amenity={amenity} onClick={() => onLandmarkClick(amenity)} onMouseEnter={() => setHoveredLandmarkId(amenity.id)} onMouseLeave={() => setHoveredLandmarkId(null)} />
             ))}
 
-            {/* Gold bounce marker for active reverse-search landmark */}
-            {selectedLandmarkForSearch &&
+            {/* Gold bounce marker for active reverse-search landmark — deferred */}
+            {markersReady && selectedLandmarkForSearch &&
                 !isNaN(Number(selectedLandmarkForSearch.longitude)) &&
                 !isNaN(Number(selectedLandmarkForSearch.latitude)) && (
                     <Marker
