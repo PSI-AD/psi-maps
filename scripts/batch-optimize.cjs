@@ -61,40 +61,52 @@ async function optimizeImages() {
             console.log(`⏳ Processing: ${data.name || doc.id}`);
 
             try {
-                // Download image
                 const response = await axios({ url: mainImageUrl, responseType: 'arraybuffer' });
                 const imageBuffer = Buffer.from(response.data, 'binary');
 
-                // Compress with Sharp
-                const optimizedBuffer = await sharp(imageBuffer)
-                    .resize({ width: 600, withoutEnlargement: true })
-                    .webp({ quality: 80 })
-                    .toBuffer();
-
-                // Generate clean SEO filename including City
                 const safeName = sanitize(data.name || data.propertyName);
                 const safeCommunity = sanitize(data.community);
                 const safeCity = sanitize(data.city);
                 const safeDeveloper = sanitize(data.developerName || data.masterDeveloper || data.Developer);
                 const dateStr = new Date().toISOString().split('T')[0];
 
-                const fileName = `optimized/${safeName}-${safeCommunity}-${safeCity}-${safeDeveloper}-${dateStr}-optimized.webp`;
-                const file = bucket.file(fileName);
+                const folderPath = `optimized/${safeName}`;
+                const baseName = `${safeName}-${safeCommunity}-${safeCity}-${safeDeveloper}-${dateStr}`;
 
-                // Upload to Firebase Storage - REMOVED public: true to comply with Bucket Security
-                await file.save(optimizedBuffer, {
-                    metadata: { contentType: 'image/webp' }
-                });
+                const sizes = [
+                    { name: 'thumb', width: 400 },
+                    { name: 'medium', width: 800 },
+                    { name: 'large', width: 1200 }
+                ];
 
-                // Get public URL
-                const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileName)}?alt=media`;
+                const publicUrls = {};
 
-                // Update Firestore
+                for (const size of sizes) {
+                    const optimizedBuffer = await sharp(imageBuffer)
+                        .resize({ width: size.width, withoutEnlargement: true })
+                        .webp({ quality: 80 })
+                        .toBuffer();
+
+                    const fileName = `${folderPath}/${baseName}-${size.name}.webp`;
+                    const file = bucket.file(fileName);
+
+                    await file.save(optimizedBuffer, {
+                        metadata: { contentType: 'image/webp' }
+                    });
+
+                    publicUrls[size.name] = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileName)}?alt=media`;
+                }
+
                 await doc.ref.update({
-                    thumbnailUrl: publicUrl
+                    thumbnailUrl: publicUrls.thumb, // Keeps existing UI working
+                    responsiveMedia: {
+                        thumb: publicUrls.thumb,
+                        medium: publicUrls.medium,
+                        large: publicUrls.large
+                    }
                 });
 
-                console.log(`✅ Success: ${data.name || doc.id} optimized and updated.`);
+                console.log(`✅ Success: ${data.name || doc.id} optimized (3 sizes) and updated.`);
                 processedCount++;
 
             } catch (imgError) {
