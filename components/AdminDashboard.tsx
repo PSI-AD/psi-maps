@@ -51,6 +51,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
   const [mapModalViewState, setMapModalViewState] = useState({ longitude: 54.39, latitude: 24.49, zoom: 13 });
   const [mapSearchQuery, setMapSearchQuery] = useState('');
   const [mapSearchResults, setMapSearchResults] = useState<any[]>([]);
+  const [mapSearchLoading, setMapSearchLoading] = useState(false);
+  const mapSearchRef = useRef<HTMLDivElement>(null);
+  const mapSearchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Nearbys CMS Filters
   const [nearbysCategoryFilter, setNearbysCategoryFilter] = useState<string>('All');
@@ -101,17 +104,26 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
     } catch { return dateStr; }
   };
 
-  const fetchMapSuggestions = async (query: string) => {
+  const fetchMapSuggestions = (query: string) => {
     setMapSearchQuery(query);
-    if (!query.trim()) { setMapSearchResults([]); return; }
-    try {
-      const proximity = `${mapModalViewState.longitude},${mapModalViewState.latitude}`;
-      const res = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${PUBLIC_MAPBOX_TOKEN}&country=ae&proximity=${proximity}&types=poi,address,neighborhood,locality,place`
-      );
-      const data = await res.json();
-      setMapSearchResults(data.features || []);
-    } catch (e) { console.error('Geocoding error', e); }
+    if (mapSearchDebounceRef.current) clearTimeout(mapSearchDebounceRef.current);
+    if (!query.trim()) { setMapSearchResults([]); setMapSearchLoading(false); return; }
+    setMapSearchLoading(true);
+    mapSearchDebounceRef.current = setTimeout(async () => {
+      try {
+        const proximity = `${mapModalViewState.longitude},${mapModalViewState.latitude}`;
+        const res = await fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${PUBLIC_MAPBOX_TOKEN}&country=ae&proximity=${proximity}&types=poi,address,neighborhood,locality,place&limit=6`
+        );
+        const data = await res.json();
+        setMapSearchResults(data.features || []);
+      } catch (e) {
+        console.error('Geocoding error', e);
+        setMapSearchResults([]);
+      } finally {
+        setMapSearchLoading(false);
+      }
+    }, 300);
   };
 
   const handleSelectSearchResult = (feature: any) => {
@@ -120,6 +132,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
     setMapModalViewState({ longitude: lng, latitude: lat, zoom: 16 });
     setMapSearchQuery(feature.place_name);
     setMapSearchResults([]);
+  };
+
+  const clearMapSearch = () => {
+    setMapSearchQuery('');
+    setMapSearchResults([]);
+    setMapSearchLoading(false);
+    if (mapSearchDebounceRef.current) clearTimeout(mapSearchDebounceRef.current);
   };
 
   const filteredLandmarks = useMemo(() => {
@@ -1051,27 +1070,46 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
 
             {/* Map + Autocomplete */}
             <div className="relative flex-1 overflow-hidden">
-              {/* Floating autocomplete bar */}
-              <div className="absolute top-4 left-1/2 -translate-x-1/2 w-full max-w-md z-10 px-4">
+              {/* Floating smart search bar */}
+              <div ref={mapSearchRef} className="absolute top-4 left-1/2 -translate-x-1/2 w-full max-w-lg z-10 px-4">
                 <div className="relative">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                  {/* Search icon / spinner */}
+                  {mapSearchLoading
+                    ? <div className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin pointer-events-none" />
+                    : <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                  }
+
                   <input
                     type="text"
-                    placeholder="Search location… (Autocomplete)"
+                    placeholder="Search for a location (e.g. Dubai Mall, Saadiyat Island)…"
                     value={mapSearchQuery}
                     onChange={e => fetchMapSuggestions(e.target.value)}
-                    className="w-full h-14 bg-white border border-slate-200 rounded-2xl pl-12 pr-4 text-base text-slate-800 font-bold outline-none focus:ring-4 focus:ring-blue-500/20 shadow-lg"
+                    onKeyDown={e => { if (e.key === 'Escape') clearMapSearch(); }}
+                    className="w-full h-14 bg-white border border-slate-200 rounded-2xl pl-12 pr-10 text-base text-slate-800 font-bold outline-none focus:ring-4 focus:ring-blue-500/20 shadow-lg placeholder:font-normal placeholder:text-slate-400"
                   />
+
+                  {/* Clear button */}
+                  {mapSearchQuery && (
+                    <button
+                      onClick={clearMapSearch}
+                      aria-label="Clear search"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+
+                  {/* Results dropdown */}
                   {mapSearchResults.length > 0 && (
-                    <div className="absolute top-full left-0 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-2xl overflow-hidden max-h-64 overflow-y-auto">
+                    <div className="absolute top-full left-0 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-2xl overflow-hidden max-h-72 overflow-y-auto">
                       {mapSearchResults.map((res: any) => (
                         <button
                           key={res.id}
                           onClick={() => handleSelectSearchResult(res)}
-                          className="w-full text-left px-5 py-3.5 hover:bg-blue-50 border-b border-slate-50 last:border-0 text-sm font-medium text-slate-700 transition-colors"
+                          className="w-full text-left px-5 py-3.5 hover:bg-blue-50 border-b border-slate-50 last:border-0 transition-colors group"
                         >
-                          <span className="font-bold text-slate-900 block truncate">{res.text}</span>
-                          <span className="text-xs text-slate-400 truncate">{res.place_name}</span>
+                          <span className="font-black text-slate-900 block truncate text-sm group-hover:text-blue-700">{res.text}</span>
+                          <span className="text-[11px] text-slate-400 truncate block">{res.place_name}</span>
                         </button>
                       ))}
                     </div>
