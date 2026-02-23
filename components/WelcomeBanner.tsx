@@ -18,15 +18,11 @@ const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ show }) => {
         setIsHidden(false);
         setIsFading(false);
 
-        // Start fading out after 3 seconds
-        const fadeTimer = setTimeout(() => {
-            setIsFading(true);
-        }, 3000);
+        // Start fading out after 5 seconds
+        const fadeTimer = setTimeout(() => setIsFading(true), 5000);
 
-        // Unmount completely after 4 seconds (allows 1s for fade transition)
-        const hideTimer = setTimeout(() => {
-            setIsHidden(true);
-        }, 4000);
+        // Unmount completely after 6 seconds (allows 1s for fade transition)
+        const hideTimer = setTimeout(() => setIsHidden(true), 6000);
 
         return () => {
             clearTimeout(fadeTimer);
@@ -38,26 +34,25 @@ const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ show }) => {
 
     return (
         <div className={`fixed inset-0 z-[1500] pointer-events-none transition-opacity duration-1000 ease-in-out ${isFading ? 'opacity-0' : 'opacity-100'}`}>
-            {/* Positioned over the water (Top-Left quadrant: top-[12%] left-[5%]) */}
-            <div className="absolute top-[12%] left-[5%] flex flex-col items-start">
+            <div className="absolute top-[10%] left-1/2 -translate-x-1/2 md:top-[15%] md:left-[8%] md:translate-x-0 flex flex-col items-center md:items-start w-[90%] md:max-w-lg z-50">
 
-                {/* Main Logo - Doubled Size */}
+                {/* Main Logo - Responsive Size */}
                 <div className="mb-2 drop-shadow-[0_10px_15px_rgba(0,0,0,0.6)]">
                     <img
                         src="/psi-logo.png"
                         alt="PSI Logo"
-                        className="h-80 md:h-[28rem] w-auto object-contain"
+                        className="h-28 sm:h-32 md:h-48 lg:h-56 w-auto object-contain drop-shadow-[0_10px_15px_rgba(0,0,0,0.6)]"
                         onError={(e) => { e.currentTarget.style.display = 'none'; }}
                     />
                 </div>
 
                 {/* Presents Text */}
-                <p className="text-sm md:text-base font-bold text-white/90 tracking-[0.4em] uppercase ml-6 mb-4 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                <p className="text-sm md:text-base font-bold text-white/90 tracking-[0.4em] uppercase mb-4 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] text-center md:text-left">
                     PRESENTS
                 </p>
 
                 {/* Message with Favicon Pin */}
-                <div className="flex items-center gap-3 ml-6 drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)]">
+                <div className="flex items-center justify-center md:justify-start gap-3 drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)] text-center md:text-left">
                     <img
                         src="/favicon.svg"
                         alt="PSI Pin"

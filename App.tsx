@@ -57,16 +57,26 @@ const App: React.FC = () => {
   const [hoveredLandmarkId, setHoveredLandmarkId] = useState<string | null>(null);
   const [activeIsochrone, setActiveIsochrone] = useState<{ mode: 'driving' | 'walking'; minutes: number } | null>(null);
   const [showNearbyPanel, setShowNearbyPanel] = useState(false);
-  const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
   const [selectedLandmarkForSearch, setSelectedLandmarkForSearch] = useState<Landmark | null>(null);
   const [activePresentation, setActivePresentation] = useState<ClientPresentation | null>(null);
+  const [showWelcomeBanner, _setShowWelcomeBanner] = useState(() => {
+    const saved = localStorage.getItem('psi_banner_enabled');
+    return saved !== null ? saved === 'true' : true;
+  });
+
+  const setShowWelcomeBanner = (newValue: boolean) => {
+    _setShowWelcomeBanner(newValue);
+    localStorage.setItem('psi_banner_enabled', String(newValue));
+  };
 
   // Real-time listener: settings/global.showWelcomeBanner
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'settings', 'global'), (snap) => {
       if (snap.exists()) {
         const data = snap.data();
-        setShowWelcomeBanner(data.showWelcomeBanner ?? false);
+        if (data.showWelcomeBanner !== undefined) {
+          setShowWelcomeBanner(data.showWelcomeBanner);
+        }
         setCameraDuration(data.cameraDuration ?? 2000);
       }
     });

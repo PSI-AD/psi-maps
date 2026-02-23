@@ -81,10 +81,9 @@ async function optimizeImages() {
                 const fileName = `optimized/${safeName}-${safeCommunity}-${safeCity}-${safeDeveloper}-${dateStr}-optimized.webp`;
                 const file = bucket.file(fileName);
 
-                // Upload to Firebase Storage
+                // Upload to Firebase Storage - REMOVED public: true to comply with Bucket Security
                 await file.save(optimizedBuffer, {
-                    metadata: { contentType: 'image/webp' },
-                    public: true
+                    metadata: { contentType: 'image/webp' }
                 });
 
                 // Get public URL
