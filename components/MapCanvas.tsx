@@ -215,13 +215,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                 if (features.length > 0) handleLayerClick(e);
                 else onClick(e);
             }}
-            cursor={hoveredProject ? 'pointer' : 'auto'}
-            onMouseEnter={(e) => {
-                if (['unclustered-point', 'unclustered-point-hit'].includes(e.features?.[0]?.layer.id ?? '')) {
-                    setHoveredProjectId(e.features[0].properties?.id);
-                }
-            }}
-            onMouseLeave={() => setHoveredProjectId(null)}
+            cursor="pointer"
         >
             <AttributionControl position="bottom-left" />
             <NavigationControl position="top-right" showCompass={false} style={{ marginTop: '20px' }} />
@@ -291,19 +285,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                         'circle-color-transition': { duration: 300 }
                     }}
                 />
-                <Layer
-                    id="hovered-point"
-                    type="circle"
-                    source="projects"
-                    filter={['==', ['get', 'id'], hoveredProjectId || '']}
-                    paint={{
-                        'circle-color': '#60a5fa',
-                        'circle-radius': 12,
-                        'circle-stroke-width': 3,
-                        'circle-stroke-color': '#ffffff',
-                        'circle-color-transition': { duration: 200 }
-                    }}
-                />
+
                 <Layer
                     id="unclustered-point"
                     type="circle"

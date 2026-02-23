@@ -131,11 +131,12 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
 
     const handleCommunityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const val = e.target.value;
-        const proj = projects.find(p => p.community === val);
+        const proj = projects.find(p => p.community?.toLowerCase() === val.toLowerCase());
         if (proj && proj.city) setSelectedCity(proj.city);
         setSelectedCommunity(val);
+        setDeveloperFilter('All');
         if (handleLocationSelect) {
-            handleLocationSelect('community', val, projects.filter(p => p.community === val));
+            handleLocationSelect('community', val, projects.filter(p => p.community?.toLowerCase() === val.toLowerCase()));
         }
     };
 
@@ -284,12 +285,14 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                                     if (type === 'city') {
                                         setSelectedCity(name);
                                         setSelectedCommunity('');
-                                        handleLocationSelect?.('city', name, projects.filter(p => p.city === name));
+                                        setDeveloperFilter('All');
+                                        handleFitBounds(projects.filter(p => p.city?.toLowerCase() === name.toLowerCase()));
                                     } else {
-                                        const proj = projects.find(p => p.community === name);
+                                        const proj = projects.find(p => p.community?.toLowerCase() === name.toLowerCase());
                                         if (proj?.city) setSelectedCity(proj.city);
                                         setSelectedCommunity(name);
-                                        handleLocationSelect?.('community', name, projects.filter(p => p.community === name));
+                                        setDeveloperFilter('All');
+                                        handleFitBounds(projects.filter(p => p.community?.toLowerCase() === name.toLowerCase()));
                                     }
                                     setIsMobileSearchOpen(false);
                                 }}

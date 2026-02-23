@@ -27,7 +27,6 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
 }) => {
     const scrollRef = useRef<HTMLDivElement>(null);
     const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
-    const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
     // Keep a stable ref to onSelectProject so the interval closure doesn't go stale
     const onSelectRef = useRef(onSelectProject);
     const onFlyToRef = useRef(onFlyTo);
@@ -127,13 +126,12 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [playingCommunity]); // groupedProjects intentionally omitted — data accessed via activeTourRef
 
-    // ── Two-way sync: auto-scroll to hovered / selected project ────────────
+    // ── Auto-scroll to selected project on click ──────────────────────────
     useEffect(() => {
-        const targetId = hoveredProjectId || selectedProjectId;
-        if (!targetId) return;
-        const el = itemRefs.current[targetId];
+        if (!selectedProjectId) return;
+        const el = itemRefs.current[selectedProjectId];
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-    }, [hoveredProjectId, selectedProjectId]);
+    }, [selectedProjectId]);
 
     // Stop tour when the projects list changes (filter change)
     useEffect(() => {
@@ -182,33 +180,19 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
     // ── Single card renderer ────────────────────────────────────────────────
     const renderCard = (project: Project, idx: number) => {
         const isSelected = selectedProjectId === project.id;
-        const isHovered = hoveredProjectId === project.id;
-        const isActive = isSelected || isHovered;
 
         return (
             <div
                 key={project.id}
                 ref={el => { itemRefs.current[project.id] = el; }}
                 onClick={() => onSelectProject(project)}
-                onMouseEnter={() => {
-                    setHoveredProjectId?.(project.id);
-                    const lng = Number(project.longitude), lat = Number(project.latitude);
-                    if (onFlyTo && !isNaN(lng) && !isNaN(lat) && lng !== 0 && lat !== 0) {
-                        if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
-                        hoverTimeout.current = setTimeout(() => onFlyTo(lng, lat, 16), 300);
-                    }
-                }}
-                onMouseLeave={() => {
-                    setHoveredProjectId?.(null);
-                    if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
-                }}
                 className={`
                     shrink-0 w-[82vw] sm:w-[300px] snap-center
                     md:w-full md:shrink-0 md:rounded-none
                     ${idx === 0 ? '' : 'md:border-t md:border-slate-100'}
                     bg-white rounded-2xl p-3 flex gap-3 cursor-pointer
                     transition-all duration-200 border-2
-                    ${isActive
+                    ${isSelected
                         ? 'border-blue-500 shadow-lg shadow-blue-500/15 md:bg-blue-50/60 md:border-0 md:border-l-4 md:border-l-blue-500'
                         : 'border-slate-100 shadow-md hover:border-blue-300 hover:shadow-lg md:border-0 md:border-l-4 md:border-l-transparent hover:md:border-l-blue-300 hover:md:bg-slate-50/60'
                     }
@@ -235,7 +219,7 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
 
                 {/* Info */}
                 <div className="flex flex-col justify-center flex-1 min-w-0 py-0.5">
-                    <h3 className={`text-sm font-black truncate tracking-tight leading-tight transition-colors ${isActive ? 'text-blue-700' : 'text-slate-900'}`}>
+                    <h3 className={`text-sm font-black truncate tracking-tight leading-tight transition-colors ${isSelected ? 'text-blue-700' : 'text-slate-900'}`}>
                         {project.name}
                     </h3>
                     <p className="text-[9px] font-black text-blue-500 uppercase tracking-[0.15em] truncate mt-0.5 mb-1.5">
