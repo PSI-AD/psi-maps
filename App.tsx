@@ -87,9 +87,9 @@ const App: React.FC = () => {
   const hoveredProject = filteredProjects.find(p => p.id === hoveredProjectId) || null;
   const selectedLandmark = filteredAmenities.find(l => l.id === selectedLandmarkId) || null;
 
-  // Only show the top 5 landmarks per category for the selected project when the panel is open
+  // Show top 5 proximity landmarks when a project is selected, or strictly map filters
   const projectSpecificLandmarks = useMemo((): Landmark[] => {
-    if (!selectedProject || !showNearbyPanel) return [];
+    if (!selectedProject) return [];
     const projCoord: [number, number] = [Number(selectedProject.longitude), Number(selectedProject.latitude)];
     const withDist = liveLandmarks
       .filter(l => !l.isHidden && !isNaN(Number(l.latitude)) && !isNaN(Number(l.longitude)))
@@ -316,7 +316,7 @@ const App: React.FC = () => {
         <MapCanvas
           mapRef={mapRef} viewState={viewState} setViewState={setViewState} updateBounds={updateBounds} mapStyle={mapStyle} onClick={handleMapClick}
           drawRef={drawRef} onDrawCreate={e => { setFilterPolygon(e.features[0]); setIsDrawing(false); }} onDrawUpdate={e => setFilterPolygon(e.features[0])} onDrawDelete={() => { setFilterPolygon(null); setIsDrawing(false); }}
-          filteredAmenities={showNearbyPanel ? projectSpecificLandmarks : filteredAmenities}
+          filteredAmenities={selectedProject ? projectSpecificLandmarks : filteredAmenities}
           onMarkerClick={handleMarkerClick} onLandmarkClick={handleLandmarkClick}
           selectedProjectId={selectedProjectId} setHoveredProjectId={setHoveredProjectId} setHoveredLandmarkId={setHoveredLandmarkId}
           selectedLandmark={selectedLandmark} selectedProject={selectedProject} hoveredProject={hoveredProject}

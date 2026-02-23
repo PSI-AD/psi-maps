@@ -10,7 +10,7 @@ interface AmenityMarkerProps {
   onMouseLeave?: () => void;
 }
 
-const categoryConfig: Record<LandmarkCategory, { bg: string; border: string; text: string; icon: React.ReactNode }> = {
+const categoryConfig: Record<string, { bg: string; border: string; text: string; icon: React.ReactNode }> = {
   school: {
     bg: 'bg-emerald-500/10',
     border: 'border-emerald-500',
@@ -62,14 +62,25 @@ const categoryConfig: Record<LandmarkCategory, { bg: string; border: string; tex
       </svg>
     ),
   },
+  hospital: {
+    bg: 'bg-red-500/10',
+    border: 'border-red-500',
+    text: 'text-red-600',
+    icon: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 12h4m-2-2v4" />
+      </svg>
+    ),
+  },
 };
 
 const AmenityMarker: React.FC<AmenityMarkerProps> = ({ amenity, onClick, onMouseEnter, onMouseLeave }) => {
-  const config = categoryConfig[amenity.category];
+  const config = categoryConfig[amenity.category?.toLowerCase()] || categoryConfig['school'];
 
   return (
     <Marker longitude={amenity.longitude} latitude={amenity.latitude} anchor="center" onClick={onClick}>
-      <div 
+      <div
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
         className="group relative flex items-center justify-center cursor-pointer transition-all duration-300 z-0"

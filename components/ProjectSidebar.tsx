@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Project, Landmark } from '../types';
-import { X, MapPin, BedDouble, Bath, Square, Calendar, ArrowRight, Activity, Building, LayoutTemplate, Car, Footprints, Clock, MessageSquare } from 'lucide-react';
+import { X, MapPin, BedDouble, Bath, Square, Calendar, ArrowRight, Activity, Building, LayoutTemplate, Car, Footprints, Clock, MessageSquare, Compass } from 'lucide-react';
 import { getOptimizedImageUrl } from '../utils/imageHelpers';
+import { calculateDistance } from '../utils/geo';
 import TextModal from './TextModal';
 import InquireModal from './InquireModal';
 
@@ -88,6 +89,25 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   // Isochrone local state
   const isoMode = activeIsochrone?.mode ?? 'driving';
   const isoMinutes = activeIsochrone?.minutes ?? 10;
+
+  // Haversine Engine calculation for exact Top 5 proximity
+  const nearbyAmenities = React.useMemo(() => {
+    if (!project.latitude || !project.longitude || nearbyLandmarks.length === 0) return [];
+
+    return nearbyLandmarks
+      .filter(l => !l.isHidden && l.latitude && l.longitude)
+      .map(landmark => {
+        const distance = calculateDistance(
+          Number(project.latitude),
+          Number(project.longitude),
+          Number(landmark.latitude),
+          Number(landmark.longitude)
+        );
+        return { ...landmark, distance };
+      })
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, 5);
+  }, [project.latitude, project.longitude, nearbyLandmarks]);
 
   return (
     <>
@@ -310,13 +330,43 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
               )}
             </div>
 
+            {/* 7. Top 5 Nearby Amenities List */}
+            {nearbyAmenities.length > 0 && (
+              <div>
+                <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
+                  <Compass className="w-4 h-4 mr-2 text-blue-600" />Nearby Amenities
+                </h3>
+                <div className="space-y-3 mb-4">
+                  {nearbyAmenities.map((amenity) => {
+                    const style = categoryStyle[amenity.category.toLowerCase()] || defaultStyle;
+                    return (
+                      <div key={amenity.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-white border border-slate-100 rounded-xl shadow-sm gap-2">
+                        <div className="flex flex-1 min-w-0 items-center gap-3">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${style.bg} ${style.text}`}>
+                            <div className={`w-2.5 h-2.5 rounded-full ${style.dot}`} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-bold text-sm text-slate-800 truncate">{amenity.name}</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{style.label}</p>
+                          </div>
+                        </div>
+                        <div className="sm:text-right shrink-0 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
+                          <p className="text-xs font-black text-slate-700">{amenity.distance.toFixed(2)} km</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* 7. Nearby Amenities — opens the NearbyPanel */}
             <button
               onClick={() => setShowNearbyPanel(true)}
               className="w-full mt-4 mb-2 py-3 bg-slate-50 border border-slate-200 hover:bg-blue-50 hover:border-blue-200 text-blue-700 rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2"
             >
               <MapPin className="w-4 h-4" />
-              View Top Nearby Amenities
+              View All Amenities
             </button>
 
             <div id="sidebar-map-section" />
