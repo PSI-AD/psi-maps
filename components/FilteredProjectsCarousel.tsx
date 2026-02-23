@@ -100,8 +100,8 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
         : groupedProjects;
 
     // Custom interval in ticks (50ms each); community tours use 100 ticks (5s)
-    const targetTicks = isTourMode
-        ? ((activePresentation!.intervalSeconds * 1000) / 50)
+    const presentationTargetTicks = isTourMode && activePresentation
+        ? ((activePresentation.intervalSeconds * 1000) / 50)
         : 100;
 
     // ── Resilient tick-based presentation timer ─────────────────────────────
@@ -109,6 +109,8 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
     // which changes on every map camera move via onBoundsChange → viewportProjects.
     useEffect(() => {
         let ticker: ReturnType<typeof setInterval>;
+
+        const targetTicks = isTourMode && activePresentation ? (activePresentation.intervalSeconds * 1000) / 50 : 100;
 
         if (playingCommunity && activeTourRef.current) {
             ticker = setInterval(() => {
@@ -215,7 +217,7 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
 
     // ── SVG progress ring constants (r=14, circumference = 2π·14 ≈ 87.96 ≈ 88) ──
     const RING_C = 88;
-    const ringOffset = RING_C - (RING_C * playProgress) / targetTicks;
+    const ringOffset = RING_C - (RING_C * playProgress) / presentationTargetTicks;
 
     // ── Single card renderer ────────────────────────────────────────────────
     const renderCard = (project: Project, idx: number) => {

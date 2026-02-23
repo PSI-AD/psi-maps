@@ -138,6 +138,13 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
         const val = e.target.value;
         setSelectedCommunity(val);
         setDeveloperFilter('All');
+        if (val) {
+            const proj = projects.find(p => p.community === val);
+            if (proj?.city) setSelectedCity(proj.city);
+            handleFitBounds(projects.filter(p => p.community === val));
+        } else {
+            handleFitBounds(projects);
+        }
     };
 
     const isAnyFilterActive = propertyType !== 'All' || developerFilter !== 'All' || statusFilter !== 'All';
