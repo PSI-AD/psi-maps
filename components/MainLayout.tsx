@@ -210,6 +210,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
             }}
             onDiscoverNeighborhood={onDiscoverNeighborhood}
             onQuickFilter={onQuickFilter}
+            setSelectedCity={setSelectedCity}
             setFullscreenImage={setFullscreenImage}
             activeIsochrone={activeIsochrone}
             setActiveIsochrone={setActiveIsochrone}

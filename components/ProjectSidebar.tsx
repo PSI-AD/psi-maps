@@ -10,6 +10,7 @@ interface ProjectSidebarProps {
   onClose: () => void;
   onDiscoverNeighborhood: (lat: number, lng: number) => Promise<void>;
   onQuickFilter?: (type: 'community' | 'developer', value: string) => void;
+  setSelectedCity?: (city: string) => void;
   setFullscreenImage: (url: string | null) => void;
   activeIsochrone: { mode: 'driving' | 'walking'; minutes: number } | null;
   setActiveIsochrone: (iso: { mode: 'driving' | 'walking'; minutes: number } | null) => void;
@@ -42,6 +43,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   onClose,
   onDiscoverNeighborhood,
   onQuickFilter,
+  setSelectedCity,
   setFullscreenImage,
   activeIsochrone,
   setActiveIsochrone,
@@ -153,7 +155,13 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                 {project.community}
               </button>
               {project.city && (
-                <><span className="mx-2 text-slate-300">/</span><span className="text-slate-600">{project.city}</span></>
+                <><span className="mx-2 text-slate-300">/</span>
+                  <button
+                    onClick={() => setSelectedCity?.(project.city || '')}
+                    className="text-slate-600 hover:text-blue-800 hover:underline transition-all text-left"
+                  >
+                    {project.city}
+                  </button></>
               )}
             </div>
             <p className="text-sm font-black text-blue-600 uppercase tracking-widest">

@@ -247,6 +247,25 @@ const SearchBar: React.FC<SearchBarProps> = ({
                 value={searchTerm}
                 onChange={handleSearch}
                 onFocus={() => searchTerm.length > 1 && setIsOpen(true)}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const q = searchTerm.toLowerCase().trim();
+                        if (!q) return;
+                        // Cities first, then communities
+                        const cities = Array.from(new Set(projects.map(p => p.city).filter(Boolean))) as string[];
+                        const communities = Array.from(new Set(projects.map(p => p.community).filter(Boolean))) as string[];
+                        const cityMatch = cities.find(c => c.toLowerCase().includes(q));
+                        const commMatch = communities.find(c => c.toLowerCase().includes(q));
+                        if (cityMatch && onSelectLocation) {
+                            onSelectLocation(cityMatch, 'city');
+                            setSearchTerm(''); setIsOpen(false);
+                        } else if (commMatch && onSelectLocation) {
+                            onSelectLocation(commMatch, 'community');
+                            setSearchTerm(''); setIsOpen(false);
+                        }
+                    }
+                }}
                 placeholder="Search property, developer or community…"
                 className="w-full h-12 bg-white/95 backdrop-blur-md border border-slate-200 rounded-full pl-11 pr-10 text-base md:text-sm font-medium text-slate-800 shadow-md outline-none focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-slate-400"
             />
