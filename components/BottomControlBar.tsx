@@ -125,24 +125,21 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
         return Object.entries(counts).sort((a, b) => (b[1] as number) - (a[1] as number));
     }, [projects, selectedCity]);
 
+    // ── Bulletproof city handler — mirrors developer filter simplicity ───────
     const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const val = e.target.value;
         setSelectedCity(val);
         setSelectedCommunity('');
-        if (handleLocationSelect) {
-            const safeCity = val.toLowerCase().trim();
-            handleLocationSelect('city', val, projects.filter(p => p.city?.toLowerCase().trim() === safeCity));
-        }
+        setDeveloperFilter('All');
     };
 
+    // ── Community handler — auto-snaps parent city for visual sync ───────────
     const handleCommunityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const val = e.target.value;
-        const proj = projects.find(p => p.community?.toLowerCase() === val.toLowerCase());
-        if (proj && proj.city) setSelectedCity(proj.city);
         setSelectedCommunity(val);
-        setDeveloperFilter('All');
-        if (handleLocationSelect) {
-            handleLocationSelect('community', val, projects.filter(p => p.community?.toLowerCase() === val.toLowerCase()));
+        if (val) {
+            const proj = projects.find(p => p.community === val);
+            if (proj?.city) setSelectedCity(proj.city.toLowerCase());
         }
     };
 
@@ -184,17 +181,13 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                             }}
                             onSelectLocation={(name, type) => {
                                 if (type === 'city') {
-                                    setSelectedCity(name);
+                                    setSelectedCity(name.toLowerCase());
                                     setSelectedCommunity('');
                                     setDeveloperFilter('All');
-                                    handleFitBounds(projects.filter(p => p.city?.toLowerCase() === name.toLowerCase()));
                                 } else {
-                                    // Community — look up parent city for the city lock
-                                    const proj = projects.find(p => p.community?.toLowerCase() === name.toLowerCase());
-                                    if (proj?.city) setSelectedCity(proj.city);
                                     setSelectedCommunity(name);
-                                    setDeveloperFilter('All');
-                                    handleFitBounds(projects.filter(p => p.community?.toLowerCase() === name.toLowerCase()));
+                                    const proj = projects.find(p => p.community === name);
+                                    if (proj?.city) setSelectedCity(proj.city.toLowerCase());
                                 }
                             }}
                         />
@@ -289,16 +282,13 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                                 }}
                                 onSelectLocation={(name, type) => {
                                     if (type === 'city') {
-                                        setSelectedCity(name);
+                                        setSelectedCity(name.toLowerCase());
                                         setSelectedCommunity('');
                                         setDeveloperFilter('All');
-                                        handleFitBounds(projects.filter(p => p.city?.toLowerCase() === name.toLowerCase()));
                                     } else {
-                                        const proj = projects.find(p => p.community?.toLowerCase() === name.toLowerCase());
-                                        if (proj?.city) setSelectedCity(proj.city);
                                         setSelectedCommunity(name);
-                                        setDeveloperFilter('All');
-                                        handleFitBounds(projects.filter(p => p.community?.toLowerCase() === name.toLowerCase()));
+                                        const proj = projects.find(p => p.community === name);
+                                        if (proj?.city) setSelectedCity(proj.city.toLowerCase());
                                     }
                                     setIsMobileSearchOpen(false);
                                 }}
