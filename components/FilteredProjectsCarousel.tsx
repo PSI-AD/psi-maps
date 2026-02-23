@@ -99,6 +99,9 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
         ? [[TOUR_KEY, presentationProjects as Project[]]]
         : groupedProjects;
 
+    const displayGroupsRef = useRef(displayGroups);
+    useEffect(() => { displayGroupsRef.current = displayGroups; }, [displayGroups]);
+
     // Custom interval in ticks (50ms each); community tours use 100 ticks (5s)
     const presentationTargetTicks = isTourMode && activePresentation
         ? ((activePresentation.intervalSeconds * 1000) / 50)
@@ -117,9 +120,38 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                 setPlayProgress(prev => {
                     if (prev >= targetTicks) {
                         setPlayIndex(curr => {
-                            const tourProjects = activeTourRef.current!.projects;
-                            const next = (curr + 1) % tourProjects.length;
-                            const nextProj = tourProjects[next];
+                            const groups = displayGroupsRef.current;
+                            let nextProj: Project;
+                            let nextProjIdx = curr + 1;
+
+                            if (isTourMode) {
+                                const tourProjects = activeTourRef.current!.projects;
+                                nextProjIdx = nextProjIdx % tourProjects.length;
+                                nextProj = tourProjects[nextProjIdx];
+                            } else {
+                                const currentComm = activeTourRef.current!.community;
+                                const groupIdx = groups.findIndex(g => g[0] === currentComm);
+
+                                if (groupIdx >= 0) {
+                                    const currentGroupProjects = groups[groupIdx][1];
+                                    if (nextProjIdx >= currentGroupProjects.length) {
+                                        // Jump to next group
+                                        const nextGroup = groups[(groupIdx + 1) % groups.length];
+                                        activeTourRef.current = { community: nextGroup[0], projects: nextGroup[1] };
+
+                                        // Safely defer the playing state update
+                                        setTimeout(() => setPlayingCommunity(nextGroup[0]), 0);
+                                        nextProjIdx = 0;
+                                        nextProj = nextGroup[1][0];
+                                    } else {
+                                        nextProj = currentGroupProjects[nextProjIdx];
+                                    }
+                                } else {
+                                    nextProj = activeTourRef.current!.projects[0];
+                                    nextProjIdx = 0;
+                                }
+                            }
+
                             // Defer external mutations to next tick — prevents render clashes
                             setTimeout(() => {
                                 onSelectRef.current(nextProj);
@@ -132,7 +164,8 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                                     behavior: 'smooth', block: 'center', inline: 'center'
                                 });
                             }, 0);
-                            return next;
+
+                            return nextProjIdx;
                         });
                         return 0; // reset progress ring
                     }

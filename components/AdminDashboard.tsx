@@ -26,7 +26,7 @@ interface AdminDashboardProps {
   onLaunchPresentation: (presentation: ClientPresentation) => void;
 }
 
-type TabType = 'general' | 'location' | 'media' | 'settings' | 'nearbys';
+type TabType = 'general' | 'presentations' | 'media' | 'settings' | 'nearbys';
 
 const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
   const { onClose, liveProjects, setLiveProjects, liveLandmarks, setLiveLandmarks, setMapFeatures } = props;
@@ -322,7 +322,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
         <div className="w-full max-w-7xl">
           {/* Main Tab Navigation */}
           <div className="flex gap-4 mb-8 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm sticky top-0 z-[11000] overflow-x-auto hide-scrollbar w-full">
-            {(['general', 'location', 'media', 'nearbys', 'settings'] as TabType[]).map((tab) => (
+            {(['general', 'presentations', 'media', 'nearbys', 'settings'] as TabType[]).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -332,7 +332,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                   }`}
               >
                 {tab === 'nearbys' ? <MapPin className="w-4 h-4" /> : null}
-                {tab === 'general' ? 'Projects' : tab === 'location' ? 'Coordinates' : tab === 'media' ? 'Media' : tab === 'nearbys' ? 'Nearbys CMS' : 'Settings'}
+                {tab === 'general' ? 'Projects' : tab === 'presentations' ? 'Presentations' : tab === 'media' ? 'Media' : tab === 'nearbys' ? 'Nearbys CMS' : 'Settings'}
               </button>
             ))}
           </div>
@@ -640,14 +640,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                   </div>
                 </div>
 
-                {/* ── Client Presentation Builder ── */}
-                <div className="pt-6 border-t border-slate-100">
-                  <h3 className="text-xl font-black text-slate-900 tracking-tight mb-6">Client Presentations</h3>
-                  <PresentationManager
-                    liveProjects={liveProjects}
-                    onLaunchPresentation={props.onLaunchPresentation}
-                  />
-                </div>
+
 
                 <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
                   <div>
@@ -762,6 +755,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                   <ImageIcon className="w-5 h-5" />
                   {isOptimizing ? 'Compressing & Uploading...' : 'Optimize Next 10 Properties'}
                 </button>
+              </section>
+            )}
+
+            {activeTab === 'presentations' && (
+              <section className="animate-in fade-in duration-300">
+                <div className="mb-8">
+                  <h2 className="text-2xl font-black text-slate-900 tracking-tight">Client Presentations</h2>
+                  <p className="text-slate-500 font-medium text-sm mt-1">Build and manage curated cinematic tours of properties for clients.</p>
+                </div>
+                <PresentationManager
+                  liveProjects={liveProjects}
+                  onLaunchPresentation={props.onLaunchPresentation}
+                />
               </section>
             )}
 
