@@ -4,7 +4,8 @@ import { Project } from '../types';
 import { Settings, Filter as FilterIcon, Navigation, X, Pencil, Search, Map } from 'lucide-react';
 
 interface BottomControlBarProps {
-    projects: Project[];
+    projects: Project[];          // full live database — used for building option menus
+    filteredProjects: Project[];  // currently filtered — used for count badges
     onSelectProject: (project: Project) => void;
     onAdminClick: () => void;
     onFlyTo: (lng: number, lat: number, zoom?: number) => void;
@@ -34,6 +35,7 @@ const uaeEmirates = ['abu dhabi', 'dubai', 'sharjah', 'ajman', 'umm al quwain', 
 
 const BottomControlBar: React.FC<BottomControlBarProps> = ({
     projects,
+    filteredProjects,
     onSelectProject,
     onAdminClick,
     onFlyTo,
@@ -62,7 +64,8 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
     const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
 
     const propertyTypeOptions = useMemo(() => {
-        const stats = projects.reduce((acc, p) => {
+        // Count from filteredProjects so badges reflect current filter context
+        const stats = filteredProjects.reduce((acc, p) => {
             const type = p.type ? p.type.charAt(0).toUpperCase() + p.type.slice(1).toLowerCase() : 'Unknown';
             acc[type] = (acc[type] || 0) + 1;
             return acc;
@@ -71,23 +74,26 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
             .filter(([_, count]) => (count as number) > 0)
             .map(([name, count]) => ({ name, count: count as number }))
             .sort((a, b) => (b.count as number) - (a.count as number));
-        return [{ name: 'All', count: projects.length }, ...types];
-    }, [projects]);
+        return [{ name: 'All', count: filteredCount }, ...types];
+    }, [filteredProjects, filteredCount]);
 
     const developerOptions = useMemo(() => {
-        const stats = projects.reduce((acc, p) => {
-            const dev = p.developerName;
-            if (dev && dev !== 'Unknown Developer') {
-                acc[dev] = (acc[dev] || 0) + 1;
+        // Count from filteredProjects; enumerate names from all projects
+        const filteredCounts = filteredProjects.reduce((acc, p) => {
+            if (p.developerName && p.developerName !== 'Unknown Developer') {
+                acc[p.developerName] = (acc[p.developerName] || 0) + 1;
             }
             return acc;
         }, {} as Record<string, number>);
-        const entries = Object.entries(stats)
-            .filter(([_, count]) => (count as number) > 0)
-            .map(([name, count]) => ({ name, count: count as number }))
+        // Build list from full projects so all developers remain available to select
+        const allDevs = Array.from(new Set(projects.map(p => p.developerName).filter(Boolean))) as string[];
+        const entries = allDevs
+            .filter(name => name !== 'Unknown Developer')
+            .map(name => ({ name, count: filteredCounts[name] || 0 }))
+            .filter(d => d.count > 0 || developerFilter === d.name)
             .sort((a, b) => b.count - a.count);
-        return [{ name: 'All', count: projects.length }, ...entries];
-    }, [projects]);
+        return [{ name: 'All', count: filteredCount }, ...entries];
+    }, [filteredProjects, projects, filteredCount, developerFilter]);
 
     const cityOptions = useMemo(() => {
         const stats = projects.reduce((acc, p) => {

@@ -339,6 +339,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
       {/* The New Bottom Dock */}
       <BottomControlBar
         projects={liveProjects}
+        filteredProjects={props.filteredProjects}
         onSelectProject={handleSearchSelect}
         onAdminClick={() => setIsAdminOpen(true)}
         onFlyTo={onFlyTo}
