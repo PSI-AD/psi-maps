@@ -133,14 +133,11 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
         setDeveloperFilter('All');
     };
 
-    // ── Community handler — auto-snaps parent city for visual sync ───────────
+    // ── Community handler ───────────
     const handleCommunityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const val = e.target.value;
         setSelectedCommunity(val);
-        if (val) {
-            const proj = projects.find(p => p.community === val);
-            if (proj?.city) setSelectedCity(proj.city.toLowerCase());
-        }
+        setDeveloperFilter('All');
     };
 
     const isAnyFilterActive = propertyType !== 'All' || developerFilter !== 'All' || statusFilter !== 'All';
@@ -184,10 +181,9 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                                     setSelectedCity(name.toLowerCase());
                                     setSelectedCommunity('');
                                     setDeveloperFilter('All');
-                                } else {
+                                } else if (type === 'community') {
                                     setSelectedCommunity(name);
-                                    const proj = projects.find(p => p.community === name);
-                                    if (proj?.city) setSelectedCity(proj.city.toLowerCase());
+                                    setDeveloperFilter('All');
                                 }
                             }}
                         />
@@ -285,10 +281,9 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                                         setSelectedCity(name.toLowerCase());
                                         setSelectedCommunity('');
                                         setDeveloperFilter('All');
-                                    } else {
+                                    } else if (type === 'community') {
                                         setSelectedCommunity(name);
-                                        const proj = projects.find(p => p.community === name);
-                                        if (proj?.city) setSelectedCity(proj.city.toLowerCase());
+                                        setDeveloperFilter('All');
                                     }
                                     setIsMobileSearchOpen(false);
                                 }}

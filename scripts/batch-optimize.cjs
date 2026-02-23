@@ -18,7 +18,8 @@
  *   • Skips documents that already have an optimized WebP thumbnail.
  *   • Downloads the raw image via HTTP.
  *   • Compresses it to 600 px wide WebP (quality 80) using sharp.
- *   • Uploads the result to Firebase Storage at: optimized/<docId>_thumb.webp
+ *   • Uploads the result to Firebase Storage at:
+ *       optimized/[name]-[city]-[community]-[developer]-[date]-optimized.webp
  *   • Updates `doc.thumbnailUrl` in Firestore with the new public CDN URL.
  * ─────────────────────────────────────────────────────────────────────────────
  */
@@ -52,6 +53,20 @@ const db = admin.firestore();
 const bucket = admin.storage().bucket();
 
 // ── 3. Helpers ───────────────────────────────────────────────────────────────
+
+/**
+ * Converts any string into a web-safe, lowercase, hyphenated slug.
+ *   "Damac Hills 2 (Phase 3)" → "damac-hills-2-phase-3"
+ *   null / undefined           → "unknown"
+ */
+function sanitize(str) {
+    if (!str) return 'unknown';
+    return str
+        .toString()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')   // collapse every non-alphanumeric run to one hyphen
+        .replace(/(^-|-$)/g, '');       // strip leading / trailing hyphens
+}
 
 /**
  * Returns true if a URL already points at an optimized WebP in our pipeline,
@@ -109,7 +124,7 @@ async function optimizeImages() {
                 responseType: 'arraybuffer',
                 timeout: 15_000, // 15 s per image
                 headers: {
-                    // Some CDNs reject requests without a UA
+                    // Some CDNs reject requests without a User-Agent
                     'User-Agent': 'PSI-Maps-Optimizer/1.0',
                 },
             });
@@ -120,10 +135,18 @@ async function optimizeImages() {
                 .webp({ quality: 80 })
                 .toBuffer();
 
-            // — Upload to Firebase Storage ──────────────────────────────────────
-            const storagePath = `optimized/${doc.id}_thumb.webp`;
+            // — Build SEO-friendly filename ─────────────────────────────────────
+            //   Format: [project-name]-[community]-[city]-[developer]-[YYYY-MM-DD]-optimized.webp
+            const safeName = sanitize(data.name || data.propertyName);
+            const safeCommunity = sanitize(data.community);
+            const safeCity = sanitize(data.city);
+            const safeDeveloper = sanitize(data.developerName || data.masterDeveloper || data.Developer);
+            const dateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+            const storagePath = `optimized/${safeName}-${safeCommunity}-${safeCity}-${safeDeveloper}-${dateStr}-optimized.webp`;
             const file = bucket.file(storagePath);
 
+            // — Upload to Firebase Storage ──────────────────────────────────────
             await file.save(optimizedBuffer, {
                 metadata: { contentType: 'image/webp' },
                 public: true,
@@ -140,6 +163,7 @@ async function optimizeImages() {
 
             const kbSaved = ((response.data.byteLength - optimizedBuffer.length) / 1024).toFixed(1);
             console.log(`✅  Done (saved ~${kbSaved} KB):    ${label}`);
+            console.log(`    → ${storagePath}`);
             processed++;
 
         } catch (err) {
