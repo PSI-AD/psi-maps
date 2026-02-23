@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* ── Mapbox Navigation Controls — larger, compass-free ── */
 .mapboxgl-ctrl-group button {
     width: 40px !important;
