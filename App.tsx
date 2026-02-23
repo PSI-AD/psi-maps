@@ -304,7 +304,7 @@ const App: React.FC = () => {
       onLaunchPresentation={(pres) => { setActivePresentation(pres); setIsAdminOpen(false); }}
       onExitPresentation={() => setActivePresentation(null)}
     >
-      <WelcomeBanner show={showWelcomeBanner} />
+      <WelcomeBanner show={showWelcomeBanner} isAppLoading={isRefreshing} />
       <ErrorBoundary>
         <MapCanvas
           mapRef={mapRef} viewState={viewState} setViewState={setViewState} updateBounds={updateBounds} mapStyle={mapStyle} onClick={handleMapClick}

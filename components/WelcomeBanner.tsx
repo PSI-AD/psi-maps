@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 
 interface WelcomeBannerProps {
     show: boolean;
+    isAppLoading?: boolean;
 }
 
-const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ show }) => {
+const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ show, isAppLoading = false }) => {
     const [isFading, setIsFading] = useState(false);
     const [isHidden, setIsHidden] = useState(!show);
 
@@ -14,7 +15,14 @@ const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ show }) => {
             return;
         }
 
-        // Reset states if it shows
+        // Wait for map and data engine to finish loading before we begin counting
+        if (isAppLoading) {
+            setIsHidden(false);
+            setIsFading(false);
+            return;
+        }
+
+        // App fully loaded, lock in visual state and start expiration clocks
         setIsHidden(false);
         setIsFading(false);
 
@@ -28,13 +36,13 @@ const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ show }) => {
             clearTimeout(fadeTimer);
             clearTimeout(hideTimer);
         };
-    }, [show]);
+    }, [show, isAppLoading]);
 
     if (isHidden) return null;
 
     return (
         <div className={`fixed inset-0 z-[1500] pointer-events-none transition-opacity duration-1000 ease-in-out ${isFading ? 'opacity-0' : 'opacity-100'}`}>
-            <div className="absolute top-[10%] left-1/2 -translate-x-1/2 md:top-[15%] md:left-[8%] md:translate-x-0 flex flex-col items-center md:items-start w-[90%] md:max-w-lg z-50">
+            <div className="absolute top-[10%] left-1/2 -translate-x-1/2 md:top-[30%] md:left-[18%] lg:left-[22%] md:translate-x-0 flex flex-col items-center md:items-start w-[90%] md:max-w-lg z-50">
 
                 {/* Main Logo - Responsive Size */}
                 <div className="mb-2 drop-shadow-[0_10px_15px_rgba(0,0,0,0.6)]">
