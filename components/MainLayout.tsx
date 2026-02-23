@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Project, Landmark } from '../types';
+import { Project, Landmark, ClientPresentation } from '../types';
 import AdminDashboard from './AdminDashboard';
 import ProjectSidebar from './ProjectSidebar';
 import FloatingMapTools from './FloatingMapTools';
@@ -63,6 +63,10 @@ interface MainLayoutProps {
   hoveredProjectId: string | null;
   setHoveredProjectId: (id: string | null) => void;
   cameraDuration: number;
+  activePresentation?: ClientPresentation | null;
+  presentationProjects?: Project[] | null;
+  onLaunchPresentation: (pres: ClientPresentation) => void;
+  onExitPresentation: () => void;
 }
 
 const MainLayout: React.FC<MainLayoutProps> = (props) => {
@@ -145,6 +149,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
           setMapFeatures={setMapFeatures}
           showWelcomeBanner={showWelcomeBanner}
           cameraDuration={cameraDuration}
+          onLaunchPresentation={props.onLaunchPresentation}
         />
       )}
 
@@ -326,6 +331,9 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
           hoveredProjectId={hoveredProjectId}
           setHoveredProjectId={setHoveredProjectId}
           onFlyTo={onFlyTo}
+          activePresentation={props.activePresentation}
+          presentationProjects={props.presentationProjects}
+          onExitPresentation={props.onExitPresentation}
           onDismiss={() => {
             setDeveloperFilter('All');
             setStatusFilter('All');

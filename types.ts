@@ -45,3 +45,11 @@ export interface MapViewState {
   longitude: number;
   zoom: number;
 }
+
+export interface ClientPresentation {
+  id: string;
+  title: string;
+  projectIds: string[];
+  intervalSeconds: number;
+  createdAt: string;
+}

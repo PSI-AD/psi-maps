@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useMemo, useState } from 'react';
 import * as turf from '@turf/turf';
-import { Project } from '../types';
+import { Project, ClientPresentation } from '../types';
 import { MapPin, Building, BedDouble, ChevronLeft, ChevronRight, X, Play, Square } from 'lucide-react';
 import { getOptimizedImageUrl } from '../utils/imageHelpers';
 
@@ -13,6 +13,10 @@ interface FilteredProjectsCarouselProps {
     setHoveredProjectId?: (id: string | null) => void;
     onFlyTo?: (lng: number, lat: number, zoom?: number) => void;
     onDismiss?: () => void;
+    // Cinematic presentation mode
+    activePresentation?: ClientPresentation | null;
+    presentationProjects?: Project[] | null;
+    onExitPresentation?: () => void;
 }
 
 const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
@@ -24,6 +28,9 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
     setHoveredProjectId,
     onFlyTo,
     onDismiss,
+    activePresentation,
+    presentationProjects,
+    onExitPresentation,
 }) => {
     const scrollRef = useRef<HTMLDivElement>(null);
     const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -85,6 +92,18 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
         return sortedGroups.sort((a, b) => a[0].localeCompare(b[0]));
     }, [projects]);
 
+    // ── Tour mode override ──────────────────────────────────────────────────
+    const isTourMode = !!activePresentation && !!presentationProjects && presentationProjects.length > 0;
+    const TOUR_KEY = 'Client Presentation';
+    const displayGroups: [string, Project[]][] = isTourMode
+        ? [[TOUR_KEY, presentationProjects as Project[]]]
+        : groupedProjects;
+
+    // Custom interval in ticks (50ms each); community tours use 100 ticks (5s)
+    const targetTicks = isTourMode
+        ? ((activePresentation!.intervalSeconds * 1000) / 50)
+        : 100;
+
     // ── Resilient tick-based presentation timer ─────────────────────────────
     // Uses activeTourRef so the closure doesn't capture groupedProjects,
     // which changes on every map camera move via onBoundsChange → viewportProjects.
@@ -94,7 +113,7 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
         if (playingCommunity && activeTourRef.current) {
             ticker = setInterval(() => {
                 setPlayProgress(prev => {
-                    if (prev >= 100) {
+                    if (prev >= targetTicks) {
                         setPlayIndex(curr => {
                             const tourProjects = activeTourRef.current!.projects;
                             const next = (curr + 1) % tourProjects.length;
@@ -115,7 +134,7 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                         });
                         return 0; // reset progress ring
                     }
-                    return prev + 1; // 1% per 50ms → 5 000ms per project
+                    return prev + 1; // 1 tick per 50ms
                 });
             }, 50);
         } else {
@@ -133,13 +152,34 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     }, [selectedProjectId]);
 
-    // Stop tour when the projects list changes (filter change)
+    // Stop tour when the projects list changes (filter change) — but NOT in tour mode
     useEffect(() => {
-        setPlayingCommunity(null);
-        setPlayProgress(0);
-    }, [projects]);
+        if (!isTourMode) {
+            setPlayingCommunity(null);
+            setPlayProgress(0);
+        }
+    }, [projects, isTourMode]);
 
-    if (!isVisible || projects.length === 0) return null;
+    // Auto-start when entering tour mode
+    useEffect(() => {
+        if (isTourMode && presentationProjects && presentationProjects.length > 0) {
+            const first = presentationProjects[0];
+            activeTourRef.current = { community: TOUR_KEY, projects: presentationProjects };
+            setPlayingCommunity(TOUR_KEY);
+            setPlayIndex(0);
+            setPlayProgress(0);
+            onSelectProject(first);
+            const lng = Number(first.longitude), lat = Number(first.latitude);
+            if (!isNaN(lng) && !isNaN(lat) && lng !== 0 && lat !== 0) onFlyTo?.(lng, lat, 16);
+        } else if (!isTourMode && playingCommunity === TOUR_KEY) {
+            setPlayingCommunity(null);
+            setPlayProgress(0);
+            activeTourRef.current = null;
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isTourMode]);
+
+    if (!isVisible || (projects.length === 0 && !isTourMode)) return null;
 
     const scrollHorizontal = (dir: 'left' | 'right') => {
         scrollRef.current?.scrollBy({ left: dir === 'left' ? -400 : 400, behavior: 'smooth' });
@@ -175,7 +215,7 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
 
     // ── SVG progress ring constants (r=14, circumference = 2π·14 ≈ 87.96 ≈ 88) ──
     const RING_C = 88;
-    const ringOffset = RING_C - (RING_C * playProgress) / 100;
+    const ringOffset = RING_C - (RING_C * playProgress) / targetTicks;
 
     // ── Single card renderer ────────────────────────────────────────────────
     const renderCard = (project: Project, idx: number) => {
@@ -275,26 +315,45 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
             {/* ── Desktop panel header ── */}
             <div className="hidden md:flex items-center justify-between px-5 py-3.5 bg-white/95 backdrop-blur-xl border border-slate-200/80 rounded-t-3xl pointer-events-auto shadow-lg shrink-0">
                 <div>
-                    <p className="text-[9px] font-black text-blue-500 uppercase tracking-[0.2em]">Filtered Results</p>
+                    <p className={`text-[9px] font-black uppercase tracking-[0.2em] ${isTourMode ? 'text-amber-500' : 'text-blue-500'}`}>
+                        {isTourMode ? 'Client Presentation' : 'Filtered Results'}
+                    </p>
                     <h3 className="font-black text-slate-900 tracking-tight text-base">
-                        {projects.length} Propert{projects.length === 1 ? 'y' : 'ies'}
+                        {isTourMode
+                            ? <>{activePresentation!.title} <span className="text-slate-400 font-medium text-sm">({presentationProjects!.length})</span></>
+                            : <>{projects.length} Propert{projects.length === 1 ? 'y' : 'ies'}</>
+                        }
                     </h3>
                 </div>
-                {onDismiss && (
-                    <button
-                        onClick={onDismiss}
-                        title="Clear filters"
-                        className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors pointer-events-auto"
-                    >
-                        <X className="w-4 h-4" />
-                    </button>
-                )}
+                <div className="flex items-center gap-1">
+                    {isTourMode && (
+                        <button
+                            onClick={onExitPresentation}
+                            title="Exit presentation"
+                            className="flex items-center gap-1 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 text-[10px] font-black uppercase tracking-widest rounded-xl transition-colors pointer-events-auto"
+                        >
+                            <X className="w-3 h-3" /> Exit Tour
+                        </button>
+                    )}
+                    {onDismiss && !isTourMode && (
+                        <button
+                            onClick={onDismiss}
+                            title="Clear filters"
+                            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors pointer-events-auto"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* ── Mobile count badge + dismiss ── */}
             <div className="flex md:hidden items-center justify-center gap-2 mb-2 pointer-events-auto">
-                <div className="bg-white/90 backdrop-blur-md text-slate-700 text-[10px] font-black uppercase tracking-[0.18em] px-3 py-1.5 rounded-full shadow-md border border-slate-100">
-                    {projects.length} propert{projects.length === 1 ? 'y' : 'ies'}
+                <div className={`text-[10px] font-black uppercase tracking-[0.18em] px-3 py-1.5 rounded-full shadow-md border ${isTourMode
+                    ? 'bg-amber-50/90 text-amber-700 border-amber-100'
+                    : 'bg-white/90 text-slate-700 border-slate-100'
+                    } backdrop-blur-md`}>
+                    {isTourMode ? activePresentation!.title : `${projects.length} propert${projects.length === 1 ? 'y' : 'ies'}`}
                 </div>
                 {onDismiss && (
                     <button
@@ -334,7 +393,7 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                         pointer-events-auto hide-scrollbar scroll-smooth
                     "
                 >
-                    {groupedProjects.map(([communityName, commProjects]) => {
+                    {displayGroups.map(([communityName, commProjects]) => {
                         const isPlaying = playingCommunity === communityName;
                         return (
                             <React.Fragment key={communityName}>

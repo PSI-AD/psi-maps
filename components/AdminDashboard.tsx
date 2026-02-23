@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Project, Landmark, LandmarkCategory } from '../types';
+import { Project, Landmark, LandmarkCategory, ClientPresentation } from '../types';
 import { db } from '../utils/firebase';
 import { doc, setDoc, addDoc, collection, deleteDoc, writeBatch, updateDoc } from 'firebase/firestore';
 import { generateCleanId } from '../utils/helpers';
@@ -7,6 +7,7 @@ import { fetchAndSaveBoundary } from '../utils/boundaryService';
 import { Database, RefreshCw, Plus, Edit2, Trash2, MapPin, Search, Eye, EyeOff, ImageIcon, Zap } from 'lucide-react';
 import { optimizeAndUploadImage } from '../utils/imageOptimizer';
 import Map, { Marker, NavigationControl } from 'react-map-gl';
+import PresentationManager from './PresentationManager';
 
 const PUBLIC_MAPBOX_TOKEN = typeof window !== 'undefined'
   ? atob('cGsuZXlKMUlqb2ljSE5wYm5ZaUxDSmhJam9pWTIxc2NqQnpNMjF4TURacU56Tm1jMlZtZEd0NU1XMDVaQ0o5LlZ4SUVuMWpMVHpNd0xBTjhtNEIxNWc=')
@@ -22,6 +23,7 @@ interface AdminDashboardProps {
   setMapFeatures: React.Dispatch<React.SetStateAction<{ show3D: boolean; showAnalytics: boolean; showCommunityBorders: boolean }>>;
   showWelcomeBanner?: boolean;
   cameraDuration?: number;
+  onLaunchPresentation: (presentation: ClientPresentation) => void;
 }
 
 type TabType = 'general' | 'location' | 'media' | 'settings' | 'nearbys';
@@ -636,6 +638,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                     />
                     <span className="text-[10px] font-black text-slate-400 uppercase shrink-0">Smooth</span>
                   </div>
+                </div>
+
+                {/* ── Client Presentation Builder ── */}
+                <div className="pt-6 border-t border-slate-100">
+                  <h3 className="text-xl font-black text-slate-900 tracking-tight mb-6">Client Presentations</h3>
+                  <PresentationManager
+                    liveProjects={liveProjects}
+                    onLaunchPresentation={props.onLaunchPresentation}
+                  />
                 </div>
 
                 <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">

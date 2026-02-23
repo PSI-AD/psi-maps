@@ -9,7 +9,7 @@ import { getBoundaryFromDB } from './utils/boundaryService';
 import MainLayout from './components/MainLayout';
 import MapCanvas from './components/MapCanvas';
 import ErrorBoundary from './components/ErrorBoundary';
-import { Project, Landmark } from './types';
+import { Project, Landmark, ClientPresentation } from './types';
 import WelcomeBanner from './components/WelcomeBanner';
 import PropertyResultsList from './components/PropertyResultsList';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -59,6 +59,7 @@ const App: React.FC = () => {
   const [showNearbyPanel, setShowNearbyPanel] = useState(false);
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
   const [selectedLandmarkForSearch, setSelectedLandmarkForSearch] = useState<Landmark | null>(null);
+  const [activePresentation, setActivePresentation] = useState<ClientPresentation | null>(null);
 
   // Real-time listener: settings/global.showWelcomeBanner
   useEffect(() => {
@@ -106,6 +107,14 @@ const App: React.FC = () => {
       return turf.distance(lCoord, [Number(p.longitude), Number(p.latitude)]) <= 5;
     });
   }, [selectedLandmarkForSearch, filteredProjects]);
+
+  // Resolve saved presentation IDs back to full Project objects in order
+  const presentationProjects = useMemo(() => {
+    if (!activePresentation) return null;
+    return activePresentation.projectIds
+      .map(id => liveProjects.find(p => p.id === id))
+      .filter(Boolean) as Project[];
+  }, [activePresentation, liveProjects]);
 
   const handleFitBounds = (projectsToFit: Project[], isDefault = false) => {
     if (!mapRef.current) return;
@@ -280,6 +289,10 @@ const App: React.FC = () => {
       hoveredProjectId={hoveredProjectId}
       setHoveredProjectId={setHoveredProjectId}
       cameraDuration={cameraDuration}
+      activePresentation={activePresentation}
+      presentationProjects={presentationProjects}
+      onLaunchPresentation={(pres) => { setActivePresentation(pres); setIsAdminOpen(false); }}
+      onExitPresentation={() => setActivePresentation(null)}
     >
       <WelcomeBanner show={showWelcomeBanner} />
       <ErrorBoundary>
