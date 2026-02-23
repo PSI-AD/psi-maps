@@ -181,9 +181,11 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                                     setSelectedCity(name.toLowerCase());
                                     setSelectedCommunity('');
                                     setDeveloperFilter('All');
+                                    handleFitBounds(projects.filter(p => p.city?.toLowerCase() === name.toLowerCase()));
                                 } else if (type === 'community') {
                                     setSelectedCommunity(name);
                                     setDeveloperFilter('All');
+                                    handleFitBounds(projects.filter(p => p.community?.toLowerCase() === name.toLowerCase()));
                                 }
                             }}
                         />
@@ -281,9 +283,11 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                                         setSelectedCity(name.toLowerCase());
                                         setSelectedCommunity('');
                                         setDeveloperFilter('All');
+                                        handleFitBounds(projects.filter(p => p.city?.toLowerCase() === name.toLowerCase()));
                                     } else if (type === 'community') {
                                         setSelectedCommunity(name);
                                         setDeveloperFilter('All');
+                                        handleFitBounds(projects.filter(p => p.community?.toLowerCase() === name.toLowerCase()));
                                     }
                                     setIsMobileSearchOpen(false);
                                 }}

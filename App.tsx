@@ -31,7 +31,9 @@ const App: React.FC = () => {
     filteredAmenities, activeAmenities, handleToggleAmenity, filterPolygon, setFilterPolygon,
     propertyType, setPropertyType,
     developerFilter, setDeveloperFilter,
-    statusFilter, setStatusFilter
+    statusFilter, setStatusFilter,
+    selectedCity, setSelectedCity,
+    selectedCommunity, setSelectedCommunity
   } = useProjectData();
 
   const [cameraDuration, setCameraDuration] = useState(2000);
@@ -44,8 +46,6 @@ const App: React.FC = () => {
   // Super Admin Toggles
   const [mapFeatures, setMapFeatures] = useState({ show3D: true, showAnalytics: true, showCommunityBorders: true });
 
-  const [selectedCity, setSelectedCity] = useState<string>('');
-  const [selectedCommunity, setSelectedCommunity] = useState<string>('');
   const [activeBoundary, setActiveBoundary] = useState<any>(null);
 
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
