@@ -222,6 +222,8 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
               onFlyTo={onFlyTo}
               setShowNearbyPanel={setShowNearbyPanel}
               onRouteReady={props.onRouteReady}
+              mapRef={props.mapRef}
+              onSelectLandmark={props.onSelectLandmark}
             />
           </Suspense>
         </div>
