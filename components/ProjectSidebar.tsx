@@ -58,6 +58,49 @@ const formatCompletionDate = (dateStr?: string): string => {
   } catch { return dateStr; }
 };
 
+const AnimatedMetricPill = ({ distance, driveTime, walkTime }: { distance: number, driveTime: number, walkTime: number }) => {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
+
+  useEffect(() => {
+    if (isHovered) return; // Pause auto-rotation on hover
+    const interval = setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % 3);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [isHovered]);
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setActiveIndex((prev) => (prev + 1) % 3);
+  };
+
+  const metrics = [
+    { label: 'Distance', value: `${distance.toFixed(1)} km`, icon: <MapPin className="w-3 h-3" />, color: 'text-slate-500' },
+    { label: 'Drive', value: `${driveTime} min`, icon: <Car className="w-3 h-3" />, color: 'text-blue-600' },
+    { label: 'Walk', value: `${walkTime} min`, icon: <Footprints className="w-3 h-3" />, color: 'text-amber-600' },
+  ];
+
+  const current = metrics[activeIndex];
+
+  return (
+    <div 
+      onClick={handleClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className="relative h-10 min-w-[100px] bg-slate-50 hover:bg-white border border-slate-100 hover:border-blue-200 rounded-lg px-3 flex items-center justify-between gap-3 cursor-pointer transition-all group overflow-hidden select-none"
+    >
+        <span className={`${current.color} bg-white p-1 rounded-md shadow-sm border border-slate-100 group-hover:scale-110 transition-transform`}>
+            {current.icon}
+        </span>
+        <div className="flex flex-col items-end leading-none animate-in slide-in-from-bottom-2 fade-in duration-300 key={activeIndex}">
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{current.label}</span>
+            <span className={`text-xs font-bold ${current.color}`}>{current.value}</span>
+        </div>
+    </div>
+  );
+};
+
 const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   project,
   onClose,
@@ -782,18 +825,12 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{style.label}</p>
                           </div>
                         </div>
-                        <div className="sm:text-right shrink-0 flex flex-col items-end gap-1.5">
-                          <span className="text-[11px] font-black text-slate-700 bg-slate-50 px-2.5 py-1 rounded-md border border-slate-100">
-                            {amenity.distance.toFixed(2)} km
-                          </span>
-                          <div className="flex gap-1.5">
-                            <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded flex items-center gap-1">
-                              <Car className="w-3 h-3" /> {amenity.driveTime} min
-                            </span>
-                            <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded flex items-center gap-1">
-                              <Footprints className="w-3 h-3" /> {amenity.walkTime} min
-                            </span>
-                          </div>
+                        <div className="sm:text-right shrink-0">
+                            <AnimatedMetricPill 
+                                distance={amenity.distance} 
+                                driveTime={amenity.driveTime} 
+                                walkTime={amenity.walkTime} 
+                            />
                         </div>
                       </div>
                     );
