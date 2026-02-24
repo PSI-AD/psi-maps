@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Layers, Box, Compass, RefreshCw, Bird, Map as MapIcon, Moon, ZoomIn, ZoomOut, Crosshair } from 'lucide-react';
+import { Layers, Box, Compass, RefreshCw, Bird, Map as MapIcon, Sun, TreePine, ZoomIn, ZoomOut, Crosshair, Camera } from 'lucide-react';
 
 interface MapCommandCenterProps {
     mapRef: React.MutableRefObject<any>;
@@ -30,14 +30,13 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
         };
     }, [isRotating, mapRef]);
 
-    const execute = (action: 'bird' | '3d' | 'north' | 'zoomIn' | 'zoomOut') => {
+    const execute = (action: 'bird' | '3d' | 'north' | 'zoomIn' | 'zoomOut' | 'export') => {
         const map = mapRef?.current?.getMap?.();
-        if (!map) return;
+        if (!map && action !== 'export') return;
 
         setIsRotating(false);
 
         if (action === 'bird') {
-            // Localized — centers on the current map view, not a hardcoded coordinate
             const currentCenter = map.getCenter();
             map.flyTo({ center: [currentCenter.lng, currentCenter.lat], zoom: 14, pitch: 0, bearing: 0, duration: 2000 });
             setIs3D(false);
@@ -51,24 +50,32 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
             map.resetNorthPitch({ duration: 1000 });
             setIs3D(false);
         }
-        if (action === 'zoomIn') {
-            map.zoomIn({ duration: 500 });
-        }
-        if (action === 'zoomOut') {
-            map.zoomOut({ duration: 500 });
+        if (action === 'zoomIn') map.zoomIn({ duration: 500 });
+        if (action === 'zoomOut') map.zoomOut({ duration: 500 });
+        if (action === 'export') {
+            if (!map) return;
+            // preserveDrawingBuffer must be true on the Map component for this to work
+            const canvas = map.getCanvas();
+            const dataURL = canvas.toDataURL('image/png');
+            const a = document.createElement('a');
+            a.href = dataURL;
+            a.download = 'psi-map-export.png';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         }
     };
 
     return (
-        <div className="absolute bottom-[110%] left-0 bg-slate-900/95 backdrop-blur-xl border border-slate-700 shadow-[0_0_40px_rgba(0,0,0,0.5)] rounded-2xl p-4 flex gap-4 z-50 animate-in slide-in-from-bottom-2 duration-200 origin-bottom-left text-slate-300">
+        <div className="absolute bottom-[110%] left-0 bg-white/95 backdrop-blur-xl border border-slate-200 shadow-2xl rounded-2xl p-4 flex gap-4 z-50 animate-in slide-in-from-bottom-2 duration-200 origin-bottom-left text-slate-700">
 
-            {/* ── Camera Controls ───────────────────────────────── */}
-            <div className="flex flex-col gap-2 border-r border-slate-700/80 pr-4">
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Camera</span>
+            {/* ── Camera Controls ──────────────────────────────── */}
+            <div className="flex flex-col gap-2 border-r border-slate-200 pr-4">
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1 text-center">Camera</span>
 
                 <button
                     onClick={() => execute('bird')}
-                    className="p-2.5 rounded-xl hover:bg-blue-600/20 hover:text-blue-400 hover:shadow-[inset_0_0_15px_rgba(37,99,235,0.2)] transition-all group border border-transparent"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-blue-50 text-slate-600 hover:text-blue-600 transition-all group"
                     title="Community Bird's Eye"
                 >
                     <Bird className="w-5 h-5 group-hover:-translate-y-0.5 transition-transform" />
@@ -76,20 +83,16 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
 
                 <button
                     onClick={() => execute('3d')}
-                    className={`p-2.5 rounded-xl transition-all ${is3D
-                            ? 'bg-blue-600/30 text-blue-400 shadow-[inset_0_0_15px_rgba(37,99,235,0.3)] border border-blue-500/30'
-                            : 'hover:bg-slate-800 border border-transparent'
+                    className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${is3D ? 'bg-blue-100 text-blue-600 shadow-inner' : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
                         }`}
-                    title="Toggle 3D Drone View"
+                    title="Toggle 3D Perspective"
                 >
                     <Box className="w-5 h-5" />
                 </button>
 
                 <button
                     onClick={() => setIsRotating(r => !r)}
-                    className={`p-2.5 rounded-xl transition-all ${isRotating
-                            ? 'bg-purple-600/30 text-purple-400 shadow-[inset_0_0_15px_rgba(147,51,234,0.3)] border border-purple-500/30'
-                            : 'hover:bg-slate-800 border border-transparent'
+                    className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${isRotating ? 'bg-amber-100 text-amber-600 shadow-inner' : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
                         }`}
                     title="Cinematic Orbit"
                 >
@@ -98,22 +101,22 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
 
                 <button
                     onClick={() => execute('north')}
-                    className="p-2.5 rounded-xl hover:bg-slate-800 transition-all border border-transparent"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 transition-all"
                     title="Reset Compass"
                 >
                     <Compass className="w-5 h-5" />
                 </button>
             </div>
 
-            {/* ── Map Style / Display ───────────────────────────── */}
-            <div className="flex flex-col gap-2 border-r border-slate-700/80 pr-4">
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Display</span>
+            {/* ── Map Styles Matrix ─────────────────────────────── */}
+            <div className="flex flex-col gap-2 border-r border-slate-200 pr-4">
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1 text-center">Style</span>
 
                 <button
                     onClick={() => setMapStyle('mapbox://styles/mapbox/satellite-streets-v12')}
-                    className={`p-2.5 rounded-xl transition-all ${(mapStyle || '').includes('satellite')
-                            ? 'bg-emerald-600/30 text-emerald-400 shadow-[inset_0_0_15px_rgba(16,185,129,0.3)] border border-emerald-500/30'
-                            : 'hover:bg-slate-800 border border-transparent'
+                    className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${(mapStyle || '').includes('satellite')
+                            ? 'bg-emerald-100 text-emerald-600 shadow-inner'
+                            : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
                         }`}
                     title="Satellite View"
                 >
@@ -121,35 +124,46 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
                 </button>
 
                 <button
-                    onClick={() => setMapStyle('mapbox://styles/mapbox/dark-v11')}
-                    className={`p-2.5 rounded-xl transition-all ${(mapStyle || '').includes('dark')
-                            ? 'bg-blue-600/30 text-blue-400 shadow-[inset_0_0_15px_rgba(37,99,235,0.3)] border border-blue-500/30'
-                            : 'hover:bg-slate-800 border border-transparent'
+                    onClick={() => setMapStyle('mapbox://styles/mapbox/light-v11')}
+                    className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${(mapStyle || '').includes('light')
+                            ? 'bg-blue-100 text-blue-600 shadow-inner'
+                            : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
                         }`}
-                    title="Midnight Protocol"
+                    title="Light Minimal"
                 >
-                    <Moon className="w-5 h-5" />
+                    <Sun className="w-5 h-5" />
+                </button>
+
+                <button
+                    onClick={() => setMapStyle('mapbox://styles/mapbox/outdoors-v12')}
+                    className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${(mapStyle || '').includes('outdoors')
+                            ? 'bg-teal-100 text-teal-600 shadow-inner'
+                            : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
+                        }`}
+                    title="Outdoors & Terrain"
+                >
+                    <TreePine className="w-5 h-5" />
                 </button>
 
                 <button
                     onClick={() => setMapStyle('mapbox://styles/mapbox/streets-v12')}
-                    className={`p-2.5 rounded-xl transition-all ${(mapStyle || '').includes('streets')
-                            ? 'bg-sky-600/30 text-sky-400 shadow-[inset_0_0_15px_rgba(14,165,233,0.3)] border border-sky-500/30'
-                            : 'hover:bg-slate-800 border border-transparent'
+                    className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${(mapStyle || '').includes('streets') && !(mapStyle || '').includes('satellite')
+                            ? 'bg-indigo-100 text-indigo-600 shadow-inner'
+                            : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
                         }`}
-                    title="Vector Streets"
+                    title="Standard Streets"
                 >
                     <MapIcon className="w-5 h-5" />
                 </button>
             </div>
 
-            {/* ── Altitude / Zoom Controls ──────────────────────── */}
+            {/* ── Tools: Altitude + Export ──────────────────────── */}
             <div className="flex flex-col gap-2">
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Altitude</span>
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1 text-center">Tools</span>
 
                 <button
                     onClick={() => execute('zoomIn')}
-                    className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 hover:text-white transition-all border border-slate-700 shadow-sm"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-slate-200 text-slate-700 transition-all border border-slate-200"
                     title="Zoom In"
                 >
                     <ZoomIn className="w-5 h-5" />
@@ -157,18 +171,28 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
 
                 <button
                     onClick={() => execute('zoomOut')}
-                    className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 hover:text-white transition-all border border-slate-700 shadow-sm"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-slate-200 text-slate-700 transition-all border border-slate-200"
                     title="Zoom Out"
                 >
                     <ZoomOut className="w-5 h-5" />
                 </button>
 
+                {/* Crosshair center focus — re-runs bird's eye to snap back to current position */}
                 <button
                     onClick={() => execute('bird')}
-                    className="p-2.5 rounded-xl hover:bg-slate-800 transition-all border border-transparent mt-auto"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition-all"
                     title="Center Focus"
                 >
-                    <Crosshair className="w-5 h-5 text-slate-500 hover:text-white transition-colors" />
+                    <Crosshair className="w-5 h-5" />
+                </button>
+
+                {/* Export screenshot — requires preserveDrawingBuffer=true on <Map> */}
+                <button
+                    onClick={() => execute('export')}
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-600 transition-all group mt-auto border border-blue-100"
+                    title="Export Map as PNG"
+                >
+                    <Camera className="w-5 h-5 group-hover:scale-110 transition-transform" />
                 </button>
             </div>
         </div>

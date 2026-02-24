@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Map, AttributionControl, NavigationControl, Source, Layer, Popup, Marker } from 'react-map-gl';
+import { Map, AttributionControl, Source, Layer, Popup, Marker } from 'react-map-gl';
 import type { CircleLayer, SymbolLayer, FillLayer, LineLayer } from 'react-map-gl';
 import { Project, Landmark } from '../types';
 import DrawControl from './DrawControl';
@@ -225,9 +225,9 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                 else onClick(e);
             }}
             cursor="pointer"
+            preserveDrawingBuffer={true}
         >
             <AttributionControl position="bottom-left" />
-            <NavigationControl position="top-right" showCompass={false} style={{ marginTop: '20px' }} />
             <DrawControl position="top-right" onCreate={onDrawCreate} onUpdate={onDrawUpdate} onDelete={onDrawDelete} onReference={(draw) => { drawRef.current = draw; }} />
 
             {mapFeatures?.show3D && (
