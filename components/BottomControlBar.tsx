@@ -464,6 +464,9 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                                         { label: 'Culture', cat: 'culture' },
                                         { label: 'Airports', cat: 'airport' },
                                         { label: 'Ports', cat: 'port' },
+                                        { label: 'Parks', cat: 'park' },
+                                        { label: 'Beaches', cat: 'beach' },
+                                        { label: 'Hypermarkets', cat: 'hypermarket' },
                                     ].map(({ label, cat }) => {
                                         const isActive = activeAmenities.includes(cat);
                                         return (

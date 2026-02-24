@@ -1,7 +1,7 @@
 import React from 'react';
 import { Marker } from 'react-map-gl';
 import { Landmark } from '../types';
-import { GraduationCap, Hotel, Landmark as CultureIcon, ShoppingBag, Stethoscope, Plane, Anchor, FerrisWheel } from 'lucide-react';
+import { GraduationCap, Hotel, Landmark as CultureIcon, ShoppingBag, Stethoscope, Plane, Anchor, FerrisWheel, TreePine, ShoppingCart, Umbrella } from 'lucide-react';
 
 interface AmenityMarkerProps {
   amenity: Landmark;
@@ -20,6 +20,9 @@ const categoryConfig: Record<string, { bg: string; border: string; icon: React.R
   hospital: { bg: 'bg-red-600', border: 'border-red-600', icon: <Stethoscope className="w-5 h-5 text-white" /> },
   airport: { bg: 'bg-sky-600', border: 'border-sky-600', icon: <Plane className="w-5 h-5 text-white" /> },
   port: { bg: 'bg-cyan-600', border: 'border-cyan-600', icon: <Anchor className="w-5 h-5 text-white" /> },
+  park: { bg: 'bg-lime-500', border: 'border-lime-500', icon: <TreePine className="w-5 h-5 text-white" /> },
+  hypermarket: { bg: 'bg-fuchsia-600', border: 'border-fuchsia-600', icon: <ShoppingCart className="w-5 h-5 text-white" /> },
+  beach: { bg: 'bg-cyan-500', border: 'border-cyan-500', icon: <Umbrella className="w-5 h-5 text-white" /> },
 };
 
 const defaultConfig = { bg: 'bg-slate-600', border: 'border-slate-600', icon: <CultureIcon className="w-5 h-5 text-white" /> };
