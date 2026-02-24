@@ -64,8 +64,9 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   setShowNearbyPanel,
 }) => {
   const [activeIdx, setActiveIdx] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false); // start paused — user opts in
   const [tick, setTick] = useState(0);
+  const [isMainImageLoaded, setIsMainImageLoaded] = useState(false);
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [isTextModalOpen, setIsTextModalOpen] = useState(false);
   const [isInquireModalOpen, setIsInquireModalOpen] = useState(false);
@@ -95,11 +96,12 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   const hasMultipleImages = gallery.length > 1;
   const currentImage = gallery[activeIdx] ?? gallery[0];
 
-  // Reset synchronously on project change
+  // Reset synchronously on project change — clears stale state before paint
   useLayoutEffect(() => {
     setActiveIdx(0);
-    setIsPlaying(true);
+    setIsPlaying(false);    // each new project starts paused
     setTick(0);
+    setIsMainImageLoaded(false); // block thumbnails until new hero loads
   }, [project.id]);
 
   // Tick-based slideshow engine — 50ms interval drives SVG progress ring
@@ -177,13 +179,13 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
     <>
       <div className="h-full flex flex-col bg-white text-slate-800 font-sans shadow-2xl relative border-l border-slate-200">
 
-        {/* 1. Hero Gallery — single thumb image + tick-based slideshow engine */}
+        {/* 1. Hero Gallery — single optimized thumb + tick-based slideshow engine */}
         <div
           className="relative h-64 w-full shrink-0 bg-slate-100 overflow-hidden group"
           onMouseEnter={() => setIsPlaying(false)}
-          onMouseLeave={() => setIsPlaying(true)}
+          onMouseLeave={() => { /* only resume if already playing via user action */ }}
         >
-          {/* Single hero image — thumb is the correct size for a 380px panel */}
+          {/* Hero image — strictly uses optimized thumb (correct size for 380px panel) */}
           <img
             key={currentImage.thumb}
             src={currentImage.thumb}
@@ -191,6 +193,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
             loading="eager"
             fetchpriority="high"
             decoding="async"
+            onLoad={() => setIsMainImageLoaded(true)}
             onClick={() => setFullscreenImage(currentImage.large)}
             className="absolute inset-0 w-full h-full object-cover cursor-zoom-in transition-opacity duration-300"
           />
@@ -251,20 +254,26 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
             </>
           )}
 
-          {/* Thumbnail strip — always visible, images use lazy loading (hero owns bandwidth) */}
+          {/* Thumbnail strip — gated on isMainImageLoaded to enforce waterfall loading */}
           {hasMultipleImages && (
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent pt-6 pb-2 px-2 flex gap-2 overflow-x-auto hide-scrollbar">
-              {gallery.map((img, idx) => (
-                <button
-                  key={idx}
-                  onClick={(e) => { e.stopPropagation(); handleThumbClick(idx); }}
-                  aria-label={`View image ${idx + 1}`}
-                  className={`shrink-0 w-14 h-10 rounded-lg overflow-hidden border-2 transition-all ${activeIdx === idx ? 'border-white scale-105 shadow-lg' : 'border-white/40 opacity-70 hover:opacity-100 hover:border-white'
-                    }`}
-                >
-                  <img src={img.thumb} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
-                </button>
-              ))}
+              {isMainImageLoaded
+                ? gallery.map((img, idx) => (
+                  <button
+                    key={idx}
+                    onClick={(e) => { e.stopPropagation(); handleThumbClick(idx); }}
+                    aria-label={`View image ${idx + 1}`}
+                    className={`shrink-0 w-14 h-10 rounded-lg overflow-hidden border-2 transition-all ${activeIdx === idx ? 'border-white scale-105 shadow-lg' : 'border-white/40 opacity-70 hover:opacity-100 hover:border-white'
+                      }`}
+                  >
+                    <img src={img.thumb} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                  </button>
+                ))
+                : Array(Math.min(gallery.length, 6)).fill(0).map((_, i) => (
+                  // Skeleton placeholders — zero network requests, correct layout dimensions
+                  <div key={i} aria-hidden="true" className="shrink-0 w-14 h-10 rounded-lg bg-white/10 animate-pulse" />
+                ))
+              }
             </div>
           )}
 
