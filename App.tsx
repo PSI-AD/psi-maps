@@ -58,6 +58,7 @@ const App: React.FC = () => {
   const [activeIsochrone, setActiveIsochrone] = useState<{ mode: 'driving' | 'walking'; minutes: number } | null>(null);
   const [showNearbyPanel, setShowNearbyPanel] = useState(false);
   const [selectedLandmarkForSearch, setSelectedLandmarkForSearch] = useState<Landmark | null>(null);
+  const [activeRouteGeometry, setActiveRouteGeometry] = useState<any | null>(null);
   const [activePresentation, setActivePresentation] = useState<ClientPresentation | null>(null);
   const [showWelcomeBanner, _setShowWelcomeBanner] = useState(() => {
     const saved = localStorage.getItem('psi_banner_enabled');
@@ -82,6 +83,20 @@ const App: React.FC = () => {
     });
     return () => unsub();
   }, []);
+
+  // Handle route geometry from the sidebar's Directions call
+  const handleRouteReady = (geometry: any | null) => {
+    setActiveRouteGeometry(geometry);
+    if (geometry && geometry.coordinates && geometry.coordinates.length >= 2) {
+      const lngs = geometry.coordinates.map((c: number[]) => c[0]);
+      const lats = geometry.coordinates.map((c: number[]) => c[1]);
+      const bbox: [number, number, number, number] = [
+        Math.min(...lngs), Math.min(...lats),
+        Math.max(...lngs), Math.max(...lats),
+      ];
+      mapRef.current?.getMap().fitBounds(bbox, { padding: 80, duration: 1500, maxZoom: 16 });
+    }
+  };
 
   const selectedProject = filteredProjects.find(p => p.id === selectedProjectId) || null;
   const hoveredProject = filteredProjects.find(p => p.id === hoveredProjectId) || null;
@@ -344,6 +359,8 @@ const App: React.FC = () => {
       onExitPresentation={() => setActivePresentation(null)}
       onSelectLandmark={handleLandmarkClick}
       mapRef={mapRef}
+      activeRouteGeometry={activeRouteGeometry}
+      onRouteReady={handleRouteReady}
     >
       <WelcomeBanner show={showWelcomeBanner} isAppLoading={isRefreshing} />
       <ErrorBoundary>
@@ -360,6 +377,7 @@ const App: React.FC = () => {
           activeIsochrone={activeIsochrone}
           selectedLandmarkForSearch={selectedLandmarkForSearch}
           hoveredProjectId={hoveredProjectId}
+          activeRouteGeometry={activeRouteGeometry}
         />
       </ErrorBoundary>
       {/* Reverse Search: floating nearby projects panel */}

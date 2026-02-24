@@ -22,6 +22,7 @@ interface ProjectSidebarProps {
   nearbyLandmarks: Landmark[];
   onFlyTo: (lng: number, lat: number, zoom?: number) => void;
   setShowNearbyPanel: (v: boolean) => void;
+  onRouteReady?: (geometry: any | null) => void;
 }
 
 // Category colour mapping (mirrors AmenityMarker)
@@ -67,6 +68,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   nearbyLandmarks,
   onFlyTo,
   setShowNearbyPanel,
+  onRouteReady,
 }) => {
   const [activeIdx, setActiveIdx] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false); // start paused — user opts in
@@ -76,8 +78,9 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   const [isTextModalOpen, setIsTextModalOpen] = useState(false);
   const [isInquireModalOpen, setIsInquireModalOpen] = useState(false);
   const [customDestQuery, setCustomDestQuery] = useState('');
-  const [customDestResult, setCustomDestResult] = useState<{ name: string; distance: number } | null>(null);
+  const [customDestResult, setCustomDestResult] = useState<{ name: string; roadKm: number; driveMinutes: number } | null>(null);
   const [isSearchingDest, setIsSearchingDest] = useState(false);
+  const [isFetchingRoute, setIsFetchingRoute] = useState(false);
   const [destSuggestions, setDestSuggestions] = useState<any[]>([]);
   const destSearchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -96,11 +99,15 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   const fetchDestSuggestions = (query: string) => {
     setCustomDestQuery(query);
     if (destSearchRef.current) clearTimeout(destSearchRef.current);
-    if (!query.trim() || !project.latitude || !project.longitude) {
+    // Clear route when user clears the input
+    if (!query.trim()) {
       setDestSuggestions([]);
+      setCustomDestResult(null);
       setIsSearchingDest(false);
+      onRouteReady?.(null);
       return;
     }
+    if (!project.latitude || !project.longitude) return;
     setIsSearchingDest(true);
     destSearchRef.current = setTimeout(async () => {
       try {
@@ -118,14 +125,42 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
     }, 300);
   };
 
-  const handleSelectDest = (feature: any) => {
-    const dist = calculateDistance(
-      Number(project.latitude), Number(project.longitude),
-      feature.center[1], feature.center[0]
-    );
-    setCustomDestResult({ name: feature.place_name, distance: dist });
-    setCustomDestQuery(feature.place_name.split(',')[0]);
+  // ---- Fetch real driving route via Mapbox Directions (traffic profile) ----
+  const fetchRealRoute = async (destLng: number, destLat: number): Promise<void> => {
+    const startLng = Number(project.longitude);
+    const startLat = Number(project.latitude);
+    if (isNaN(startLng) || isNaN(startLat)) return;
+    setIsFetchingRoute(true);
+    try {
+      const url =
+        `https://api.mapbox.com/directions/v5/mapbox/driving-traffic/` +
+        `${startLng},${startLat};${destLng},${destLat}` +
+        `?geometries=geojson&overview=full&access_token=${PUBLIC_MAPBOX_TOKEN}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.routes && data.routes.length > 0) {
+        const route = data.routes[0];
+        const roadKm = parseFloat((route.distance / 1000).toFixed(1));
+        const driveMinutes = Math.ceil(route.duration / 60);
+        const geometry = route.geometry; // GeoJSON LineString
+        setCustomDestResult(prev => prev ? { ...prev, roadKm, driveMinutes } : { name: '', roadKm, driveMinutes });
+        onRouteReady?.(geometry);
+      }
+    } catch (err) {
+      console.error('Directions API error:', err);
+    }
+    setIsFetchingRoute(false);
+  };
+
+  const handleSelectDest = async (feature: any) => {
+    const destLng = feature.center[0];
+    const destLat = feature.center[1];
+    const label = feature.text || feature.place_name.split(',')[0];
+    // Optimistic UI: set name immediately, route stats arrive via fetchRealRoute
+    setCustomDestResult({ name: feature.place_name, roadKm: 0, driveMinutes: 0 });
+    setCustomDestQuery(label);
     setDestSuggestions([]);
+    await fetchRealRoute(destLng, destLat);
   };
 
   // ── Build a unified gallery: prefer optimizedGallery, fall back to images[]
@@ -571,20 +606,21 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
 
             <div id="sidebar-map-section" />
 
-            {/* 8. Custom Distance Calculator — live autocomplete */}
+            {/* 8. Custom Distance Calculator — live autocomplete + real Mapbox Directions route */}
             <div className="relative mt-8 pt-6 border-t border-slate-100 pb-4">
               <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
-                <MapPin className="w-4 h-4 mr-2 text-blue-600" /> Calculate Custom Distance
+                <Car className="w-4 h-4 mr-2 text-blue-600" /> Route & Drive Time
               </h3>
+              <p className="text-[10px] text-slate-400 font-medium mb-3 -mt-2">Search a destination — we'll draw the real traffic-adjusted route on the map.</p>
               <div className="relative z-50">
                 <input
                   type="text"
-                  placeholder="Search any location…"
+                  placeholder="Search any place in UAE…"
                   value={customDestQuery}
                   onChange={e => fetchDestSuggestions(e.target.value)}
                   className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 pr-10 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-slate-400"
                 />
-                {isSearchingDest && (
+                {(isSearchingDest || isFetchingRoute) && (
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin pointer-events-none" />
                 )}
                 {destSuggestions.length > 0 && (
@@ -603,13 +639,36 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                 )}
               </div>
               {customDestResult && destSuggestions.length === 0 && (
-                <div className="mt-3 p-4 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-between shadow-sm">
-                  <span className="text-xs font-bold text-slate-700 flex-1 pr-4 truncate" title={customDestResult.name}>
-                    {customDestResult.name.split(',')[0]}
-                  </span>
-                  <span className="text-sm font-black text-blue-700 whitespace-nowrap">
-                    {customDestResult.distance.toFixed(1)} km
-                  </span>
+                <div className="mt-3 rounded-xl overflow-hidden border border-blue-100 shadow-sm">
+                  {/* Destination label */}
+                  <div className="px-4 py-2.5 bg-blue-50 border-b border-blue-100">
+                    <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-0.5">Destination</p>
+                    <p className="text-xs font-bold text-slate-800 truncate">{customDestResult.name.split(',')[0]}</p>
+                  </div>
+                  {/* Route stats */}
+                  {isFetchingRoute ? (
+                    <div className="px-4 py-3 bg-white flex items-center gap-2 text-slate-400 text-xs font-bold">
+                      <div className="w-3.5 h-3.5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                      Calculating real-time traffic route…
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 divide-x divide-blue-100">
+                      <div className="px-4 py-3 bg-white text-center">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Road Distance</p>
+                        <p className="text-base font-black text-slate-900">{customDestResult.roadKm > 0 ? `${customDestResult.roadKm} km` : '—'}</p>
+                      </div>
+                      <div className="px-4 py-3 bg-white text-center">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Drive Time</p>
+                        <p className="text-base font-black text-blue-600">{customDestResult.driveMinutes > 0 ? `${customDestResult.driveMinutes} min` : '—'}</p>
+                      </div>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => { setCustomDestQuery(''); setCustomDestResult(null); onRouteReady?.(null); }}
+                    className="w-full py-2 text-[9px] font-black text-slate-400 hover:text-rose-500 uppercase tracking-widest transition-colors bg-slate-50 border-t border-slate-100"
+                  >
+                    ✕ Clear Route
+                  </button>
                 </div>
               )}
             </div>

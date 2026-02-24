@@ -34,6 +34,7 @@ interface MapCanvasProps {
     selectedLandmarkForSearch?: Landmark | null;
     hoveredProjectId?: string | null;
     onBoundsChange?: (bounds: any) => void;
+    activeRouteGeometry?: any | null;
 }
 
 // 🚨 PERMANENT FIX: Base64 decoded token. Passed only via component prop.
@@ -115,7 +116,8 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
     selectedProjectId,
     setHoveredProjectId, setHoveredLandmarkId,
     selectedLandmark, selectedProject, hoveredProject, projects = [], mapFeatures,
-    activeBoundary, activeIsochrone, selectedLandmarkForSearch, hoveredProjectId, onBoundsChange
+    activeBoundary, activeIsochrone, selectedLandmarkForSearch, hoveredProjectId, onBoundsChange,
+    activeRouteGeometry,
 }) => {
 
     // Safety check for valid GPS coordinates
@@ -332,6 +334,42 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                     onMouseLeave={() => setHoveredLandmarkId(null)}
                 />
             ))}
+
+            {/* Real traffic route — drawn when user uses the sidebar distance calculator */}
+            {activeRouteGeometry && (
+                <Source
+                    id="real-route"
+                    type="geojson"
+                    data={{
+                        type: 'Feature',
+                        properties: {},
+                        geometry: activeRouteGeometry,
+                    }}
+                >
+                    {/* Outer glow / casing */}
+                    <Layer
+                        id="real-route-casing"
+                        type="line"
+                        paint={{
+                            'line-color': '#1d4ed8',
+                            'line-width': 8,
+                            'line-opacity': 0.25,
+                        }}
+                        layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+                    />
+                    {/* Core route line */}
+                    <Layer
+                        id="real-route-layer"
+                        type="line"
+                        paint={{
+                            'line-color': '#3b82f6',
+                            'line-width': 4,
+                            'line-opacity': 0.9,
+                        }}
+                        layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+                    />
+                </Source>
+            )}
 
             {/* Dashed amber line from selected landmark to highlighted project */}
             {selectedLandmarkForSearch && selectedProject &&

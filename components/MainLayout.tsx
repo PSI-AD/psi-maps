@@ -67,6 +67,8 @@ interface MainLayoutProps {
   onExitPresentation: () => void;
   onSelectLandmark?: (landmark: Landmark) => void;
   mapRef?: React.MutableRefObject<any>;
+  activeRouteGeometry?: any | null;
+  onRouteReady?: (geometry: any | null) => void;
 }
 
 const MainLayout: React.FC<MainLayoutProps> = (props) => {
@@ -219,6 +221,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
               nearbyLandmarks={liveLandmarks}
               onFlyTo={onFlyTo}
               setShowNearbyPanel={setShowNearbyPanel}
+              onRouteReady={props.onRouteReady}
             />
           </Suspense>
         </div>
