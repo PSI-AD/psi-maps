@@ -241,7 +241,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                         <button
                             onClick={() => setShowCommandCenter(v => !v)}
                             aria-label="Open Map Command Center"
-                            className={`p-2.5 rounded-xl border transition-all flex items-center gap-2 px-4 ${showCommandCenter ? 'bg-slate-900 border-slate-900 text-white' : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900'}`}
+                            className={`p-2.5 rounded-xl border transition-all flex items-center gap-2 px-4 ${showCommandCenter ? 'bg-blue-600 border-blue-600 text-white' : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900'}`}
                             title="Map Command Center"
                         >
                             <Map className="w-5 h-5" />

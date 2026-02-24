@@ -92,6 +92,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   const [showNeighborhoodList, setShowNeighborhoodList] = useState(false);
   const [isTouringNeighborhood, setIsTouringNeighborhood] = useState(false);
   const [activeTourAmenityIdx, setActiveTourAmenityIdx] = useState<number | null>(null);
+  const [amenitySearch, setAmenitySearch] = useState('');
 
   // ── Sort nearbyLandmarks by distance for the tour ───────────────────────
   const localAmenities = useMemo(() => {
@@ -112,36 +113,44 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
       .sort((a, b) => a.distance - b.distance);
   }, [project, nearbyLandmarks]);
 
-  // ── Cinematic tour timer — fitBounds every 5 s ───────────────────────────
+  // ── Filter localAmenities by live search query ───────────────────────────
+  const searchedAmenities = useMemo(() => {
+    if (!amenitySearch.trim()) return localAmenities;
+    const q = amenitySearch.toLowerCase();
+    return localAmenities.filter(a =>
+      a.name.toLowerCase().includes(q) ||
+      a.category?.toLowerCase().includes(q)
+    );
+  }, [localAmenities, amenitySearch]);
+
+  // ── Cinematic tour timer — dispatches CustomEvent every 5 s ─────────────
   useEffect(() => {
-    if (!isTouringNeighborhood || localAmenities.length === 0) return;
+    if (!isTouringNeighborhood || searchedAmenities.length === 0) return;
     const timer = setInterval(() => {
       setActiveTourAmenityIdx(prev => {
-        const nextIdx = prev === null ? 0 : (prev + 1) % localAmenities.length;
-        const amenity = localAmenities[nextIdx];
-        const map = mapRef?.current?.getMap?.();
-        if (map && project) {
-          const pLng = Number(project.longitude);
-          const pLat = Number(project.latitude);
-          const aLng = Number(amenity.longitude);
-          const aLat = Number(amenity.latitude);
-          map.fitBounds(
-            [Math.min(pLng, aLng), Math.min(pLat, aLat), Math.max(pLng, aLng), Math.max(pLat, aLat)],
-            { padding: 150, pitch: 45, duration: 2500, maxZoom: 15 }
-          );
+        const nextIdx = prev === null ? 0 : (prev + 1) % searchedAmenities.length;
+        const amenity = searchedAmenities[nextIdx];
+        if (project) {
+          window.dispatchEvent(new CustomEvent('tour-fly-bounds', {
+            detail: {
+              pLng: project.longitude, pLat: project.latitude,
+              aLng: amenity.longitude, aLat: amenity.latitude,
+              amenityId: amenity.id,
+            },
+          }));
         }
         return nextIdx;
       });
     }, 5000);
     return () => clearInterval(timer);
-  }, [isTouringNeighborhood, localAmenities, project, mapRef]);
+  }, [isTouringNeighborhood, searchedAmenities, project]);
 
   // ── Sync active tour amenity → global map highlight ──────────────────────
   useEffect(() => {
-    if (activeTourAmenityIdx !== null && localAmenities[activeTourAmenityIdx]) {
-      onSelectLandmark?.(localAmenities[activeTourAmenityIdx]);
+    if (activeTourAmenityIdx !== null && searchedAmenities[activeTourAmenityIdx]) {
+      onSelectLandmark?.(searchedAmenities[activeTourAmenityIdx]);
     }
-  }, [activeTourAmenityIdx, localAmenities, onSelectLandmark]);
+  }, [activeTourAmenityIdx, searchedAmenities, onSelectLandmark]);
 
   if (!project) return null;
 
@@ -336,20 +345,17 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                 stopTour();
               } else {
                 setIsTouringNeighborhood(true);
-                // Kick off immediately — first frame fires after 5 s; pre-fly to first amenity now
-                if (localAmenities.length > 0) {
+                // Kick off immediately with first amenity via CustomEvent
+                const first = searchedAmenities[0];
+                if (first && project) {
                   setActiveTourAmenityIdx(0);
-                  const amenity = localAmenities[0];
-                  const map = mapRef?.current?.getMap?.();
-                  if (map && project) {
-                    const pLng = Number(project.longitude);
-                    const pLat = Number(project.latitude);
-                    map.fitBounds(
-                      [Math.min(pLng, Number(amenity.longitude)), Math.min(pLat, Number(amenity.latitude)),
-                      Math.max(pLng, Number(amenity.longitude)), Math.max(pLat, Number(amenity.latitude))],
-                      { padding: 150, pitch: 45, duration: 2000, maxZoom: 15 }
-                    );
-                  }
+                  window.dispatchEvent(new CustomEvent('tour-fly-bounds', {
+                    detail: {
+                      pLng: project.longitude, pLat: project.latitude,
+                      aLng: first.longitude, aLat: first.latitude,
+                      amenityId: first.id,
+                    },
+                  }));
                 }
               }
             }}
@@ -367,20 +373,39 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
 
         {/* Amenity list */}
         <div className="p-4 flex-1 overflow-y-auto">
-          <div className="mb-4">
+          <div className="mb-3">
             <h3 className="text-base font-black text-slate-800">Neighborhood: {project.name}</h3>
-            <p className="text-[11px] text-slate-400 font-medium mt-0.5">{localAmenities.length} nearby landmarks • sorted by distance</p>
+            <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+              {searchedAmenities.length} of {localAmenities.length} nearby landmarks
+            </p>
           </div>
 
-          {localAmenities.length === 0 ? (
+          {/* Search bar */}
+          <div className="mb-4 relative">
+            <input
+              type="text"
+              placeholder="Search landmarks (e.g. Louvre, Hotel, Beach)…"
+              value={amenitySearch}
+              onChange={e => setAmenitySearch(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-slate-400"
+            />
+            {amenitySearch && (
+              <button
+                onClick={() => setAmenitySearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors text-xs font-black"
+              >✕</button>
+            )}
+          </div>
+
+          {searchedAmenities.length === 0 ? (
             <div className="text-center py-12 text-slate-400">
               <MapPin className="w-8 h-8 mx-auto mb-2 opacity-40" />
-              <p className="text-sm font-bold">No landmarks loaded yet.</p>
-              <p className="text-xs mt-1">Use the Filters panel to toggle an amenity category.</p>
+              <p className="text-sm font-bold">{amenitySearch ? 'No matches found.' : 'No landmarks loaded yet.'}</p>
+              <p className="text-xs mt-1">{amenitySearch ? 'Try a different search term.' : 'Use the Filters panel to toggle an amenity category.'}</p>
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {localAmenities.map((amenity, idx) => {
+              {searchedAmenities.map((amenity, idx) => {
                 const isActive = activeTourAmenityIdx === idx;
                 const style = categoryStyle[amenity.category?.toLowerCase?.()] ?? defaultStyle;
                 return (
@@ -388,15 +413,14 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                     key={amenity.id}
                     onClick={() => {
                       setActiveTourAmenityIdx(idx);
-                      const map = mapRef?.current?.getMap?.();
-                      if (map && project) {
-                        const pLng = Number(project.longitude);
-                        const pLat = Number(project.latitude);
-                        map.fitBounds(
-                          [Math.min(pLng, Number(amenity.longitude)), Math.min(pLat, Number(amenity.latitude)),
-                          Math.max(pLng, Number(amenity.longitude)), Math.max(pLat, Number(amenity.latitude))],
-                          { padding: 120, pitch: 40, duration: 1800, maxZoom: 15 }
-                        );
+                      if (project) {
+                        window.dispatchEvent(new CustomEvent('tour-fly-bounds', {
+                          detail: {
+                            pLng: project.longitude, pLat: project.latitude,
+                            aLng: amenity.longitude, aLat: amenity.latitude,
+                            amenityId: amenity.id,
+                          },
+                        }));
                       }
                     }}
                     className={`p-4 rounded-2xl border cursor-pointer transition-all select-none ${isActive

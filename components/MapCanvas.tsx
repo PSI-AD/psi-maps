@@ -212,6 +212,24 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
         }
     }, [activeIsochrone, selectedProject]);
 
+    // ── Tour camera: listen for CustomEvent dispatched by the Neighborhood Tour ──
+    useEffect(() => {
+        const handleTourFly = (e: Event) => {
+            const { pLng, pLat, aLng, aLat } = (e as CustomEvent).detail;
+            const map = mapRef?.current?.getMap?.();
+            if (!map) return;
+            const west = Math.min(Number(pLng), Number(aLng));
+            const east = Math.max(Number(pLng), Number(aLng));
+            const south = Math.min(Number(pLat), Number(aLat));
+            const north = Math.max(Number(pLat), Number(aLat));
+            map.fitBounds([west, south, east, north], {
+                padding: 150, pitch: 45, duration: 2500, maxZoom: 15,
+            });
+        };
+        window.addEventListener('tour-fly-bounds', handleTourFly);
+        return () => window.removeEventListener('tour-fly-bounds', handleTourFly);
+    }, [mapRef]);
+
     const handleLayerClick = (event: any) => {
         const feature = event.features?.[0];
         if (!feature) return;
