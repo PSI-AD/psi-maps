@@ -200,7 +200,9 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
           Number(landmark.latitude),
           Number(landmark.longitude)
         );
-        return { ...landmark, distance };
+        const driveTime = Math.ceil((distance / 40) * 60) + 2;
+        const walkTime = Math.ceil((distance / 5) * 60);
+        return { ...landmark, distance, driveTime, walkTime };
       })
       .sort((a, b) => a.distance - b.distance)
       .slice(0, 5);
@@ -523,8 +525,18 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{style.label}</p>
                           </div>
                         </div>
-                        <div className="sm:text-right shrink-0 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
-                          <p className="text-xs font-black text-slate-700">{amenity.distance.toFixed(2)} km</p>
+                        <div className="sm:text-right shrink-0 flex flex-col items-end gap-1.5">
+                          <span className="text-[11px] font-black text-slate-700 bg-slate-50 px-2.5 py-1 rounded-md border border-slate-100">
+                            {amenity.distance.toFixed(2)} km
+                          </span>
+                          <div className="flex gap-1.5">
+                            <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded flex items-center gap-1">
+                              <Car className="w-3 h-3" /> {amenity.driveTime} min
+                            </span>
+                            <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded flex items-center gap-1">
+                              <Footprints className="w-3 h-3" /> {amenity.walkTime} min
+                            </span>
+                          </div>
                         </div>
                       </div>
                     );
