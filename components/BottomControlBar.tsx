@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import SearchBar from './SearchBar';
-import { Project } from '../types';
+import { Project, Landmark } from '../types';
 import { Settings, Filter as FilterIcon, Navigation, X, Pencil, Search, Map } from 'lucide-react';
 
 interface BottomControlBarProps {
@@ -29,6 +29,8 @@ interface BottomControlBarProps {
     setMapFeatures: React.Dispatch<React.SetStateAction<{ show3D: boolean; showAnalytics: boolean; showCommunityBorders: boolean }>>;
     onGlobalReset: () => void;
     filteredCount: number;
+    landmarks?: Landmark[];
+    onSelectLandmark?: (landmark: Landmark) => void;
 }
 
 const uaeEmirates = ['abu dhabi', 'dubai', 'sharjah', 'ajman', 'umm al quwain', 'ras al khaimah', 'fujairah'];
@@ -58,7 +60,9 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
     mapFeatures,
     setMapFeatures,
     onGlobalReset,
-    filteredCount
+    filteredCount,
+    landmarks = [],
+    onSelectLandmark,
 }) => {
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
     const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
@@ -185,7 +189,9 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                     <div className="flex-1 min-w-[250px] max-w-sm">
                         <SearchBar
                             projects={projects}
+                            landmarks={landmarks}
                             onSelectProject={onSelectProject}
+                            onSelectLandmark={onSelectLandmark}
                             onSelectDeveloper={(dev) => {
                                 setDeveloperFilter(dev);
                                 handleFitBounds(projects.filter(p => p.developerName === dev));
@@ -286,7 +292,9 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                             <SearchBar
                                 alwaysOpen={true}
                                 projects={projects}
+                                landmarks={landmarks}
                                 onSelectProject={(p) => { onSelectProject(p); setIsMobileSearchOpen(false); }}
+                                onSelectLandmark={(l) => { onSelectLandmark?.(l); setIsMobileSearchOpen(false); }}
                                 onSelectDeveloper={(dev) => {
                                     setDeveloperFilter(dev);
                                     handleFitBounds(projects.filter(p => p.developerName === dev));

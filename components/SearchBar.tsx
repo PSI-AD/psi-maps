@@ -1,12 +1,14 @@
 import React, { useState, useRef } from 'react';
-import { Project } from '../types';
+import { Project, Landmark } from '../types';
 import { Search, ArrowRight, X, Building2, MapPin, User } from 'lucide-react';
 
 interface SearchBarProps {
     projects: Project[];
+    landmarks?: Landmark[];
     onSelectProject: (project: Project) => void;
     onSelectDeveloper?: (developerName: string) => void;
     onSelectLocation?: (locationName: string, type: 'city' | 'community') => void;
+    onSelectLandmark?: (landmark: Landmark) => void;
     alwaysOpen?: boolean;
 }
 
@@ -25,9 +27,10 @@ interface SearchResults {
     projects: Project[];
     developers: DeveloperResult[];
     locations: LocationResult[];
+    landmarks: Landmark[];
 }
 
-const EMPTY: SearchResults = { projects: [], developers: [], locations: [] };
+const EMPTY: SearchResults = { projects: [], developers: [], locations: [], landmarks: [] };
 
 // ── Clearbit logo engine with ui-avatars fallback ──────────────────────────
 const DOMAIN_MAP: Record<string, string> = {
@@ -60,9 +63,11 @@ const getDeveloperLogo = (name: string): string => {
 
 const SearchBar: React.FC<SearchBarProps> = ({
     projects,
+    landmarks = [],
     onSelectProject,
     onSelectDeveloper,
     onSelectLocation,
+    onSelectLandmark,
     alwaysOpen,
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -123,18 +128,23 @@ const SearchBar: React.FC<SearchBarProps> = ({
             .sort((a, b) => b.count - a.count)
             .slice(0, 4);
 
-        const next = { projects: matchedProjects, developers: matchedDevelopers, locations: matchedLocations };
+        const matchedLandmarks: Landmark[] = landmarks
+            .filter(l => !l.isHidden && normalize(l.name).includes(q))
+            .slice(0, 3);
+
+        const next = { projects: matchedProjects, developers: matchedDevelopers, locations: matchedLocations, landmarks: matchedLandmarks };
         setResults(next);
-        setIsOpen(next.projects.length > 0 || next.developers.length > 0 || next.locations.length > 0);
+        setIsOpen(next.projects.length > 0 || next.developers.length > 0 || next.locations.length > 0 || next.landmarks.length > 0);
     };
 
     const handleSelectProject = (project: Project) => { close(); onSelectProject(project); };
     const handleSelectDeveloper = (dev: string) => { close(); onSelectDeveloper?.(dev); };
     const handleSelectLocation = (loc: LocationResult) => { close(); onSelectLocation?.(loc.name, loc.type); };
+    const handleSelectLandmark = (landmark: Landmark) => { close(); onSelectLandmark?.(landmark); };
     const handleClear = () => { setSearchTerm(''); setResults(EMPTY); setIsOpen(false); inputRef.current?.focus(); };
 
-    const hasResults = results.projects.length > 0 || results.developers.length > 0 || results.locations.length > 0;
-    const totalResultCount = results.projects.length + results.developers.length + results.locations.length;
+    const hasResults = results.projects.length > 0 || results.developers.length > 0 || results.locations.length > 0 || results.landmarks.length > 0;
+    const totalResultCount = results.projects.length + results.developers.length + results.locations.length + results.landmarks.length;
 
     const dropdown = isOpen && hasResults && (
         <div className={`absolute ${alwaysOpen ? 'top-full mt-2' : 'bottom-full mb-3'} left-0 w-full bg-white border border-slate-100 rounded-2xl shadow-2xl shadow-slate-200/60 overflow-hidden animate-in fade-in z-[2000]`}>
@@ -222,6 +232,34 @@ const SearchBar: React.FC<SearchBarProps> = ({
                                 <span className="text-[9px] text-slate-400 uppercase tracking-widest capitalize">{loc.type} · <span className="text-rose-500 font-black">{loc.count}</span> properties</span>
                             </div>
                             <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-rose-500 shrink-0 opacity-0 group-hover:opacity-100 transition-all" />
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            {/* ── Landmarks (Reverse Search) ── */}
+            {results.landmarks.length > 0 && (
+                <div className="border-t border-slate-50">
+                    <div className="flex items-center gap-2 px-4 pt-3 pb-1.5">
+                        <MapPin className="w-3 h-3 text-amber-500" />
+                        <span className="text-[9px] font-black text-amber-500 uppercase tracking-[0.2em]">Nearby Landmarks</span>
+                    </div>
+                    {results.landmarks.map(landmark => (
+                        <button
+                            key={landmark.id}
+                            onClick={() => handleSelectLandmark(landmark)}
+                            className="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center gap-3 transition-colors group border-b border-slate-50 last:border-0"
+                        >
+                            <div className="w-8 h-8 rounded-full bg-amber-50 shrink-0 flex items-center justify-center">
+                                <MapPin className="w-3.5 h-3.5 text-amber-500" />
+                            </div>
+                            <div className="flex flex-col overflow-hidden flex-1">
+                                <span className="font-bold text-sm text-slate-800 truncate">{landmark.name}</span>
+                                <span className="text-[9px] text-slate-400 uppercase tracking-widest capitalize">
+                                    {landmark.category} · {landmark.community}
+                                </span>
+                            </div>
+                            <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-amber-500 shrink-0 opacity-0 group-hover:opacity-100 transition-all" />
                         </button>
                     ))}
                 </div>

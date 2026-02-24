@@ -67,6 +67,7 @@ interface MainLayoutProps {
   presentationProjects?: Project[] | null;
   onLaunchPresentation: (pres: ClientPresentation) => void;
   onExitPresentation: () => void;
+  onSelectLandmark?: (landmark: Landmark) => void;
 }
 
 const MainLayout: React.FC<MainLayoutProps> = (props) => {
@@ -382,6 +383,8 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
         mapFeatures={mapFeatures}
         setMapFeatures={setMapFeatures}
         onGlobalReset={handleGlobalReset}
+        landmarks={liveLandmarks}
+        onSelectLandmark={props.onSelectLandmark}
         filteredCount={props.filteredProjects.length}
       />
 

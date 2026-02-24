@@ -312,6 +312,7 @@ const App: React.FC = () => {
       presentationProjects={presentationProjects}
       onLaunchPresentation={(pres) => { setActivePresentation(pres); setIsAdminOpen(false); }}
       onExitPresentation={() => setActivePresentation(null)}
+      onSelectLandmark={handleLandmarkClick}
     >
       <WelcomeBanner show={showWelcomeBanner} isAppLoading={isRefreshing} />
       <ErrorBoundary>
