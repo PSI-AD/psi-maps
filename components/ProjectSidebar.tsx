@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
 import { Project, Landmark } from '../types';
 import { X, MapPin, BedDouble, Bath, Square, Calendar, ArrowRight, Activity, Building, LayoutTemplate, Car, Footprints, Clock, MessageSquare, Compass, ChevronLeft, ChevronRight } from 'lucide-react';
 import { calculateDistance } from '../utils/geo';
@@ -84,8 +84,8 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   const hasMultipleImages = gallery.length > 1;
   const currentImage = gallery[activeIdx] ?? gallery[0];
 
-  // Reset when project changes
-  useEffect(() => {
+  // Reset SYNCHRONOUSLY before paint when project changes — prevents stale frame
+  useLayoutEffect(() => {
     setActiveIdx(0);
     setIsHighResLoaded(false);
   }, [project.id]);
@@ -179,25 +179,33 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
           onMouseEnter={stopAutoScroll}
           onMouseLeave={startAutoScroll}
         >
-          {/* Progressive image — low-res bottom layer fades out when high-res loads */}
-          <div className="absolute inset-0">
-            {/* Low-res thumb (instantly visible) */}
+          {/* Progressive image — keyed on project.id so React fully remounts on switch */}
+          <div key={`${project.id}-${activeIdx}`} className="absolute inset-0">
+            {/* Skeleton pulse — shows while high-res is loading, never lets old image linger */}
+            {!isHighResLoaded && (
+              <div className="absolute inset-0 bg-slate-200 animate-pulse" aria-hidden="true" />
+            )}
+            {/* Low-res thumb — loaded eagerly as the instant placeholder */}
             <img
               src={currentImage.thumb}
               alt={project.name}
               aria-hidden="true"
-              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${isHighResLoaded ? 'opacity-0' : 'opacity-100'}`}
+              loading="eager"
+              fetchpriority="high"
+              decoding="sync"
+              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${isHighResLoaded ? 'opacity-0' : 'opacity-100'}`}
             />
-            {/* High-res large (fades in when loaded) */}
+            {/* High-res large — fades in when loaded */}
             <img
               key={currentImage.large}
               src={currentImage.large}
               alt={project.name}
               loading="eager"
+              fetchpriority="high"
               decoding="async"
               onLoad={() => setIsHighResLoaded(true)}
               onClick={() => setFullscreenImage(currentImage.large)}
-              className={`absolute inset-0 w-full h-full object-cover cursor-zoom-in transition-opacity duration-500 ${isHighResLoaded ? 'opacity-100' : 'opacity-0'}`}
+              className={`absolute inset-0 w-full h-full object-cover cursor-zoom-in transition-opacity duration-300 ${isHighResLoaded ? 'opacity-100' : 'opacity-0'}`}
             />
           </div>
 
@@ -242,7 +250,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                     }`}
                 >
                   {/* Thumbnail strip uses thumb-only for performance */}
-                  <img src={img.thumb} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                  <img src={img.thumb} alt="" loading="eager" decoding="async" className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>
