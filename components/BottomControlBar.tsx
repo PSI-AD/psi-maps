@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import SearchBar from './SearchBar';
 import { Project, Landmark } from '../types';
 import { Settings, Filter as FilterIcon, Navigation, X, Pencil, Search, Map } from 'lucide-react';
+import { MapCommandCenter } from './MapCommandCenter';
 
 interface BottomControlBarProps {
     projects: Project[];          // full live database — used for building option menus
@@ -33,6 +34,9 @@ interface BottomControlBarProps {
     onSelectLandmark?: (landmark: Landmark) => void;
     activeAmenities?: string[];
     onToggleAmenity?: (category: string) => void;
+    mapRef?: React.MutableRefObject<any>;
+    mapStyle?: string;
+    setMapStyle?: (style: string) => void;
 }
 
 const uaeEmirates = ['abu dhabi', 'dubai', 'sharjah', 'ajman', 'umm al quwain', 'ras al khaimah', 'fujairah'];
@@ -67,9 +71,13 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
     onSelectLandmark,
     activeAmenities = [],
     onToggleAmenity,
+    mapRef,
+    mapStyle = '',
+    setMapStyle,
 }) => {
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
     const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+    const [showCommandCenter, setShowCommandCenter] = useState(false);
 
     const propertyTypeOptions = useMemo(() => {
         // Count from filteredProjects so badges reflect current filter context
@@ -228,6 +236,26 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
 
                 {/* Right: Tools */}
                 <div className="flex items-center gap-2 shrink-0">
+                    {/* Map Command Center trigger */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowCommandCenter(v => !v)}
+                            aria-label="Open Map Command Center"
+                            className={`p-2.5 rounded-xl border transition-all flex items-center gap-2 px-4 ${showCommandCenter ? 'bg-slate-900 border-slate-900 text-white' : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900'}`}
+                            title="Map Command Center"
+                        >
+                            <Map className="w-5 h-5" />
+                            <span className="text-[10px] font-black uppercase tracking-widest hidden lg:block">Map</span>
+                        </button>
+                        {showCommandCenter && mapRef && (
+                            <MapCommandCenter
+                                mapRef={mapRef}
+                                mapStyle={mapStyle}
+                                setMapStyle={setMapStyle || (() => { })}
+                                onClose={() => setShowCommandCenter(false)}
+                            />
+                        )}
+                    </div>
                     <button onClick={() => setIsFilterModalOpen(true)} aria-label="Open property filters" className={`p-2.5 rounded-xl border transition-all group flex items-center gap-2 px-4 ${isAnyFilterActive ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-slate-50 border-slate-200 text-slate-600'}`} title="Filters">
                         <FilterIcon className={`w-5 h-5 ${isAnyFilterActive ? 'text-blue-600' : 'group-hover:text-blue-600'}`} />
                         <span className="text-[10px] font-black uppercase tracking-widest hidden lg:block">Filters</span>
@@ -443,8 +471,8 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                                                 key={cat}
                                                 onClick={() => onToggleAmenity?.(cat)}
                                                 className={`px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest border transition-all ${isActive
-                                                        ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                                                        : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300 hover:text-blue-600'
+                                                    ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                                                    : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300 hover:text-blue-600'
                                                     }`}
                                             >
                                                 {label}

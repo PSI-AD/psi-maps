@@ -2,8 +2,6 @@ import React, { useState, Suspense } from 'react';
 import { Project, Landmark, ClientPresentation } from '../types';
 const AdminDashboard = React.lazy(() => import('./AdminDashboard'));
 const ProjectSidebar = React.lazy(() => import('./ProjectSidebar'));
-import FloatingMapTools from './FloatingMapTools';
-import MapStyleSwitcher from './MapStyleSwitcher';
 import BottomControlBar from './BottomControlBar';
 import FullscreenImageModal from './FullscreenImageModal';
 import NearbyPanel from './NearbyPanel';
@@ -68,6 +66,7 @@ interface MainLayoutProps {
   onLaunchPresentation: (pres: ClientPresentation) => void;
   onExitPresentation: () => void;
   onSelectLandmark?: (landmark: Landmark) => void;
+  mapRef?: React.MutableRefObject<any>;
 }
 
 const MainLayout: React.FC<MainLayoutProps> = (props) => {
@@ -195,20 +194,6 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
             <span className="text-blue-600 capitalize truncate max-w-[150px]">{props.selectedProject.name}</span>
           </>
         )}
-      </div>
-
-      <FloatingMapTools
-        activeFilters={activeAmenities}
-        onToggle={onToggleAmenity}
-        isDrawActive={isDrawing}
-        onToggleDraw={onToggleDraw}
-        isOpen={isNearbyToolsOpen}
-        onToggleOpen={() => setIsNearbyToolsOpen(!isNearbyToolsOpen)}
-      />
-
-      {/* Map Style Switcher (Bottom Left, above dock) */}
-      <div className="absolute bottom-28 left-6 z-40 hidden sm:block">
-        <MapStyleSwitcher currentStyle={mapStyle} onStyleChange={setMapStyle} />
       </div>
 
       {/* Analysis Sidebar */}
@@ -388,6 +373,9 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
         activeAmenities={activeAmenities}
         onToggleAmenity={onToggleAmenity}
         filteredCount={props.filteredProjects.length}
+        mapRef={props.mapRef}
+        mapStyle={mapStyle}
+        setMapStyle={setMapStyle}
       />
 
       {/* Fullscreen Image Lightbox — rendered at MainLayout level to cover full viewport */}

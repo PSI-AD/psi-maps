@@ -323,7 +323,14 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
 
             {/* Amenity markers — deferred 800ms to unblock initial paint */}
             {markersReady && filteredAmenities.map(amenity => (
-                <AmenityMarker key={amenity.id} amenity={amenity} onClick={() => onLandmarkClick(amenity)} onMouseEnter={() => setHoveredLandmarkId(amenity.id)} onMouseLeave={() => setHoveredLandmarkId(null)} />
+                <AmenityMarker
+                    key={amenity.id}
+                    amenity={amenity}
+                    isSelected={selectedLandmarkForSearch?.id === amenity.id}
+                    onClick={() => onLandmarkClick(amenity)}
+                    onMouseEnter={() => setHoveredLandmarkId(amenity.id)}
+                    onMouseLeave={() => setHoveredLandmarkId(null)}
+                />
             ))}
 
             {/* Dashed amber line from selected landmark to highlighted project */}

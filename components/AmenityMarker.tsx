@@ -5,6 +5,7 @@ import { GraduationCap, Hotel, Landmark as CultureIcon, ShoppingBag, Stethoscope
 
 interface AmenityMarkerProps {
   amenity: Landmark;
+  isSelected?: boolean;
   onClick?: () => void;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
@@ -23,7 +24,7 @@ const categoryConfig: Record<string, { bg: string; border: string; icon: React.R
 
 const defaultConfig = { bg: 'bg-slate-600', border: 'border-slate-600', icon: <CultureIcon className="w-5 h-5 text-white" /> };
 
-const AmenityMarker: React.FC<AmenityMarkerProps> = ({ amenity, onClick, onMouseEnter, onMouseLeave }) => {
+const AmenityMarker: React.FC<AmenityMarkerProps> = ({ amenity, isSelected = false, onClick, onMouseEnter, onMouseLeave }) => {
   const config = categoryConfig[amenity.category?.toLowerCase()] ?? defaultConfig;
 
   return (
@@ -36,18 +37,18 @@ const AmenityMarker: React.FC<AmenityMarkerProps> = ({ amenity, onClick, onMouse
       <div
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
-        className="group relative flex flex-col items-center cursor-pointer z-20"
+        className={`group relative flex flex-col items-center cursor-pointer transition-all duration-300 ${isSelected ? 'z-[100] scale-110' : 'z-20'}`}
       >
         {/* Solid pin circle */}
-        <div className={`w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-transform duration-200 group-hover:scale-110 ${config.bg} border-2 border-white`}>
+        <div className={`w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-transform duration-200 ${config.bg} ${isSelected ? 'border-[3px] border-orange-500 ring-4 ring-orange-500/30' : 'border-2 border-white group-hover:scale-110'}`}>
           {config.icon}
         </div>
 
         {/* Diamond tail */}
-        <div className={`w-2.5 h-2.5 -mt-1.5 rotate-45 ${config.bg} border-r-2 border-b-2 border-white`} />
+        <div className={`w-2.5 h-2.5 -mt-1.5 rotate-45 ${config.bg} border-r-2 border-b-2 ${isSelected ? 'border-orange-500' : 'border-white'}`} />
 
         {/* Name label — white background, black text, coloured border */}
-        <div className={`mt-1 px-3 py-1 bg-white text-black text-[11px] font-black rounded-lg shadow-md whitespace-nowrap border-2 ${config.border} opacity-90 group-hover:opacity-100 transition-opacity max-w-[160px] truncate`}>
+        <div className={`mt-1 px-3 py-1 bg-white text-black text-[11px] font-black rounded-lg shadow-md whitespace-nowrap border-2 ${isSelected ? 'border-orange-500' : config.border} opacity-90 group-hover:opacity-100 transition-opacity max-w-[160px] truncate`}>
           {amenity.name}
         </div>
       </div>
