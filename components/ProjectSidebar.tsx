@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useMemo } from 'react';
 import { Project, Landmark } from '../types';
-import { X, MapPin, BedDouble, Bath, Square, Calendar, ArrowRight, Activity, Building, LayoutTemplate, Car, Footprints, Clock, MessageSquare, Compass, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, MapPin, BedDouble, Bath, Square, Calendar, ArrowRight, Activity, Building, LayoutTemplate, Car, Footprints, Clock, MessageSquare, Compass, ChevronLeft, ChevronRight, Play, Pause } from 'lucide-react';
 import { calculateDistance } from '../utils/geo';
 import TextModal from './TextModal';
 import InquireModal from './InquireModal';
@@ -38,6 +38,18 @@ const isValidPrice = (range?: string): boolean => {
   return raw.length > 0 && !isNaN(n) && n > 0;
 };
 
+// Formats stored completionDate strings like "Q3 2026" or ISO dates into a unified "Q# YYYY" label
+const formatCompletionDate = (dateStr?: string): string => {
+  if (!dateStr || dateStr.trim() === '' || dateStr === 'N/A') return 'N/A';
+  if (/^Q[1-4]\s+\d{4}$/.test(dateStr.trim())) return dateStr.trim();
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime()) || d.getFullYear() < 1990) return dateStr;
+    const q = Math.ceil((d.getMonth() + 1) / 3);
+    return `Q${q} ${d.getFullYear()}`;
+  } catch { return dateStr; }
+};
+
 const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   project,
   onClose,
@@ -52,12 +64,11 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   setShowNearbyPanel,
 }) => {
   const [activeIdx, setActiveIdx] = useState(0);
-  const [isHighResLoaded, setIsHighResLoaded] = useState(false);
-  // areThumbnailsAllowed is derived from isHighResLoaded — no separate state needed
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [tick, setTick] = useState(0);
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [isTextModalOpen, setIsTextModalOpen] = useState(false);
   const [isInquireModalOpen, setIsInquireModalOpen] = useState(false);
-  const autoScrollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   if (!project) return null;
 
@@ -73,9 +84,8 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   // ── Build a unified gallery: prefer optimizedGallery, fall back to images[]
   const gallery = useMemo(() => {
     if (project.optimizedGallery && project.optimizedGallery.length > 0) {
-      return project.optimizedGallery; // already { thumb, large }
+      return project.optimizedGallery;
     }
-    // Fallback: raw image URLs — use same URL for both layers
     const rawUrls = (project.images && project.images.length > 0)
       ? project.images
       : [project.thumbnailUrl || ''];
@@ -85,57 +95,46 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   const hasMultipleImages = gallery.length > 1;
   const currentImage = gallery[activeIdx] ?? gallery[0];
 
-  // Reset SYNCHRONOUSLY before paint when project changes — prevents stale frame
+  // Reset synchronously on project change
   useLayoutEffect(() => {
     setActiveIdx(0);
-    setIsHighResLoaded(false); // also blocks thumbnails + auto-scroll until hero loads
+    setIsPlaying(true);
+    setTick(0);
   }, [project.id]);
 
-  // Auto-scroll: 3s interval, pauses on hover
-  const startAutoScroll = useCallback(() => {
-    if (!hasMultipleImages) return;
-    autoScrollRef.current = setInterval(() => {
-      setActiveIdx(prev => (prev + 1) % gallery.length);
-      setIsHighResLoaded(false);
-    }, 3000);
-  }, [gallery.length, hasMultipleImages]);
-
-  const stopAutoScroll = useCallback(() => {
-    if (autoScrollRef.current) {
-      clearInterval(autoScrollRef.current);
-      autoScrollRef.current = null;
-    }
-  }, []);
-
-  // Auto-scroll: only starts after hero image is fully loaded
-  // This ensures the slideshow timer never competes with the hero fetch
+  // Tick-based slideshow engine — 50ms interval drives SVG progress ring
+  const MAX_TICKS = 60; // 3 seconds at 50ms per tick
   useEffect(() => {
-    if (isHighResLoaded) {
-      startAutoScroll();
+    if (!isPlaying || !hasMultipleImages) {
+      setTick(0);
+      return;
     }
-    return stopAutoScroll;
-  }, [isHighResLoaded, startAutoScroll, stopAutoScroll]);
+    const timer = setInterval(() => {
+      setTick(prev => {
+        if (prev >= MAX_TICKS) {
+          setActiveIdx(curr => (curr + 1) % gallery.length);
+          return 0;
+        }
+        return prev + 1;
+      });
+    }, 50);
+    return () => clearInterval(timer);
+  }, [isPlaying, gallery.length, hasMultipleImages]);
 
-  const handleNextImage = useCallback(() => {
+  const handleNextImage = () => {
     setActiveIdx(prev => (prev + 1) % gallery.length);
-    setIsHighResLoaded(false);
-    stopAutoScroll();
-    startAutoScroll();
-  }, [gallery.length, startAutoScroll, stopAutoScroll]);
+    setTick(0);
+  };
 
-  const handlePrevImage = useCallback(() => {
+  const handlePrevImage = () => {
     setActiveIdx(prev => (prev - 1 + gallery.length) % gallery.length);
-    setIsHighResLoaded(false);
-    stopAutoScroll();
-    startAutoScroll();
-  }, [gallery.length, startAutoScroll, stopAutoScroll]);
+    setTick(0);
+  };
 
-  const handleThumbClick = useCallback((idx: number) => {
+  const handleThumbClick = (idx: number) => {
     setActiveIdx(idx);
-    setIsHighResLoaded(false);
-    stopAutoScroll();
-    startAutoScroll();
-  }, [startAutoScroll, stopAutoScroll]);
+    setTick(0);
+  };
 
   const DESCRIPTION_LIMIT = 250;
   const rawDescription = project.description || '';
@@ -178,41 +177,50 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
     <>
       <div className="h-full flex flex-col bg-white text-slate-800 font-sans shadow-2xl relative border-l border-slate-200">
 
-        {/* 1. Hero Gallery — blur-up progressive, auto-scroll, prev/next controls */}
+        {/* 1. Hero Gallery — single thumb image + tick-based slideshow engine */}
         <div
           className="relative h-64 w-full shrink-0 bg-slate-100 overflow-hidden group"
-          onMouseEnter={stopAutoScroll}
-          onMouseLeave={startAutoScroll}
+          onMouseEnter={() => setIsPlaying(false)}
+          onMouseLeave={() => setIsPlaying(true)}
         >
-          {/* Progressive image — keyed on project.id so React fully remounts on switch */}
-          <div key={`${project.id}-${activeIdx}`} className="absolute inset-0">
-            {/* Skeleton pulse — shows while high-res is loading, never lets old image linger */}
-            {!isHighResLoaded && (
-              <div className="absolute inset-0 bg-slate-200 animate-pulse" aria-hidden="true" />
-            )}
-            {/* Low-res thumb — loaded eagerly as the instant placeholder */}
-            <img
-              src={currentImage.thumb}
-              alt={project.name}
-              aria-hidden="true"
-              loading="eager"
-              fetchpriority="high"
-              decoding="sync"
-              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${isHighResLoaded ? 'opacity-0' : 'opacity-100'}`}
-            />
-            {/* High-res large — fades in when loaded; also opens thumbnail gate */}
-            <img
-              key={currentImage.large}
-              src={currentImage.large}
-              alt={project.name}
-              loading="eager"
-              fetchpriority="high"
-              decoding="async"
-              onLoad={() => setIsHighResLoaded(true)}
-              onClick={() => setFullscreenImage(currentImage.large)}
-              className={`absolute inset-0 w-full h-full object-cover cursor-zoom-in transition-opacity duration-300 ${isHighResLoaded ? 'opacity-100' : 'opacity-0'}`}
-            />
-          </div>
+          {/* Single hero image — thumb is the correct size for a 380px panel */}
+          <img
+            key={currentImage.thumb}
+            src={currentImage.thumb}
+            alt={project.name}
+            loading="eager"
+            fetchpriority="high"
+            decoding="async"
+            onClick={() => setFullscreenImage(currentImage.large)}
+            className="absolute inset-0 w-full h-full object-cover cursor-zoom-in transition-opacity duration-300"
+          />
+
+          {/* Play/Pause button with circular SVG progress ring */}
+          {hasMultipleImages && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setIsPlaying(p => !p); }}
+              aria-label={isPlaying ? 'Pause slideshow' : 'Play slideshow'}
+              className="absolute top-4 left-4 bg-black/40 hover:bg-black/70 backdrop-blur-md text-white rounded-full transition-all border border-white/20 z-10 flex items-center justify-center w-9 h-9"
+            >
+              {isPlaying ? (
+                <div className="relative w-full h-full flex items-center justify-center">
+                  <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 36 36">
+                    <circle cx="18" cy="18" r="14" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="2.5" />
+                    <circle
+                      cx="18" cy="18" r="14"
+                      fill="none" stroke="white" strokeWidth="2.5"
+                      strokeDasharray="88"
+                      strokeDashoffset={88 - (88 * tick) / MAX_TICKS}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <Pause className="w-3.5 h-3.5 fill-current relative z-10" />
+                </div>
+              ) : (
+                <Play className="w-4 h-4 fill-current ml-0.5" />
+              )}
+            </button>
+          )}
 
           {/* Close button */}
           <button
@@ -243,7 +251,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
             </>
           )}
 
-          {/* Thumbnail strip — gated: img tags only mount after hero is fully loaded */}
+          {/* Thumbnail strip — always visible, images use lazy loading (hero owns bandwidth) */}
           {hasMultipleImages && (
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent pt-6 pb-2 px-2 flex gap-2 overflow-x-auto hide-scrollbar">
               {gallery.map((img, idx) => (
@@ -254,9 +262,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                   className={`shrink-0 w-14 h-10 rounded-lg overflow-hidden border-2 transition-all ${activeIdx === idx ? 'border-white scale-105 shadow-lg' : 'border-white/40 opacity-70 hover:opacity-100 hover:border-white'
                     }`}
                 >
-                  {isHighResLoaded
-                    ? <img src={img.thumb} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
-                    : <div className="w-full h-full bg-slate-800/50 animate-pulse" aria-hidden="true" />}
+                  <img src={img.thumb} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>
@@ -369,7 +375,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                   <Calendar className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
                   <div>
                     <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Completion</p>
-                    <p className="font-bold text-slate-800 text-sm">{project.completionDate}</p>
+                    <p className="font-bold text-slate-800 text-sm">{formatCompletionDate(project.completionDate)}</p>
                   </div>
                 </div>
               )}
