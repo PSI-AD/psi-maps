@@ -53,6 +53,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
 }) => {
   const [activeIdx, setActiveIdx] = useState(0);
   const [isHighResLoaded, setIsHighResLoaded] = useState(false);
+  const [areThumbnailsAllowed, setAreThumbnailsAllowed] = useState(false);
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [isTextModalOpen, setIsTextModalOpen] = useState(false);
   const [isInquireModalOpen, setIsInquireModalOpen] = useState(false);
@@ -88,6 +89,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   useLayoutEffect(() => {
     setActiveIdx(0);
     setIsHighResLoaded(false);
+    setAreThumbnailsAllowed(false); // block thumbnails until new hero loads
   }, [project.id]);
 
   // Auto-scroll: 3s interval, pauses on hover
@@ -195,7 +197,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
               decoding="sync"
               className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${isHighResLoaded ? 'opacity-0' : 'opacity-100'}`}
             />
-            {/* High-res large — fades in when loaded */}
+            {/* High-res large — fades in when loaded; also opens thumbnail gate */}
             <img
               key={currentImage.large}
               src={currentImage.large}
@@ -203,7 +205,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
               loading="eager"
               fetchpriority="high"
               decoding="async"
-              onLoad={() => setIsHighResLoaded(true)}
+              onLoad={() => { setIsHighResLoaded(true); setAreThumbnailsAllowed(true); }}
               onClick={() => setFullscreenImage(currentImage.large)}
               className={`absolute inset-0 w-full h-full object-cover cursor-zoom-in transition-opacity duration-300 ${isHighResLoaded ? 'opacity-100' : 'opacity-0'}`}
             />
@@ -238,21 +240,31 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
             </>
           )}
 
-          {/* Thumbnail strip — floated over the bottom of the hero */}
+          {/* Thumbnail strip — gated: only renders and fetches after main image has loaded */}
           {hasMultipleImages && (
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent pt-6 pb-2 px-2 flex gap-2 overflow-x-auto hide-scrollbar">
-              {gallery.map((img, idx) => (
-                <button
-                  key={idx}
-                  onClick={(e) => { e.stopPropagation(); handleThumbClick(idx); }}
-                  aria-label={`View image ${idx + 1}`}
-                  className={`shrink-0 w-14 h-10 rounded-lg overflow-hidden border-2 transition-all ${activeIdx === idx ? 'border-white scale-105 shadow-lg' : 'border-white/40 opacity-70 hover:opacity-100 hover:border-white'
-                    }`}
-                >
-                  {/* Thumbnail strip uses thumb-only for performance */}
-                  <img src={img.thumb} alt="" loading="eager" decoding="async" className="w-full h-full object-cover" />
-                </button>
-              ))}
+              {areThumbnailsAllowed
+                ? gallery.map((img, idx) => (
+                  <button
+                    key={idx}
+                    onClick={(e) => { e.stopPropagation(); handleThumbClick(idx); }}
+                    aria-label={`View image ${idx + 1}`}
+                    className={`shrink-0 w-14 h-10 rounded-lg overflow-hidden border-2 transition-all ${activeIdx === idx ? 'border-white scale-105 shadow-lg' : 'border-white/40 opacity-70 hover:opacity-100 hover:border-white'
+                      }`}
+                  >
+                    <img src={img.thumb} alt="" loading="eager" decoding="async" className="w-full h-full object-cover" />
+                  </button>
+                ))
+                : gallery.map((_, idx) => (
+                  // Skeleton placeholders — correct dimensions, zero network requests
+                  <div
+                    key={idx}
+                    aria-hidden="true"
+                    className={`shrink-0 w-14 h-10 rounded-lg border-2 bg-white/20 animate-pulse ${activeIdx === idx ? 'border-white' : 'border-white/30'
+                      }`}
+                  />
+                ))
+              }
             </div>
           )}
 
