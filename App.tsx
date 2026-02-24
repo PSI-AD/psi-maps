@@ -202,13 +202,18 @@ const App: React.FC = () => {
   const handleMarkerClick = (id: string) => {
     setSelectedProjectId(id);
     setSelectedLandmarkId(null);
-    setIsAnalysisOpen(true);
+    // Desktop: open analysis panel immediately
+    // Mobile (<768px): keep panel closed — user navigates via carousel card tap
+    if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+      setIsAnalysisOpen(true);
+    } else {
+      setIsAnalysisOpen(false);
+    }
     const p = filteredProjects.find(pr => pr.id === id);
     if (p) {
       // Sync Breadcrumbs on click
       setSelectedCity(p.city || '');
       setSelectedCommunity(p.community || '');
-
       if (p.latitude && p.longitude && !isNaN(p.latitude) && !isNaN(p.longitude)) {
         handleFlyTo(p.longitude, p.latitude, 16);
       }

@@ -312,7 +312,8 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                     source="projects"
                     filter={['!', ['has', 'point_count']]}
                     paint={{
-                        'circle-color': 'rgba(0,0,0,0)',
+                        'circle-color': '#000000',
+                        'circle-opacity': 0.01,
                         'circle-radius': 25
                     }}
                 />

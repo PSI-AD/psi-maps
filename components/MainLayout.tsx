@@ -335,7 +335,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
       )}
 
       {/* Filtered results carousel / side panel — responsive dual mode */}
-      <div className={selectedProject ? 'hidden md:block' : 'block'}>
+      <div className={selectedProject && isAnalysisOpen ? 'hidden md:block' : 'block'}>
         <FilteredProjectsCarousel
           projects={props.filteredProjects}
           onSelectProject={handleSearchSelect}
