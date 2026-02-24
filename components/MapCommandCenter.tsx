@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Layers, Box, Compass, RefreshCw, Bird, Map as MapIcon, Moon } from 'lucide-react';
+import { Layers, Box, Compass, RefreshCw, Bird, Map as MapIcon, Moon, ZoomIn, ZoomOut, Crosshair } from 'lucide-react';
 
 interface MapCommandCenterProps {
     mapRef: React.MutableRefObject<any>;
@@ -30,83 +30,145 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
         };
     }, [isRotating, mapRef]);
 
-    const execute = (action: 'bird' | '3d' | 'north') => {
+    const execute = (action: 'bird' | '3d' | 'north' | 'zoomIn' | 'zoomOut') => {
         const map = mapRef?.current?.getMap?.();
         if (!map) return;
+
         setIsRotating(false);
+
         if (action === 'bird') {
-            map.flyTo({ center: [54.5, 24.5], zoom: 6, pitch: 0, bearing: 0, duration: 2500 });
+            // Localized — centers on the current map view, not a hardcoded coordinate
+            const currentCenter = map.getCenter();
+            map.flyTo({ center: [currentCenter.lng, currentCenter.lat], zoom: 14, pitch: 0, bearing: 0, duration: 2000 });
             setIs3D(false);
         }
         if (action === '3d') {
             const targetPitch = map.getPitch() > 30 ? 0 : 60;
-            map.flyTo({ pitch: targetPitch, duration: 1000 });
+            map.flyTo({ pitch: targetPitch, duration: 1500 });
             setIs3D(targetPitch > 30);
         }
         if (action === 'north') {
             map.resetNorthPitch({ duration: 1000 });
             setIs3D(false);
         }
+        if (action === 'zoomIn') {
+            map.zoomIn({ duration: 500 });
+        }
+        if (action === 'zoomOut') {
+            map.zoomOut({ duration: 500 });
+        }
     };
 
     return (
-        <div className="absolute bottom-[110%] left-0 bg-white/98 backdrop-blur-md border border-slate-200 shadow-2xl rounded-2xl p-3 flex gap-2 z-50 animate-in slide-in-from-bottom-2 duration-200">
-            {/* Camera controls column */}
-            <div className="flex flex-col gap-1.5 border-r border-slate-200 pr-2.5">
-                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest text-center mb-1">Camera</p>
+        <div className="absolute bottom-[110%] left-0 bg-slate-900/95 backdrop-blur-xl border border-slate-700 shadow-[0_0_40px_rgba(0,0,0,0.5)] rounded-2xl p-4 flex gap-4 z-50 animate-in slide-in-from-bottom-2 duration-200 origin-bottom-left text-slate-300">
+
+            {/* ── Camera Controls ───────────────────────────────── */}
+            <div className="flex flex-col gap-2 border-r border-slate-700/80 pr-4">
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Camera</span>
+
                 <button
                     onClick={() => execute('bird')}
-                    className="p-2 rounded-xl text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-all"
-                    title="Bird's Eye View"
+                    className="p-2.5 rounded-xl hover:bg-blue-600/20 hover:text-blue-400 hover:shadow-[inset_0_0_15px_rgba(37,99,235,0.2)] transition-all group border border-transparent"
+                    title="Community Bird's Eye"
                 >
-                    <Bird className="w-5 h-5" />
+                    <Bird className="w-5 h-5 group-hover:-translate-y-0.5 transition-transform" />
                 </button>
+
                 <button
                     onClick={() => execute('3d')}
-                    className={`p-2 rounded-xl transition-all ${is3D ? 'bg-blue-100 text-blue-600' : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600'}`}
-                    title="Toggle 3D Perspective"
+                    className={`p-2.5 rounded-xl transition-all ${is3D
+                            ? 'bg-blue-600/30 text-blue-400 shadow-[inset_0_0_15px_rgba(37,99,235,0.3)] border border-blue-500/30'
+                            : 'hover:bg-slate-800 border border-transparent'
+                        }`}
+                    title="Toggle 3D Drone View"
                 >
                     <Box className="w-5 h-5" />
                 </button>
+
                 <button
                     onClick={() => setIsRotating(r => !r)}
-                    className={`p-2 rounded-xl transition-all ${isRotating ? 'bg-amber-100 text-amber-600' : 'text-slate-600 hover:bg-amber-50 hover:text-amber-600'}`}
-                    title="Cinematic Auto-Rotate"
+                    className={`p-2.5 rounded-xl transition-all ${isRotating
+                            ? 'bg-purple-600/30 text-purple-400 shadow-[inset_0_0_15px_rgba(147,51,234,0.3)] border border-purple-500/30'
+                            : 'hover:bg-slate-800 border border-transparent'
+                        }`}
+                    title="Cinematic Orbit"
                 >
-                    <RefreshCw className={`w-5 h-5 ${isRotating ? 'animate-spin' : ''}`} style={{ animationDuration: '3s' }} />
+                    <RefreshCw className={`w-5 h-5 ${isRotating ? 'animate-spin' : ''}`} style={{ animationDuration: '4s' }} />
                 </button>
+
                 <button
                     onClick={() => execute('north')}
-                    className="p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition-all"
-                    title="Reset Compass North"
+                    className="p-2.5 rounded-xl hover:bg-slate-800 transition-all border border-transparent"
+                    title="Reset Compass"
                 >
                     <Compass className="w-5 h-5" />
                 </button>
             </div>
 
-            {/* Style column */}
-            <div className="flex flex-col gap-1.5 pl-0.5">
-                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest text-center mb-1">Style</p>
+            {/* ── Map Style / Display ───────────────────────────── */}
+            <div className="flex flex-col gap-2 border-r border-slate-700/80 pr-4">
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Display</span>
+
                 <button
-                    onClick={() => { setMapStyle('mapbox://styles/mapbox/satellite-streets-v12'); onClose(); }}
-                    className={`p-2 rounded-xl transition-all ${(mapStyle || '').includes('satellite') ? 'bg-emerald-100 text-emerald-700' : 'text-slate-600 hover:bg-slate-100'}`}
+                    onClick={() => setMapStyle('mapbox://styles/mapbox/satellite-streets-v12')}
+                    className={`p-2.5 rounded-xl transition-all ${(mapStyle || '').includes('satellite')
+                            ? 'bg-emerald-600/30 text-emerald-400 shadow-[inset_0_0_15px_rgba(16,185,129,0.3)] border border-emerald-500/30'
+                            : 'hover:bg-slate-800 border border-transparent'
+                        }`}
                     title="Satellite View"
                 >
                     <Layers className="w-5 h-5" />
                 </button>
+
                 <button
-                    onClick={() => { setMapStyle('mapbox://styles/mapbox/dark-v11'); onClose(); }}
-                    className={`p-2 rounded-xl transition-all ${(mapStyle || '').includes('dark') ? 'bg-indigo-100 text-indigo-700' : 'text-slate-600 hover:bg-slate-100'}`}
-                    title="Night Mode"
+                    onClick={() => setMapStyle('mapbox://styles/mapbox/dark-v11')}
+                    className={`p-2.5 rounded-xl transition-all ${(mapStyle || '').includes('dark')
+                            ? 'bg-blue-600/30 text-blue-400 shadow-[inset_0_0_15px_rgba(37,99,235,0.3)] border border-blue-500/30'
+                            : 'hover:bg-slate-800 border border-transparent'
+                        }`}
+                    title="Midnight Protocol"
                 >
                     <Moon className="w-5 h-5" />
                 </button>
+
                 <button
-                    onClick={() => { setMapStyle('mapbox://styles/mapbox/streets-v12'); onClose(); }}
-                    className={`p-2 rounded-xl transition-all ${(mapStyle || '').includes('streets') ? 'bg-sky-100 text-sky-700' : 'text-slate-600 hover:bg-slate-100'}`}
-                    title="Street Map"
+                    onClick={() => setMapStyle('mapbox://styles/mapbox/streets-v12')}
+                    className={`p-2.5 rounded-xl transition-all ${(mapStyle || '').includes('streets')
+                            ? 'bg-sky-600/30 text-sky-400 shadow-[inset_0_0_15px_rgba(14,165,233,0.3)] border border-sky-500/30'
+                            : 'hover:bg-slate-800 border border-transparent'
+                        }`}
+                    title="Vector Streets"
                 >
                     <MapIcon className="w-5 h-5" />
+                </button>
+            </div>
+
+            {/* ── Altitude / Zoom Controls ──────────────────────── */}
+            <div className="flex flex-col gap-2">
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Altitude</span>
+
+                <button
+                    onClick={() => execute('zoomIn')}
+                    className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 hover:text-white transition-all border border-slate-700 shadow-sm"
+                    title="Zoom In"
+                >
+                    <ZoomIn className="w-5 h-5" />
+                </button>
+
+                <button
+                    onClick={() => execute('zoomOut')}
+                    className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 hover:text-white transition-all border border-slate-700 shadow-sm"
+                    title="Zoom Out"
+                >
+                    <ZoomOut className="w-5 h-5" />
+                </button>
+
+                <button
+                    onClick={() => execute('bird')}
+                    className="p-2.5 rounded-xl hover:bg-slate-800 transition-all border border-transparent mt-auto"
+                    title="Center Focus"
+                >
+                    <Crosshair className="w-5 h-5 text-slate-500 hover:text-white transition-colors" />
                 </button>
             </div>
         </div>
