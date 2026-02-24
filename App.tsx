@@ -110,15 +110,15 @@ const App: React.FC = () => {
     return topLandmarks;
   }, [selectedProject, liveLandmarks, activeAmenities, showNearbyPanel]);
 
-  // Projects within 5km of selected landmark for Reverse Search
+  // Projects within 5km of selected landmark — uses liveProjects (full DB) so city filters don't block results
   const nearbyProjects = useMemo((): Project[] => {
     if (!selectedLandmarkForSearch) return [];
     const lCoord: [number, number] = [Number(selectedLandmarkForSearch.longitude), Number(selectedLandmarkForSearch.latitude)];
-    return filteredProjects.filter(p => {
+    return liveProjects.filter(p => {
       if (!p.longitude || !p.latitude || isNaN(Number(p.longitude)) || isNaN(Number(p.latitude))) return false;
       return turf.distance(lCoord, [Number(p.longitude), Number(p.latitude)]) <= 5;
     });
-  }, [selectedLandmarkForSearch, filteredProjects]);
+  }, [selectedLandmarkForSearch, liveProjects]);
 
   // Resolve saved presentation IDs back to full Project objects in order
   const presentationProjects = useMemo(() => {

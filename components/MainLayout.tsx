@@ -385,6 +385,8 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
         onGlobalReset={handleGlobalReset}
         landmarks={liveLandmarks}
         onSelectLandmark={props.onSelectLandmark}
+        activeAmenities={activeAmenities}
+        onToggleAmenity={onToggleAmenity}
         filteredCount={props.filteredProjects.length}
       />
 

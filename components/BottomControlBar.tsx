@@ -31,6 +31,8 @@ interface BottomControlBarProps {
     filteredCount: number;
     landmarks?: Landmark[];
     onSelectLandmark?: (landmark: Landmark) => void;
+    activeAmenities?: string[];
+    onToggleAmenity?: (category: string) => void;
 }
 
 const uaeEmirates = ['abu dhabi', 'dubai', 'sharjah', 'ajman', 'umm al quwain', 'ras al khaimah', 'fujairah'];
@@ -63,6 +65,8 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
     filteredCount,
     landmarks = [],
     onSelectLandmark,
+    activeAmenities = [],
+    onToggleAmenity,
 }) => {
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
     const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
@@ -419,7 +423,39 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                                 </div>
                             </div>
 
+                            {/* Nearby Amenities */}
+                            <div className="mb-10">
+                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-5">Nearby Amenities</h4>
+                                <div className="flex flex-wrap gap-2">
+                                    {[
+                                        { label: 'Schools', cat: 'school' },
+                                        { label: 'Hospitals', cat: 'hospital' },
+                                        { label: 'Retail', cat: 'retail' },
+                                        { label: 'Leisure', cat: 'leisure' },
+                                        { label: 'Hotels', cat: 'hotel' },
+                                        { label: 'Culture', cat: 'culture' },
+                                        { label: 'Airports', cat: 'airport' },
+                                        { label: 'Ports', cat: 'port' },
+                                    ].map(({ label, cat }) => {
+                                        const isActive = activeAmenities.includes(cat);
+                                        return (
+                                            <button
+                                                key={cat}
+                                                onClick={() => onToggleAmenity?.(cat)}
+                                                className={`px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest border transition-all ${isActive
+                                                        ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                                                        : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300 hover:text-blue-600'
+                                                    }`}
+                                            >
+                                                {label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
                             {/* Spatial Tools */}
+
                             <div className="mb-8 p-5 bg-blue-50 rounded-2xl border border-blue-100">
                                 <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] mb-4">Spatial Tools</h4>
                                 <button

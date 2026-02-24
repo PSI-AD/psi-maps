@@ -325,25 +325,8 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                 <AmenityMarker key={amenity.id} amenity={amenity} onClick={() => onLandmarkClick(amenity)} onMouseEnter={() => setHoveredLandmarkId(amenity.id)} onMouseLeave={() => setHoveredLandmarkId(null)} />
             ))}
 
-            {/* Gold bounce marker for active reverse-search landmark — deferred */}
-            {markersReady && selectedLandmarkForSearch &&
-                !isNaN(Number(selectedLandmarkForSearch.longitude)) &&
-                !isNaN(Number(selectedLandmarkForSearch.latitude)) && (
-                    <Marker
-                        longitude={Number(selectedLandmarkForSearch.longitude)}
-                        latitude={Number(selectedLandmarkForSearch.latitude)}
-                        anchor="bottom"
-                    >
-                        <div className="flex flex-col items-center">
-                            <div className="w-10 h-10 bg-amber-500 border-4 border-white rounded-full flex items-center justify-center shadow-2xl animate-bounce">
-                                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" /></svg>
-                            </div>
-                            <div className="mt-1 bg-amber-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-md uppercase tracking-wide whitespace-nowrap max-w-[120px] truncate">
-                                {selectedLandmarkForSearch.name}
-                            </div>
-                        </div>
-                    </Marker>
-                )}
+
+
 
             <div className="hidden md:block">
                 {(() => {
