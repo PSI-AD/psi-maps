@@ -1,9 +1,5 @@
 import React, { useState } from 'react';
-<<<<<<< HEAD
-import { X, School, Coffee, Theater, ShoppingBag, BedDouble, Sparkles } from 'lucide-react';
-=======
 import { Layers, X, School, Coffee, Theater, ShoppingBag, BedDouble, PenTool } from 'lucide-react';
->>>>>>> 367084c (fix: resolved firestore permission-denied error for projects, cleared default map clutter, and built a persistent settings controller for default active amenities)
 
 interface FloatingMapToolsProps {
     activeFilters: string[];
@@ -15,17 +11,19 @@ interface FloatingMapToolsProps {
 }
 
 const FloatingMapTools: React.FC<FloatingMapToolsProps> = ({
-<<<<<<< HEAD
     activeFilters, onToggle, isDrawActive, onToggleDraw, isOpen: externalIsOpen, onToggleOpen
-=======
-    activeFilters, onToggle, isDrawActive, onToggleDraw
->>>>>>> 367084c (fix: resolved firestore permission-denied error for projects, cleared default map clutter, and built a persistent settings controller for default active amenities)
 }) => {
     const [internalIsOpen, setInternalIsOpen] = useState(false);
+    
+    // Allow controlled or uncontrolled mode
     const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
-    const toggleOpen = onToggleOpen || (() => setInternalIsOpen(!internalIsOpen));
-
-    if (!isOpen) return null;
+    const setIsOpen = (val: boolean) => {
+        if (onToggleOpen) {
+            onToggleOpen();
+        } else {
+            setInternalIsOpen(val);
+        }
+    };
 
     const tools = [
         { id: 'school', label: 'Schools', icon: <School className="w-5 h-5" />, action: () => onToggle('school'), active: activeFilters.includes('school') },
@@ -36,70 +34,27 @@ const FloatingMapTools: React.FC<FloatingMapToolsProps> = ({
     ];
 
     return (
-<<<<<<< HEAD
-        <div className="fixed inset-0 z-[7000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
-            {/* Backdrop Click handle */}
-            <div
-                className="absolute inset-0"
-                onClick={toggleOpen}
-            />
-
-            {/* Modal Card */}
-            <div className="relative w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-300">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
-                            <Sparkles className="w-5 h-5 text-blue-600" />
-                        </div>
-                        <h3 className="text-xl font-black text-slate-900 tracking-tight">Map Tools</h3>
-                    </div>
-                    <button
-                        onClick={toggleOpen}
-                        className="p-2 hover:bg-slate-50 text-slate-400 hover:text-slate-900 rounded-full transition-all"
-                    >
-                        <X className="w-6 h-6" />
-                    </button>
-                </div>
-
-                {/* Grid Layout */}
-                <div className="grid grid-cols-2 gap-3">
-                    {tools.map((tool) => (
-                        <button
-                            key={tool.id}
-                            onClick={() => { tool.action(); }}
-                            className={`
-                                flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border transition-all
-                                ${tool.active
-                                    ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-200'
-                                    : 'bg-slate-50 border-slate-100 text-slate-600 hover:bg-white hover:border-blue-200'}
-                            `}
-                        >
-                            <div className={tool.active ? 'text-white' : 'text-slate-400'}>
-                                {tool.icon}
-                            </div>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-center">
-                                {tool.label}
-                            </span>
-                        </button>
-                    ))}
-                </div>
-
-                {/* Footer Apply */}
-                <button
-                    onClick={toggleOpen}
-                    className="w-full mt-6 py-4 bg-blue-800 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] shadow-xl hover:bg-blue-900 transition-all"
-                >
-                    Done
-                </button>
-            </div>
-=======
-        <div className="flex flex-col items-end gap-3">
+        <div className="flex flex-col items-end gap-3 pointer-events-auto">
             {/* Expanded Menu */}
             <div className={`
                 flex flex-col gap-2 transition-all duration-300 origin-bottom-right
                 ${isOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-90 translate-y-4 pointer-events-none absolute bottom-0 right-0'}
             `}>
+                {/* Draw Tool */}
+                <button
+                    onClick={() => { onToggleDraw(); if (window.innerWidth < 768) setIsOpen(false); }}
+                    className={`
+                        flex items-center gap-3 px-5 py-3 rounded-full shadow-lg backdrop-blur-md border transition-all duration-200
+                        ${isDrawActive
+                            ? 'bg-violet-600 text-white border-violet-500 hover:bg-violet-700 shadow-violet-500/20'
+                            : 'bg-white/95 text-slate-700 border-white hover:bg-slate-50 hover:text-violet-700'}
+                    `}
+                >
+                    <PenTool className="w-5 h-5" />
+                    <span className="text-xs font-bold uppercase tracking-widest whitespace-nowrap">Draw Area</span>
+                </button>
+
+                {/* Amenity Toggles */}
                 {tools.map((tool) => (
                     <button
                         key={tool.id}
@@ -117,7 +72,7 @@ const FloatingMapTools: React.FC<FloatingMapToolsProps> = ({
                 ))}
             </div>
 
-            {/* Main Toggle Button - Changed from Black to Royal Blue */}
+            {/* Main Toggle Button */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={`
@@ -127,7 +82,6 @@ const FloatingMapTools: React.FC<FloatingMapToolsProps> = ({
             >
                 {isOpen ? <X className="w-6 h-6" /> : <Layers className="w-6 h-6" />}
             </button>
->>>>>>> 367084c (fix: resolved firestore permission-denied error for projects, cleared default map clutter, and built a persistent settings controller for default active amenities)
         </div>
     );
 };

@@ -29,7 +29,6 @@ interface MapCanvasProps {
     selectedProject: Project | null;
     hoveredProject: Project | null;
     projects?: Project[];
-<<<<<<< HEAD
     mapFeatures?: { show3D: boolean; showAnalytics: boolean; showCommunityBorders: boolean };
     activeBoundary?: any;
     activeIsochrone?: { mode: 'driving' | 'walking'; minutes: number } | null;
@@ -42,10 +41,8 @@ interface MapCanvasProps {
     isLassoMode?: boolean;
     drawnCoordinates?: [number, number][];
     setDrawnCoordinates?: React.Dispatch<React.SetStateAction<[number, number][]>>;
-=======
     clusters?: any[];
     supercluster?: any;
->>>>>>> 367084c (fix: resolved firestore permission-denied error for projects, cleared default map clutter, and built a persistent settings controller for default active amenities)
 }
 
 // 🚨 PERMANENT FIX: Base64 decoded token. Passed only via component prop.
@@ -66,7 +63,6 @@ const clusterLayer: CircleLayer = {
         'circle-stroke-width': 3,
         'circle-stroke-color': '#ffffff',
         'circle-opacity': 0.95
-<<<<<<< HEAD
     }
 };
 
@@ -89,8 +85,6 @@ const unclusteredLabelLayer: SymbolLayer = {
         'text-color': '#0f172a',
         'text-halo-color': '#ffffff',
         'text-halo-width': 2
-=======
->>>>>>> 367084c (fix: resolved firestore permission-denied error for projects, cleared default map clutter, and built a persistent settings controller for default active amenities)
     }
 };
 
@@ -119,11 +113,7 @@ const unclusteredPointLayer: CircleLayer = {
         'circle-color': '#0f172a',
         'circle-radius': 8,
         'circle-stroke-width': 2,
-<<<<<<< HEAD
         'circle-stroke-color': '#2563eb'
-=======
-        'circle-stroke-color': '#d4af37'
->>>>>>> 367084c (fix: resolved firestore permission-denied error for projects, cleared default map clutter, and built a persistent settings controller for default active amenities)
     }
 };
 
@@ -131,17 +121,13 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
     mapRef, viewState, setViewState, updateBounds, mapStyle, onClick,
     drawRef, onDrawCreate, onDrawUpdate, onDrawDelete,
     filteredAmenities, onMarkerClick, onLandmarkClick,
-<<<<<<< HEAD
     selectedProjectId,
-=======
->>>>>>> 367084c (fix: resolved firestore permission-denied error for projects, cleared default map clutter, and built a persistent settings controller for default active amenities)
     setHoveredProjectId, setHoveredLandmarkId,
     selectedLandmark, selectedProject, hoveredProject, projects = [], mapFeatures,
     activeBoundary, activeIsochrone, selectedLandmarkForSearch, hoveredProjectId, onBoundsChange,
     activeRouteGeometry, enableHeatmap = false, enableSunlight = false,
     isLassoMode = false, drawnCoordinates = [], setDrawnCoordinates,
 }) => {
-<<<<<<< HEAD
 
     // Safety check for valid GPS coordinates
     const coordMap = new globalThis.Map<string, number>();
@@ -166,26 +152,15 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
             lng += Math.sin(angle) * radius;
         }
         return { ...p, displayLat: lat, displayLng: lng };
-=======
-    const validMapProjects = projects.filter(p => {
-        const lat = p.latitude;
-        const lng = p.longitude;
-        return !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
->>>>>>> 367084c (fix: resolved firestore permission-denied error for projects, cleared default map clutter, and built a persistent settings controller for default active amenities)
     });
 
     const geoJsonData = {
         type: 'FeatureCollection',
         features: validMapProjects.map(p => ({
             type: 'Feature',
-<<<<<<< HEAD
             id: p.id,
             properties: { ...p, cluster: false, id: p.id },
             geometry: { type: 'Point', coordinates: [p.displayLng, p.displayLat] }
-=======
-            properties: { ...p, cluster: false },
-            geometry: { type: 'Point', coordinates: [p.longitude, p.latitude] }
->>>>>>> 367084c (fix: resolved firestore permission-denied error for projects, cleared default map clutter, and built a persistent settings controller for default active amenities)
         }))
     };
 
@@ -315,11 +290,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
             const source: any = map.getSource('projects');
             source.getClusterExpansionZoom(clusterId, (err: any, zoom: number) => {
                 if (err) return;
-<<<<<<< HEAD
                 map.flyTo({ center: feature.geometry.coordinates, zoom: zoom + 0.5, duration: 1200 });
-=======
-                map.easeTo({ center: feature.geometry.coordinates, zoom: zoom, duration: 800 });
->>>>>>> 367084c (fix: resolved firestore permission-denied error for projects, cleared default map clutter, and built a persistent settings controller for default active amenities)
             });
         } else {
             onMarkerClick(feature.properties.id);
@@ -369,7 +340,6 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
             <AttributionControl position="bottom-left" />
             <DrawControl position="top-right" onCreate={onDrawCreate} onUpdate={onDrawUpdate} onDelete={onDrawDelete} onReference={(draw) => { drawRef.current = draw; }} />
 
-<<<<<<< HEAD
             {mapFeatures?.show3D && (
                 <Layer
                     id="3d-buildings"
@@ -546,47 +516,6 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                                 title={`${pointCount} landmarks — click to expand`}
                             >
                                 {pointCount}
-=======
-            <Source id="projects" type="geojson" data={geoJsonData as any} cluster={true} clusterMaxZoom={14} clusterRadius={45}>
-                <Layer {...clusterLayer} />
-                <Layer {...clusterCountLayer} />
-                <Layer {...unclusteredPointLayer} />
-            </Source>
-
-            {filteredAmenities.map(amenity => (
-                <AmenityMarker key={amenity.id} amenity={amenity} onClick={() => onLandmarkClick(amenity)} onMouseEnter={() => setHoveredLandmarkId(amenity.id)} onMouseLeave={() => setHoveredLandmarkId(null)} />
-            ))}
-
-            <div className="hidden md:block">
-                {(selectedProject || hoveredProject) && (
-                    <Popup 
-                        longitude={(selectedProject || hoveredProject)!.longitude} 
-                        latitude={(selectedProject || hoveredProject)!.latitude} 
-                        closeButton={false} 
-                        closeOnClick={false} 
-                        anchor="bottom" 
-                        className="z-[200]" 
-                        maxWidth="320px" 
-                        offset={20}
-                    >
-                        {/* REDESIGNED POPUP: Edge-to-edge image on the left filling the container */}
-                        <div className="flex w-[280px] h-[100px] bg-white rounded-xl overflow-hidden shadow-2xl border border-slate-100 p-0 m-[-10px]">
-                            <div className="w-[100px] h-full shrink-0 bg-slate-100 relative">
-                                <img src={(selectedProject || hoveredProject)!.thumbnailUrl} className="absolute inset-0 w-full h-full object-cover" alt="" />
-                            </div>
-                            <div className="p-3 flex-1 flex flex-col justify-center min-w-0 bg-white">
-                                <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1 truncate">
-                                    {(selectedProject || hoveredProject)!.developerName}
-                                </span>
-                                <h4 className="font-black text-sm text-slate-900 leading-tight line-clamp-2 mb-1">
-                                    {(selectedProject || hoveredProject)!.name}
-                                </h4>
-                                <div className="mt-auto">
-                                    <span className="text-[11px] font-bold text-slate-700 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
-                                        {(selectedProject || hoveredProject)!.priceRange?.split('-')[0].trim()}
-                                    </span>
-                                </div>
->>>>>>> 367084c (fix: resolved firestore permission-denied error for projects, cleared default map clutter, and built a persistent settings controller for default active amenities)
                             </div>
                         </Marker>
                     );
