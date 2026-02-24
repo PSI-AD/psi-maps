@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { Map, AttributionControl, Source, Layer, Popup, Marker } from 'react-map-gl';
 import type { CircleLayer, SymbolLayer, FillLayer, LineLayer } from 'react-map-gl';
 import useSupercluster from 'use-supercluster';
@@ -36,6 +36,8 @@ interface MapCanvasProps {
     hoveredProjectId?: string | null;
     onBoundsChange?: (bounds: any) => void;
     activeRouteGeometry?: any | null;
+    enableHeatmap?: boolean;
+    enableSunlight?: boolean;
 }
 
 // 🚨 PERMANENT FIX: Base64 decoded token. Passed only via component prop.
@@ -118,7 +120,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
     setHoveredProjectId, setHoveredLandmarkId,
     selectedLandmark, selectedProject, hoveredProject, projects = [], mapFeatures,
     activeBoundary, activeIsochrone, selectedLandmarkForSearch, hoveredProjectId, onBoundsChange,
-    activeRouteGeometry,
+    activeRouteGeometry, enableHeatmap = false, enableSunlight = false,
 }) => {
 
     // Safety check for valid GPS coordinates
@@ -212,6 +214,29 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
         }
     }, [activeIsochrone, selectedProject]);
 
+    // ── Heatmap GeoJSON: project price density ─────────────────────────────────
+    const heatmapGeoJSON = useMemo(() => ({
+        type: 'FeatureCollection',
+        features: projects
+            .filter(p => !isNaN(Number(p.latitude)) && !isNaN(Number(p.longitude)))
+            .map(p => ({
+                type: 'Feature',
+                properties: { price: Number(p.price) || 0 },
+                geometry: { type: 'Point', coordinates: [Number(p.longitude), Number(p.latitude)] },
+            })),
+    }), [projects]);
+
+    // ── Sunlight: toggle golden-hour directional light ─────────────────────────
+    useEffect(() => {
+        const map = mapRef?.current?.getMap?.();
+        if (!map) return;
+        if (enableSunlight) {
+            map.setLight({ anchor: 'map', color: '#fdb813', position: [1.5, 90, 80], intensity: 0.8 });
+        } else {
+            map.setLight({ anchor: 'viewport', color: '#ffffff', position: [1.15, 210, 30], intensity: 0.3 });
+        }
+    }, [enableSunlight, mapRef]);
+
     // ── Tour camera: listen for CustomEvent dispatched by the Neighborhood Tour ──
     useEffect(() => {
         const handleTourFly = (e: Event) => {
@@ -302,6 +327,31 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                         'fill-extrusion-opacity': 0.8
                     }}
                 />
+            )}
+
+            {/* Market Intelligence Heatmap */}
+            {enableHeatmap && (
+                <Source id="projects-heatmap" type="geojson" data={heatmapGeoJSON as any}>
+                    <Layer
+                        id="heatmap-layer"
+                        type="heatmap"
+                        paint={{
+                            'heatmap-weight': ['interpolate', ['linear'], ['get', 'price'], 0, 0, 50000000, 1],
+                            'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 1, 15, 3],
+                            'heatmap-color': [
+                                'interpolate', ['linear'], ['heatmap-density'],
+                                0, 'rgba(33,102,172,0)',
+                                0.2, 'rgb(103,169,207)',
+                                0.4, 'rgb(209,229,240)',
+                                0.6, 'rgb(253,219,199)',
+                                0.8, 'rgb(239,138,98)',
+                                1, 'rgb(178,24,43)',
+                            ],
+                            'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 2, 15, 40],
+                            'heatmap-opacity': 0.8,
+                        } as any}
+                    />
+                </Source>
             )}
 
             {/* Isochrone Drive-Time Polygon */}

@@ -69,6 +69,15 @@ interface MainLayoutProps {
   mapRef?: React.MutableRefObject<any>;
   activeRouteGeometry?: any | null;
   onRouteReady?: (geometry: any | null) => void;
+  // Advanced / Experimental toggles (passed through to AdminDashboard)
+  enableHeatmap?: boolean;
+  setEnableHeatmap?: (v: boolean) => void;
+  enableSunlight?: boolean;
+  setEnableSunlight?: (v: boolean) => void;
+  enableIsochrone?: boolean;
+  setEnableIsochrone?: (v: boolean) => void;
+  enableLasso?: boolean;
+  setEnableLasso?: (v: boolean) => void;
 }
 
 const MainLayout: React.FC<MainLayoutProps> = (props) => {
@@ -157,6 +166,14 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
             showWelcomeBanner={showWelcomeBanner}
             cameraDuration={cameraDuration}
             onLaunchPresentation={props.onLaunchPresentation}
+            enableHeatmap={props.enableHeatmap ?? false}
+            setEnableHeatmap={props.setEnableHeatmap ?? (() => { })}
+            enableSunlight={props.enableSunlight ?? false}
+            setEnableSunlight={props.setEnableSunlight ?? (() => { })}
+            enableIsochrone={props.enableIsochrone ?? false}
+            setEnableIsochrone={props.setEnableIsochrone ?? (() => { })}
+            enableLasso={props.enableLasso ?? false}
+            setEnableLasso={props.setEnableLasso ?? (() => { })}
           />
         </Suspense>
       )}

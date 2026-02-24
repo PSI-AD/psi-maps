@@ -24,6 +24,15 @@ interface AdminDashboardProps {
   showWelcomeBanner?: boolean;
   cameraDuration?: number;
   onLaunchPresentation: (presentation: ClientPresentation) => void;
+  // Advanced / Experimental feature flags
+  enableHeatmap: boolean;
+  setEnableHeatmap: (v: boolean) => void;
+  enableSunlight: boolean;
+  setEnableSunlight: (v: boolean) => void;
+  enableIsochrone: boolean;
+  setEnableIsochrone: (v: boolean) => void;
+  enableLasso: boolean;
+  setEnableLasso: (v: boolean) => void;
 }
 
 type TabType = 'general' | 'presentations' | 'media' | 'settings' | 'nearbys';
@@ -689,6 +698,86 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                   </button>
                 </div>
 
+                {/* ── Advanced Features (Experimental) ── */}
+                <div className="mt-8 pt-6 border-t border-slate-100">
+                  <div className="flex items-center gap-3 mb-4">
+                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Advanced Features</h4>
+                    <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[9px] font-black uppercase tracking-widest rounded-full">Experimental</span>
+                  </div>
+                  <div className="space-y-3">
+
+                    {/* Heatmap */}
+                    <div className="flex items-center justify-between p-4 bg-gradient-to-r from-rose-50 to-orange-50 rounded-2xl border border-rose-100">
+                      <div>
+                        <p className="font-bold text-slate-800 flex items-center gap-2">
+                          Market Intelligence Heatmap
+                          <span className="text-[9px] px-2 py-0.5 bg-rose-600 text-white rounded-full font-black uppercase tracking-widest">Live</span>
+                        </p>
+                        <p className="text-xs text-slate-500 font-medium mt-0.5">Real-time price density overlay using project pricing data</p>
+                      </div>
+                      <button
+                        onClick={() => props.setEnableHeatmap(!props.enableHeatmap)}
+                        className={`w-14 h-8 rounded-full transition-all duration-300 relative shrink-0 ${props.enableHeatmap ? 'bg-rose-500' : 'bg-slate-300'}`}
+                      >
+                        <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-transform duration-300 ${props.enableHeatmap ? 'left-7' : 'left-1'}`} />
+                      </button>
+                    </div>
+
+                    {/* Sunlight */}
+                    <div className="flex items-center justify-between p-4 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-2xl border border-amber-100">
+                      <div>
+                        <p className="font-bold text-slate-800 flex items-center gap-2">
+                          Dynamic 3D Sunlight &amp; Shadows
+                          <span className="text-[9px] px-2 py-0.5 bg-amber-500 text-white rounded-full font-black uppercase tracking-widest">Live</span>
+                        </p>
+                        <p className="text-xs text-slate-500 font-medium mt-0.5">Golden-hour directional lighting and shadow casting on 3D buildings</p>
+                      </div>
+                      <button
+                        onClick={() => props.setEnableSunlight(!props.enableSunlight)}
+                        className={`w-14 h-8 rounded-full transition-all duration-300 relative shrink-0 ${props.enableSunlight ? 'bg-amber-500' : 'bg-slate-300'}`}
+                      >
+                        <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-transform duration-300 ${props.enableSunlight ? 'left-7' : 'left-1'}`} />
+                      </button>
+                    </div>
+
+                    {/* Isochrone — Phase 2 */}
+                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-200 opacity-70">
+                      <div>
+                        <p className="font-bold text-slate-500 flex items-center gap-2">
+                          Isochrone Drive-Time Rings
+                          <span className="text-[9px] px-2 py-0.5 bg-slate-400 text-white rounded-full font-black uppercase tracking-widest">Phase 2</span>
+                        </p>
+                        <p className="text-xs text-slate-400 font-medium mt-0.5">Show reachable zones within N minutes by car or foot</p>
+                      </div>
+                      <button
+                        onClick={() => props.setEnableIsochrone(!props.enableIsochrone)}
+                        className={`w-14 h-8 rounded-full transition-all duration-300 relative shrink-0 ${props.enableIsochrone ? 'bg-violet-500' : 'bg-slate-300'}`}
+                      >
+                        <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-transform duration-300 ${props.enableIsochrone ? 'left-7' : 'left-1'}`} />
+                      </button>
+                    </div>
+
+                    {/* Lasso — Phase 2 */}
+                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-200 opacity-70">
+                      <div>
+                        <p className="font-bold text-slate-500 flex items-center gap-2">
+                          Lasso Area Selection
+                          <span className="text-[9px] px-2 py-0.5 bg-slate-400 text-white rounded-full font-black uppercase tracking-widest">Phase 2</span>
+                        </p>
+                        <p className="text-xs text-slate-400 font-medium mt-0.5">Freehand polygon drawing to enclose and filter a custom map area</p>
+                      </div>
+                      <button
+                        onClick={() => props.setEnableLasso(!props.enableLasso)}
+                        className={`w-14 h-8 rounded-full transition-all duration-300 relative shrink-0 ${props.enableLasso ? 'bg-violet-500' : 'bg-slate-300'}`}
+                      >
+                        <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-transform duration-300 ${props.enableLasso ? 'left-7' : 'left-1'}`} />
+                      </button>
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* Spatial Data Management */}
                 <div className="mt-8 pt-6 border-t border-slate-100">
                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Spatial Data Management</h4>
                   <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
@@ -1049,116 +1138,118 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
             )}
           </div>
         </div>
-      </div>
+      </div >
 
       {/* ── Full-Screen Map Picker Modal ── */}
-      {isMapModalOpen && (
-        <div className="fixed inset-0 z-[12000] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 md:p-8">
-          <div className="bg-white rounded-3xl shadow-2xl w-full h-full max-h-[90vh] flex flex-col overflow-hidden">
+      {
+        isMapModalOpen && (
+          <div className="fixed inset-0 z-[12000] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 md:p-8">
+            <div className="bg-white rounded-3xl shadow-2xl w-full h-full max-h-[90vh] flex flex-col overflow-hidden">
 
-            {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 shrink-0">
-              <div>
-                <p className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em]">Interactive Map Picker</p>
-                <h3 className="text-lg font-black text-slate-900 tracking-tight">Pick Exact Location</h3>
-              </div>
-              <button
-                onClick={() => setIsMapModalOpen(false)}
-                className="p-2 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-500 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Map + Autocomplete */}
-            <div className="relative flex-1 overflow-hidden">
-              {/* Floating smart search bar */}
-              <div ref={mapSearchRef} className="absolute top-4 left-1/2 -translate-x-1/2 w-full max-w-lg z-10 px-4">
-                <div className="relative">
-                  {/* Search icon / spinner */}
-                  {mapSearchLoading
-                    ? <div className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin pointer-events-none" />
-                    : <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
-                  }
-
-                  <input
-                    type="text"
-                    placeholder="Search for a location (e.g. Dubai Mall, Saadiyat Island)…"
-                    value={mapSearchQuery}
-                    onChange={e => fetchMapSuggestions(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Escape') clearMapSearch(); }}
-                    className="w-full h-14 bg-white border border-slate-200 rounded-2xl pl-12 pr-10 text-base text-slate-800 font-bold outline-none focus:ring-4 focus:ring-blue-500/20 shadow-lg placeholder:font-normal placeholder:text-slate-400"
-                  />
-
-                  {/* Clear button */}
-                  {mapSearchQuery && (
-                    <button
-                      onClick={clearMapSearch}
-                      aria-label="Clear search"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
-
-                  {/* Results dropdown */}
-                  {mapSearchResults.length > 0 && (
-                    <div className="absolute top-full left-0 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-2xl overflow-hidden max-h-72 overflow-y-auto">
-                      {mapSearchResults.map((res: any) => (
-                        <button
-                          key={res.id}
-                          onClick={() => handleSelectSearchResult(res)}
-                          className="w-full text-left px-5 py-3.5 hover:bg-blue-50 border-b border-slate-50 last:border-0 transition-colors group"
-                        >
-                          <span className="font-black text-slate-900 block truncate text-sm group-hover:text-blue-700">{res.text}</span>
-                          <span className="text-[11px] text-slate-400 truncate block">{res.place_name}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
+              {/* Modal Header */}
+              <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 shrink-0">
+                <div>
+                  <p className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em]">Interactive Map Picker</p>
+                  <h3 className="text-lg font-black text-slate-900 tracking-tight">Pick Exact Location</h3>
                 </div>
+                <button
+                  onClick={() => setIsMapModalOpen(false)}
+                  className="p-2 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-500 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
 
-              {/* Controlled map — viewState drives camera when a result is selected */}
-              <Map
-                {...mapModalViewState}
-                onMove={e => setMapModalViewState(e.viewState)}
-                mapboxAccessToken={PUBLIC_MAPBOX_TOKEN}
-                mapStyle="mapbox://styles/mapbox/streets-v12"
-                style={{ width: '100%', height: '100%' }}
-                onClick={(e) => {
-                  setStagedProject(prev => prev ? { ...prev, longitude: e.lngLat.lng, latitude: e.lngLat.lat } : prev);
-                  setMapModalViewState(prev => ({ ...prev, longitude: e.lngLat.lng, latitude: e.lngLat.lat }));
-                }}
-              >
-                <NavigationControl position="bottom-right" />
-                {stagedProject?.longitude && stagedProject?.latitude && (
-                  <Marker
-                    longitude={Number(stagedProject.longitude)}
-                    latitude={Number(stagedProject.latitude)}
-                    color="#2563eb"
-                  />
-                )}
-              </Map>
-            </div>
+              {/* Map + Autocomplete */}
+              <div className="relative flex-1 overflow-hidden">
+                {/* Floating smart search bar */}
+                <div ref={mapSearchRef} className="absolute top-4 left-1/2 -translate-x-1/2 w-full max-w-lg z-10 px-4">
+                  <div className="relative">
+                    {/* Search icon / spinner */}
+                    {mapSearchLoading
+                      ? <div className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin pointer-events-none" />
+                      : <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                    }
 
-            {/* Modal Footer */}
-            <div className="px-6 py-5 border-t border-slate-100 bg-slate-50 shrink-0 flex items-center justify-between gap-4">
-              {stagedProject?.latitude && stagedProject?.longitude ? (
-                <p className="text-xs font-bold text-slate-500">
-                  Pin: <span className="text-blue-600 font-black">{Number(stagedProject.latitude).toFixed(6)}, {Number(stagedProject.longitude).toFixed(6)}</span>
-                </p>
-              ) : <span />}
-              <button
-                onClick={() => setIsMapModalOpen(false)}
-                className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-md"
-              >
-                Confirm Coordinates
-              </button>
+                    <input
+                      type="text"
+                      placeholder="Search for a location (e.g. Dubai Mall, Saadiyat Island)…"
+                      value={mapSearchQuery}
+                      onChange={e => fetchMapSuggestions(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Escape') clearMapSearch(); }}
+                      className="w-full h-14 bg-white border border-slate-200 rounded-2xl pl-12 pr-10 text-base text-slate-800 font-bold outline-none focus:ring-4 focus:ring-blue-500/20 shadow-lg placeholder:font-normal placeholder:text-slate-400"
+                    />
+
+                    {/* Clear button */}
+                    {mapSearchQuery && (
+                      <button
+                        onClick={clearMapSearch}
+                        aria-label="Clear search"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+
+                    {/* Results dropdown */}
+                    {mapSearchResults.length > 0 && (
+                      <div className="absolute top-full left-0 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-2xl overflow-hidden max-h-72 overflow-y-auto">
+                        {mapSearchResults.map((res: any) => (
+                          <button
+                            key={res.id}
+                            onClick={() => handleSelectSearchResult(res)}
+                            className="w-full text-left px-5 py-3.5 hover:bg-blue-50 border-b border-slate-50 last:border-0 transition-colors group"
+                          >
+                            <span className="font-black text-slate-900 block truncate text-sm group-hover:text-blue-700">{res.text}</span>
+                            <span className="text-[11px] text-slate-400 truncate block">{res.place_name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Controlled map — viewState drives camera when a result is selected */}
+                <Map
+                  {...mapModalViewState}
+                  onMove={e => setMapModalViewState(e.viewState)}
+                  mapboxAccessToken={PUBLIC_MAPBOX_TOKEN}
+                  mapStyle="mapbox://styles/mapbox/streets-v12"
+                  style={{ width: '100%', height: '100%' }}
+                  onClick={(e) => {
+                    setStagedProject(prev => prev ? { ...prev, longitude: e.lngLat.lng, latitude: e.lngLat.lat } : prev);
+                    setMapModalViewState(prev => ({ ...prev, longitude: e.lngLat.lng, latitude: e.lngLat.lat }));
+                  }}
+                >
+                  <NavigationControl position="bottom-right" />
+                  {stagedProject?.longitude && stagedProject?.latitude && (
+                    <Marker
+                      longitude={Number(stagedProject.longitude)}
+                      latitude={Number(stagedProject.latitude)}
+                      color="#2563eb"
+                    />
+                  )}
+                </Map>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-6 py-5 border-t border-slate-100 bg-slate-50 shrink-0 flex items-center justify-between gap-4">
+                {stagedProject?.latitude && stagedProject?.longitude ? (
+                  <p className="text-xs font-bold text-slate-500">
+                    Pin: <span className="text-blue-600 font-black">{Number(stagedProject.latitude).toFixed(6)}, {Number(stagedProject.longitude).toFixed(6)}</span>
+                  </p>
+                ) : <span />}
+                <button
+                  onClick={() => setIsMapModalOpen(false)}
+                  className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-md"
+                >
+                  Confirm Coordinates
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
     </>
   );
 };

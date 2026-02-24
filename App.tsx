@@ -46,6 +46,12 @@ const App: React.FC = () => {
   // Super Admin Toggles
   const [mapFeatures, setMapFeatures] = useState({ show3D: true, showAnalytics: true, showCommunityBorders: true });
 
+  // Advanced / Experimental feature flags
+  const [enableHeatmap, setEnableHeatmap] = useState(false);
+  const [enableSunlight, setEnableSunlight] = useState(false);
+  const [enableIsochrone, setEnableIsochrone] = useState(false); // Phase 2
+  const [enableLasso, setEnableLasso] = useState(false);         // Phase 2
+
   const [activeBoundary, setActiveBoundary] = useState<any>(null);
 
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
@@ -372,6 +378,10 @@ const App: React.FC = () => {
       mapRef={mapRef}
       activeRouteGeometry={activeRouteGeometry}
       onRouteReady={handleRouteReady}
+      enableHeatmap={enableHeatmap} setEnableHeatmap={setEnableHeatmap}
+      enableSunlight={enableSunlight} setEnableSunlight={setEnableSunlight}
+      enableIsochrone={enableIsochrone} setEnableIsochrone={setEnableIsochrone}
+      enableLasso={enableLasso} setEnableLasso={setEnableLasso}
     >
       <WelcomeBanner show={showWelcomeBanner} isAppLoading={isRefreshing} />
       <ErrorBoundary>
@@ -389,6 +399,8 @@ const App: React.FC = () => {
           selectedLandmarkForSearch={selectedLandmarkForSearch}
           hoveredProjectId={hoveredProjectId}
           activeRouteGeometry={activeRouteGeometry}
+          enableHeatmap={enableHeatmap}
+          enableSunlight={enableSunlight}
         />
       </ErrorBoundary>
       {/* Reverse Search: floating nearby projects panel */}
