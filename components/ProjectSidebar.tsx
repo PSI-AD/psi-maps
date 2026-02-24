@@ -53,7 +53,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
 }) => {
   const [activeIdx, setActiveIdx] = useState(0);
   const [isHighResLoaded, setIsHighResLoaded] = useState(false);
-  const [areThumbnailsAllowed, setAreThumbnailsAllowed] = useState(false);
+  // areThumbnailsAllowed is derived from isHighResLoaded — no separate state needed
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [isTextModalOpen, setIsTextModalOpen] = useState(false);
   const [isInquireModalOpen, setIsInquireModalOpen] = useState(false);
@@ -88,8 +88,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   // Reset SYNCHRONOUSLY before paint when project changes — prevents stale frame
   useLayoutEffect(() => {
     setActiveIdx(0);
-    setIsHighResLoaded(false);
-    setAreThumbnailsAllowed(false); // block thumbnails until new hero loads
+    setIsHighResLoaded(false); // also blocks thumbnails + auto-scroll until hero loads
   }, [project.id]);
 
   // Auto-scroll: 3s interval, pauses on hover
@@ -108,10 +107,14 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
     }
   }, []);
 
+  // Auto-scroll: only starts after hero image is fully loaded
+  // This ensures the slideshow timer never competes with the hero fetch
   useEffect(() => {
-    startAutoScroll();
+    if (isHighResLoaded) {
+      startAutoScroll();
+    }
     return stopAutoScroll;
-  }, [startAutoScroll, stopAutoScroll]);
+  }, [isHighResLoaded, startAutoScroll, stopAutoScroll]);
 
   const handleNextImage = useCallback(() => {
     setActiveIdx(prev => (prev + 1) % gallery.length);
@@ -205,7 +208,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
               loading="eager"
               fetchpriority="high"
               decoding="async"
-              onLoad={() => { setIsHighResLoaded(true); setAreThumbnailsAllowed(true); }}
+              onLoad={() => setIsHighResLoaded(true)}
               onClick={() => setFullscreenImage(currentImage.large)}
               className={`absolute inset-0 w-full h-full object-cover cursor-zoom-in transition-opacity duration-300 ${isHighResLoaded ? 'opacity-100' : 'opacity-0'}`}
             />
@@ -240,31 +243,22 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
             </>
           )}
 
-          {/* Thumbnail strip — gated: only renders and fetches after main image has loaded */}
+          {/* Thumbnail strip — gated: img tags only mount after hero is fully loaded */}
           {hasMultipleImages && (
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent pt-6 pb-2 px-2 flex gap-2 overflow-x-auto hide-scrollbar">
-              {areThumbnailsAllowed
-                ? gallery.map((img, idx) => (
-                  <button
-                    key={idx}
-                    onClick={(e) => { e.stopPropagation(); handleThumbClick(idx); }}
-                    aria-label={`View image ${idx + 1}`}
-                    className={`shrink-0 w-14 h-10 rounded-lg overflow-hidden border-2 transition-all ${activeIdx === idx ? 'border-white scale-105 shadow-lg' : 'border-white/40 opacity-70 hover:opacity-100 hover:border-white'
-                      }`}
-                  >
-                    <img src={img.thumb} alt="" loading="eager" decoding="async" className="w-full h-full object-cover" />
-                  </button>
-                ))
-                : gallery.map((_, idx) => (
-                  // Skeleton placeholders — correct dimensions, zero network requests
-                  <div
-                    key={idx}
-                    aria-hidden="true"
-                    className={`shrink-0 w-14 h-10 rounded-lg border-2 bg-white/20 animate-pulse ${activeIdx === idx ? 'border-white' : 'border-white/30'
-                      }`}
-                  />
-                ))
-              }
+              {gallery.map((img, idx) => (
+                <button
+                  key={idx}
+                  onClick={(e) => { e.stopPropagation(); handleThumbClick(idx); }}
+                  aria-label={`View image ${idx + 1}`}
+                  className={`shrink-0 w-14 h-10 rounded-lg overflow-hidden border-2 transition-all ${activeIdx === idx ? 'border-white scale-105 shadow-lg' : 'border-white/40 opacity-70 hover:opacity-100 hover:border-white'
+                    }`}
+                >
+                  {isHighResLoaded
+                    ? <img src={img.thumb} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                    : <div className="w-full h-full bg-slate-800/50 animate-pulse" aria-hidden="true" />}
+                </button>
+              ))}
             </div>
           )}
 
