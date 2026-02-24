@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
+<<<<<<< HEAD
 import { X, School, Coffee, Theater, ShoppingBag, BedDouble, Sparkles } from 'lucide-react';
+=======
+import { Layers, X, School, Coffee, Theater, ShoppingBag, BedDouble, PenTool } from 'lucide-react';
+>>>>>>> 367084c (fix: resolved firestore permission-denied error for projects, cleared default map clutter, and built a persistent settings controller for default active amenities)
 
 interface FloatingMapToolsProps {
     activeFilters: string[];
@@ -11,7 +15,11 @@ interface FloatingMapToolsProps {
 }
 
 const FloatingMapTools: React.FC<FloatingMapToolsProps> = ({
+<<<<<<< HEAD
     activeFilters, onToggle, isDrawActive, onToggleDraw, isOpen: externalIsOpen, onToggleOpen
+=======
+    activeFilters, onToggle, isDrawActive, onToggleDraw
+>>>>>>> 367084c (fix: resolved firestore permission-denied error for projects, cleared default map clutter, and built a persistent settings controller for default active amenities)
 }) => {
     const [internalIsOpen, setInternalIsOpen] = useState(false);
     const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
@@ -28,6 +36,7 @@ const FloatingMapTools: React.FC<FloatingMapToolsProps> = ({
     ];
 
     return (
+<<<<<<< HEAD
         <div className="fixed inset-0 z-[7000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
             {/* Backdrop Click handle */}
             <div
@@ -84,6 +93,41 @@ const FloatingMapTools: React.FC<FloatingMapToolsProps> = ({
                     Done
                 </button>
             </div>
+=======
+        <div className="flex flex-col items-end gap-3">
+            {/* Expanded Menu */}
+            <div className={`
+                flex flex-col gap-2 transition-all duration-300 origin-bottom-right
+                ${isOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-90 translate-y-4 pointer-events-none absolute bottom-0 right-0'}
+            `}>
+                {tools.map((tool) => (
+                    <button
+                        key={tool.id}
+                        onClick={() => { tool.action(); if (window.innerWidth < 768) setIsOpen(false); }}
+                        className={`
+                            flex items-center gap-3 px-5 py-3 rounded-full shadow-lg backdrop-blur-md border transition-all duration-200
+                            ${tool.active
+                                ? 'bg-amber-500 text-white border-amber-400 hover:bg-amber-600 shadow-amber-500/20'
+                                : 'bg-white/95 text-slate-700 border-white hover:bg-slate-50 hover:text-blue-700'}
+                        `}
+                    >
+                        {tool.icon}
+                        <span className="text-xs font-bold uppercase tracking-widest whitespace-nowrap">{tool.label}</span>
+                    </button>
+                ))}
+            </div>
+
+            {/* Main Toggle Button - Changed from Black to Royal Blue */}
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className={`
+                    w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 z-50
+                    ${isOpen ? 'bg-blue-800 text-white rotate-90' : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-blue-600/40'}
+                `}
+            >
+                {isOpen ? <X className="w-6 h-6" /> : <Layers className="w-6 h-6" />}
+            </button>
+>>>>>>> 367084c (fix: resolved firestore permission-denied error for projects, cleared default map clutter, and built a persistent settings controller for default active amenities)
         </div>
     );
 };

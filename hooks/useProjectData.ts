@@ -1,14 +1,45 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import * as turf from '@turf/turf';
+<<<<<<< HEAD
 import { Project, Landmark } from '../types';
 import { collection, onSnapshot, query } from 'firebase/firestore'; // Import Firestore functions
 import { db } from '../utils/firebase'; // Import initialized db instance
+=======
+import { Project } from '../types';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { db } from '../utils/firebase';
+import { amenitiesData } from '../data/seedData';
+>>>>>>> 367084c (fix: resolved firestore permission-denied error for projects, cleared default map clutter, and built a persistent settings controller for default active amenities)
+
+// Intercepts the PSI API image URL and forces it to return a fast, compressed thumbnail
+const getOptimizedImage = (url: string, width: number, height: number) => {
+    if (!url) return 'https://images.unsplash.com/photo-1600607687969-b6139b5f40bb?auto=format&fit=crop&w=800&q=80';
+    if (url.includes('width=0&height=0')) {
+        return url.replace('width=0&height=0', `width=${width}&height=${height}`);
+    }
+    return url;
+};
 
 export const useProjectData = () => {
     const [liveProjects, setLiveProjects] = useState<Project[]>([]);
     const [liveLandmarks, setLiveLandmarks] = useState<Landmark[]>([]);
     const [isRefreshing, setIsRefreshing] = useState(false);
+<<<<<<< HEAD
     const [activeAmenities, setActiveAmenities] = useState<string[]>(['airport', 'hotel', 'school', 'leisure', 'retail']);
+=======
+    
+    // Initialize active amenities from localStorage or default to empty array
+    const [activeAmenities, setActiveAmenities] = useState<string[]>(() => {
+        try {
+            const savedDefaults = localStorage.getItem('psi-default-amenities');
+            return savedDefaults ? JSON.parse(savedDefaults) : [];
+        } catch (e) {
+            console.error("Error reading default amenities from localStorage:", e);
+            return [];
+        }
+    });
+
+>>>>>>> 367084c (fix: resolved firestore permission-denied error for projects, cleared default map clutter, and built a persistent settings controller for default active amenities)
     const [filterPolygon, setFilterPolygon] = useState<any>(null);
     const [propertyType, setPropertyType] = useState<string>('All');
     const [developerFilter, setDeveloperFilter] = useState<string>('All');
@@ -17,13 +48,17 @@ export const useProjectData = () => {
     const [selectedCommunity, setSelectedCommunity] = useState<string>('');
     const [activeBoundary, setActiveBoundary] = useState<any>(null);
 
+<<<<<<< HEAD
     // Projects Listener
+=======
+>>>>>>> 367084c (fix: resolved firestore permission-denied error for projects, cleared default map clutter, and built a persistent settings controller for default active amenities)
     useEffect(() => {
         setIsRefreshing(true);
         const unsubscribe = onSnapshot(collection(db, 'projects'), (snapshot) => {
             const projects: Project[] = snapshot.docs.map((doc) => {
                 const data = doc.data();
 
+<<<<<<< HEAD
                 const rawName = data.propertyName || data.enMarketingTitle || data.name || data.ProjectName || data.title || 'Untitled Project';
                 const cleanName = rawName !== 'Untitled Project' ? rawName.replace(/[-_]/g, ' ') : rawName;
 
@@ -34,10 +69,35 @@ export const useProjectData = () => {
 
                 const rawDesc = data.enPropertyOverView || data.description || '';
                 const cleanDesc = rawDesc.replace(/&nbsp;/g, ' ').replace(/\s{2,}/g, ' ').trim();
+=======
+                // DEEP MAPPING AUDIT: Grab correct names from your specific API format
+                const rawName = data.propertyName || data.enMarketingTitle || data.name;
+                const cleanName = rawName ? rawName.replace(/[-_]/g, ' ') : 'Premium Property';
+                const rawDeveloper = data.masterDeveloper || data.developerName || 'Exclusive Developer';
+
+                // Extract all images
+                const featuredImages = data.featuredImages?.map((img: any) => img.imageURL) || [];
+                const generalImages = data.generalImages?.map((img: any) => img.imageURL) || [];
+                const allImages = [...featuredImages, ...generalImages];
+                const rawThumb = allImages[0] || data.thumbnailUrl || '';
+
+                // Format Price cleanly
+                let priceString = 'Enquire for Details';
+                if (data.minPrice && data.maxPrice && data.maxPrice !== "0.00") {
+                    if (data.minPrice === "0.00") {
+                        priceString = `Up to AED ${Number(data.maxPrice).toLocaleString()}`;
+                    } else {
+                        priceString = `AED ${Number(data.minPrice).toLocaleString()} - ${Number(data.maxPrice).toLocaleString()}`;
+                    }
+                } else if (data.maxPrice && data.maxPrice !== "0.00") {
+                    priceString = `AED ${Number(data.maxPrice).toLocaleString()}`;
+                }
+>>>>>>> 367084c (fix: resolved firestore permission-denied error for projects, cleared default map clutter, and built a persistent settings controller for default active amenities)
 
                 return {
                     id: doc.id,
                     name: cleanName,
+<<<<<<< HEAD
                     latitude: isNaN(lat) ? 0 : lat,
                     longitude: isNaN(lng) ? 0 : lng,
                     type: data.type || 'apartment',
@@ -53,10 +113,27 @@ export const useProjectData = () => {
                     bedrooms: data.availableBedrooms ? data.availableBedrooms.map((b: any) => b.noOfBedroom).join(', ') : 'N/A',
                     bathrooms: 'N/A',
                     builtupArea: data.builtupArea_SQFT || 0,
+=======
+                    latitude: parseFloat(data.mapLatitude || data.latitude || "0"),
+                    longitude: parseFloat(data.mapLongitude || data.longitude || "0"),
+                    type: data.propertyType || data.type || 'Luxury Residence',
+                    // Request compressed 400x300 thumbnail for the map pins
+                    thumbnailUrl: getOptimizedImage(rawThumb, 400, 300),
+                    developerName: rawDeveloper,
+                    projectUrl: data.projectUrl || '',
+                    priceRange: priceString,
+                    description: data.enPropertyOverView || data.description || 'Experience unparalleled luxury in this exclusive development.',
+                    // Request medium-res images for the sidebar gallery
+                    images: allImages.map(img => getOptimizedImage(img, 1200, 800)),
+                    bedrooms: data.numberOfApartmentStudio ? 'Studios & Apartments' : '1 - 4 Beds',
+                    bathrooms: data.bathrooms || 'Premium Fittings',
+                    builtupArea: data.areaRangeMax || data.builtupArea_SQFT || 0,
+>>>>>>> 367084c (fix: resolved firestore permission-denied error for projects, cleared default map clutter, and built a persistent settings controller for default active amenities)
                     plotArea: data.plotArea_SQFT || 0,
-                    completionDate: data.completionDate || 'Ready',
+                    completionDate: data.completionDate || data.propertyPlan || 'Ready',
                     status: data.propertyPlan || 'Completed',
                     amenities: data.aminities?.map((a: any) => a.name) || [],
+<<<<<<< HEAD
                     city: data.city,
                     community: data.community,
                     subCommunity: data.subCommunity,
@@ -66,6 +143,15 @@ export const useProjectData = () => {
             });
 
             console.log("🔥 FIRESTORE PROJECTS LOADED. Count:", projects.length);
+=======
+                    city: data.city || 'Dubai',
+                    community: data.community || data.subCommunity || 'Exclusive Community',
+                    subCommunity: data.subCommunity || ''
+                } as Project;
+            });
+
+            console.log("🔥 FIRESTORE DEEP MAPPING SUCCESS. Count:", projects.length);
+>>>>>>> 367084c (fix: resolved firestore permission-denied error for projects, cleared default map clutter, and built a persistent settings controller for default active amenities)
             setLiveProjects(projects);
             setIsRefreshing(false);
         }, (error) => {
@@ -137,6 +223,7 @@ export const useProjectData = () => {
 
         if (!filterPolygon) return projects;
 
+<<<<<<< HEAD
         const points = turf.featureCollection(
             projects.map(p => turf.point([p.longitude, p.latitude], { ...p }))
         ) as any;
@@ -144,6 +231,23 @@ export const useProjectData = () => {
         const within = turf.pointsWithinPolygon(points, filterPolygon);
         return within.features.map(f => f.properties as Project);
     }, [liveProjects, filterPolygon, propertyType, developerFilter, statusFilter, selectedCity, selectedCommunity]);
+=======
+        // SAFETY FIX: Prevents crash if the user presses enter before closing the drawing shape
+        try {
+            if (filterPolygon.geometry?.type !== 'Polygon') {
+                return liveProjects;
+            }
+            const points = turf.featureCollection(
+                liveProjects.map(p => turf.point([p.longitude, p.latitude], { ...p }))
+            ) as any;
+            const within = turf.pointsWithinPolygon(points, filterPolygon);
+            return within.features.map(f => f.properties as Project);
+        } catch (error) {
+            console.error("Draw area error caught safely:", error);
+            return liveProjects;
+        }
+    }, [liveProjects, filterPolygon]);
+>>>>>>> 367084c (fix: resolved firestore permission-denied error for projects, cleared default map clutter, and built a persistent settings controller for default active amenities)
 
     const filteredAmenities = useMemo(() => {
         if (activeAmenities.length === 0) return [];
@@ -172,13 +276,12 @@ export const useProjectData = () => {
 
     const handleToggleAmenity = (category: string) => {
         setActiveAmenities(prev =>
-            prev.includes(category)
-                ? prev.filter(c => c !== category)
-                : [...prev, category]
+            prev.includes(category) ? prev.filter(c => c !== category) : [...prev, category]
         );
     };
 
     return {
+<<<<<<< HEAD
         liveProjects,
         setLiveProjects,
         liveLandmarks,
@@ -203,5 +306,10 @@ export const useProjectData = () => {
         setSelectedCommunity,
         activeBoundary,
         setActiveBoundary
+=======
+        liveProjects, setLiveProjects, isRefreshing, loadInitialData,
+        filteredProjects, filteredAmenities, activeAmenities,
+        handleToggleAmenity, filterPolygon, setFilterPolygon
+>>>>>>> 367084c (fix: resolved firestore permission-denied error for projects, cleared default map clutter, and built a persistent settings controller for default active amenities)
     };
 };

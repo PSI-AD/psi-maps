@@ -80,6 +80,7 @@ interface MainLayoutProps {
   setEnableLasso?: (v: boolean) => void;
 }
 
+<<<<<<< HEAD
 const MainLayout: React.FC<MainLayoutProps> = (props) => {
   const {
     isAdminOpen, setIsAdminOpen,
@@ -135,6 +136,19 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
     // Sync breadcrumbs
     setSelectedCity(project.city || '');
     setSelectedCommunity(project.community || '');
+=======
+const MainLayout: React.FC<MainLayoutProps> = ({
+  isAdminOpen, setIsAdminOpen,
+  isAnalysisOpen, setIsAnalysisOpen, liveProjects, setLiveProjects,
+  selectedProject, isRefreshing,
+  onProjectClick, onCloseProject,
+  activeAmenities, onToggleAmenity, isDrawing, onToggleDraw,
+  mapStyle, setMapStyle, children, onDiscoverNeighborhood, onFlyTo
+}) => {
+
+  const handleSearchSelect = (project: Project) => {
+    onFlyTo(project.latitude, project.longitude);
+>>>>>>> 367084c (fix: resolved firestore permission-denied error for projects, cleared default map clutter, and built a persistent settings controller for default active amenities)
     onProjectClick(project.id);
     setIsAnalysisOpen(true);
 
@@ -148,7 +162,12 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-900 font-sans relative">
+<<<<<<< HEAD
 
+=======
+      <TopNavBar onAdminClick={() => setIsAdminOpen(true)} />
+      
+>>>>>>> 367084c (fix: resolved firestore permission-denied error for projects, cleared default map clutter, and built a persistent settings controller for default active amenities)
       {isAdminOpen && (
         <Suspense fallback={
           <div className="fixed inset-0 z-[10001] bg-slate-50/98 flex items-center justify-center">
@@ -178,14 +197,22 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
         </Suspense>
       )}
 
+<<<<<<< HEAD
       {isRefreshing && (
         <div className="absolute inset-0 z-[7000] flex flex-col items-center justify-center bg-slate-900/80 backdrop-blur-xl">
           <Loader2 className="w-16 h-16 text-blue-500 animate-spin mb-6" />
+=======
+      {/* Luxury Loading Screen overlaying everything */}
+      {isRefreshing && (
+        <div className="absolute inset-0 z-[6000] flex flex-col items-center justify-center bg-slate-900/80 backdrop-blur-xl">
+          <Loader2 className="w-16 h-16 text-amber-500 animate-spin mb-6" />
+>>>>>>> 367084c (fix: resolved firestore permission-denied error for projects, cleared default map clutter, and built a persistent settings controller for default active amenities)
           <h2 className="text-2xl font-black text-white tracking-widest uppercase">Initializing</h2>
           <p className="text-slate-300 mt-2 font-medium tracking-wide text-sm">Loading Premium Properties...</p>
         </div>
       )}
 
+<<<<<<< HEAD
       {/* Main Map Container - completely flush with the bottom */}
       <div className="absolute inset-0 z-0 bg-slate-100">
         {children}
@@ -404,6 +431,46 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
       {fullscreenImage && (
         <FullscreenImageModal imageUrl={fullscreenImage} onClose={() => setFullscreenImage(null)} />
       )}
+=======
+      {/* 100% Full Screen Map Container */}
+      <div className="absolute inset-0 top-20 z-0">
+        {children}
+      </div>
+
+      {/* Floating Search Bar (Top Left) */}
+      <div className="absolute top-24 left-6 z-40 w-[400px] max-w-[calc(100vw-3rem)]">
+        <SearchBar projects={liveProjects} onSelectProject={handleSearchSelect} />
+      </div>
+
+      {/* Floating Map Tools (Bottom Right) */}
+      <div className="absolute bottom-10 right-6 z-40 flex flex-col items-end gap-4">
+        <FloatingMapTools
+          activeFilters={activeAmenities}
+          onToggle={onToggleAmenity}
+          isDrawActive={isDrawing}
+          onToggleDraw={onToggleDraw}
+        />
+      </div>
+
+      {/* Map Style Switcher (Bottom Left) */}
+      <div className="absolute bottom-10 left-6 z-40">
+        <MapStyleSwitcher currentStyle={mapStyle} onStyleChange={setMapStyle} />
+      </div>
+
+      {/* Luxury Project Sidebar (Slides in over map) */}
+      {isAnalysisOpen && selectedProject && (
+        <div className="absolute top-20 right-0 bottom-0 w-full md:w-[500px] z-[5000] shadow-2xl bg-white transition-transform transform translate-x-0 border-l border-slate-200">
+          <ProjectSidebar 
+            project={selectedProject} 
+            onClose={() => {
+              setIsAnalysisOpen(false);
+              onCloseProject();
+            }} 
+            onDiscoverNeighborhood={onDiscoverNeighborhood} 
+          />
+        </div>
+      )}
+>>>>>>> 367084c (fix: resolved firestore permission-denied error for projects, cleared default map clutter, and built a persistent settings controller for default active amenities)
     </div>
   );
 };

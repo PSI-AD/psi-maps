@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Project, Landmark, LandmarkCategory, ClientPresentation } from '../types';
 import { db } from '../utils/firebase';
@@ -12,6 +13,13 @@ import PresentationManager from './PresentationManager';
 const PUBLIC_MAPBOX_TOKEN = typeof window !== 'undefined'
   ? atob('cGsuZXlKMUlqb2ljSE5wYm5ZaUxDSmhJam9pWTIxc2NqQnpNMjF4TURacU56Tm1jMlZtZEd0NU1XMDVaQ0o5LlZ4SUVuMWpMVHpNd0xBTjhtNEIxNWc=')
   : '';
+=======
+import React, { useState, useEffect } from 'react';
+import { Project } from '../types';
+import { db } from '../utils/firebase';
+import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { X, Search, Edit2, Trash2, Save, MapPin, Check, Sliders } from 'lucide-react';
+>>>>>>> 367084c (fix: resolved firestore permission-denied error for projects, cleared default map clutter, and built a persistent settings controller for default active amenities)
 
 interface AdminDashboardProps {
   onClose: () => void;
@@ -35,6 +43,7 @@ interface AdminDashboardProps {
   setEnableLasso: (v: boolean) => void;
 }
 
+<<<<<<< HEAD
 type TabType = 'general' | 'presentations' | 'media' | 'settings' | 'nearbys';
 
 const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
@@ -193,6 +202,57 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
         }
       } else {
         failedCount++;
+=======
+const AMENITY_CATEGORIES = [
+  'school', 'hospital', 'retail', 'leisure', 'hotel', 
+  'culture', 'airport', 'park', 'beach', 'hypermarket'
+];
+
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, liveProjects }) => {
+  const [activeTab, setActiveTab] = useState<'projects' | 'settings'>('projects');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Default Amenities State
+  const [defaultAmenities, setDefaultAmenities] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('psi-default-amenities');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Filter projects by search
+  const filteredProjects = liveProjects.filter(p => 
+    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.developerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.city?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const toggleDefaultAmenity = (category: string) => {
+    const updated = defaultAmenities.includes(category)
+        ? defaultAmenities.filter(c => c !== category)
+        : [...defaultAmenities, category];
+    setDefaultAmenities(updated);
+    localStorage.setItem('psi-default-amenities', JSON.stringify(updated));
+    
+    // Show success indicator
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 2000);
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (window.confirm(`Are you sure you want to permanently delete "${name}"?`)) {
+      try {
+        await deleteDoc(doc(db, 'projects', id));
+        alert('Project deleted successfully.');
+      } catch (error) {
+        console.error("Error deleting document: ", error);
+        alert('Failed to delete project.');
+>>>>>>> 367084c (fix: resolved firestore permission-denied error for projects, cleared default map clutter, and built a persistent settings controller for default active amenities)
       }
     }
 
@@ -206,6 +266,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
     }
   };
 
+<<<<<<< HEAD
   const handleSyncBoundaries = async () => {
     setIsSyncing(true);
     const uniqueCommunities = Array.from(new Set(liveProjects.map(p => p.community).filter(Boolean))) as string[];
@@ -1251,6 +1312,235 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
         )
       }
     </>
+=======
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProject) return;
+    setIsSaving(true);
+    try {
+      const projectRef = doc(db, 'projects', editingProject.id);
+      await updateDoc(projectRef, {
+        propertyName: editingProject.name,
+        masterDeveloper: editingProject.developerName,
+        mapLatitude: String(editingProject.latitude),
+        mapLongitude: String(editingProject.longitude),
+        city: editingProject.city,
+        community: editingProject.community
+      });
+      setIsSaving(false);
+      setEditingProject(null);
+      alert('Project updated successfully!');
+    } catch (error) {
+      console.error("Error updating document: ", error);
+      alert('Failed to save changes.');
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[6000] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 md:p-8">
+      <div className="bg-white w-full max-w-6xl h-full max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-200">
+        
+        {/* Header */}
+        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
+          <div>
+            <h2 className="text-2xl font-black text-slate-800 tracking-tight">Project Command Center</h2>
+            <p className="text-sm text-slate-500 font-medium mt-1">Live Database Editor & Settings</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+            <X className="w-6 h-6 text-slate-400" />
+          </button>
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="flex border-b border-slate-200 bg-white px-6">
+            <button 
+                onClick={() => setActiveTab('projects')}
+                className={`py-3 px-4 text-sm font-bold border-b-2 transition-colors ${activeTab === 'projects' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
+            >
+                Projects ({liveProjects.length})
+            </button>
+            <button 
+                onClick={() => setActiveTab('settings')}
+                className={`py-3 px-4 text-sm font-bold border-b-2 transition-colors ${activeTab === 'settings' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
+            >
+                Map Settings
+            </button>
+        </div>
+
+        {/* Content Area */}
+        <div className="flex-1 overflow-hidden flex flex-col bg-slate-50">
+          
+          {activeTab === 'projects' ? (
+            <>
+                {/* Toolbar */}
+                <div className="p-4 border-b border-slate-200 bg-white flex gap-4 items-center">
+                    <div className="relative flex-1 max-w-md">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <input 
+                        type="text" 
+                        placeholder="Search projects, developers, or cities..." 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    </div>
+                </div>
+
+                {/* Data Table */}
+                <div className="flex-1 overflow-auto">
+                    <table className="w-full text-left border-collapse">
+                    <thead className="bg-slate-100 sticky top-0 z-10 shadow-sm">
+                        <tr>
+                        <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Project Name</th>
+                        <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Developer</th>
+                        <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Location</th>
+                        <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white">
+                        {filteredProjects.map((project) => (
+                        <tr key={project.id} className="hover:bg-blue-50/50 transition-colors group">
+                            <td className="p-4">
+                            <div className="flex items-center gap-3">
+                                <img src={project.thumbnailUrl} alt="" className="w-10 h-10 rounded-lg object-cover bg-slate-200" />
+                                <span className="font-bold text-slate-700">{project.name}</span>
+                            </div>
+                            </td>
+                            <td className="p-4 text-sm font-medium text-slate-600">{project.developerName}</td>
+                            <td className="p-4">
+                            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md inline-flex">
+                                <MapPin className="w-3 h-3" />
+                                {project.city} {project.community ? `› ${project.community}` : ''}
+                            </div>
+                            </td>
+                            <td className="p-4 text-right">
+                            <button onClick={() => setEditingProject(project)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors mr-2">
+                                <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => handleDelete(project.id, project.name)} className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors">
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                            </td>
+                        </tr>
+                        ))}
+                    </tbody>
+                    </table>
+                </div>
+            </>
+          ) : (
+            <div className="p-8 max-w-3xl mx-auto w-full overflow-y-auto">
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+                    <div className="flex items-center justify-between mb-6">
+                        <div>
+                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                <Sliders className="w-5 h-5 text-blue-600" />
+                                Default Map State Controls
+                            </h3>
+                            <p className="text-sm text-slate-500 mt-1">Select which amenities should be active when the map first loads.</p>
+                        </div>
+                        {saveSuccess && (
+                            <span className="flex items-center gap-1.5 text-sm font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full animate-fade-in-out">
+                                <Check className="w-4 h-4" /> Saved!
+                            </span>
+                        )}
+                    </div>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {AMENITY_CATEGORIES.map(category => {
+                            const isActive = defaultAmenities.includes(category);
+                            return (
+                                <button
+                                    key={category}
+                                    onClick={() => toggleDefaultAmenity(category)}
+                                    className={`
+                                        group flex items-center justify-between p-4 rounded-xl border transition-all duration-200
+                                        ${isActive 
+                                            ? 'bg-blue-50 border-blue-200 shadow-sm' 
+                                            : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                                        }
+                                    `}
+                                >
+                                    <span className={`text-sm font-bold capitalize ${isActive ? 'text-blue-700' : 'text-slate-600'}`}>
+                                        {category}
+                                    </span>
+                                    
+                                    <div className={`
+                                        w-10 h-6 rounded-full relative transition-colors duration-200
+                                        ${isActive ? 'bg-blue-600' : 'bg-slate-300'}
+                                    `}>
+                                        <div className={`
+                                            absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200
+                                            ${isActive ? 'translate-x-4' : 'translate-x-0'}
+                                        `} />
+                                    </div>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    <div className="mt-6 pt-6 border-t border-slate-100">
+                        <p className="text-xs text-slate-400 font-medium text-center">
+                            Changes are saved automatically to your browser's local storage and will persist across sessions.
+                        </p>
+                    </div>
+                </div>
+            </div>
+          )}
+        </div>
+
+      </div>
+
+      {/* Edit Modal Overlay */}
+      {editingProject && (
+        <div className="fixed inset-0 z-[7000] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden">
+            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <h3 className="font-black text-lg text-slate-800">Edit Project</h3>
+              <button onClick={() => setEditingProject(null)} className="text-slate-400 hover:text-slate-700"><X className="w-5 h-5" /></button>
+            </div>
+            
+            <form onSubmit={handleSave} className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Project Name</label>
+                  <input type="text" value={editingProject.name} onChange={e => setEditingProject({...editingProject, name: e.target.value})} className="w-full p-2 border border-slate-200 rounded-lg text-sm font-medium" required />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Developer</label>
+                  <input type="text" value={editingProject.developerName} onChange={e => setEditingProject({...editingProject, developerName: e.target.value})} className="w-full p-2 border border-slate-200 rounded-lg text-sm font-medium" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">City</label>
+                  <input type="text" value={editingProject.city || ''} onChange={e => setEditingProject({...editingProject, city: e.target.value})} className="w-full p-2 border border-slate-200 rounded-lg text-sm font-medium" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Community</label>
+                  <input type="text" value={editingProject.community || ''} onChange={e => setEditingProject({...editingProject, community: e.target.value})} className="w-full p-2 border border-slate-200 rounded-lg text-sm font-medium" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Latitude</label>
+                  <input type="number" step="any" value={editingProject.latitude} onChange={e => setEditingProject({...editingProject, latitude: parseFloat(e.target.value)})} className="w-full p-2 border border-slate-200 rounded-lg text-sm font-medium" required />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Longitude</label>
+                  <input type="number" step="any" value={editingProject.longitude} onChange={e => setEditingProject({...editingProject, longitude: parseFloat(e.target.value)})} className="w-full p-2 border border-slate-200 rounded-lg text-sm font-medium" required />
+                </div>
+              </div>
+
+              <div className="pt-4 flex justify-end gap-3 border-t border-slate-100 mt-6">
+                <button type="button" onClick={() => setEditingProject(null)} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>
+                <button type="submit" disabled={isSaving} className="px-5 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors flex items-center gap-2">
+                  {isSaving ? 'Saving...' : <><Save className="w-4 h-4" /> Save Changes</>}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+    </div>
+>>>>>>> 367084c (fix: resolved firestore permission-denied error for projects, cleared default map clutter, and built a persistent settings controller for default active amenities)
   );
 };
 
