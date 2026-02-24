@@ -149,11 +149,26 @@ export const useProjectData = () => {
         if (activeAmenities.length === 0) return [];
         return liveLandmarks.filter(landmark => {
             if (landmark.isHidden) return false;
-            // Accept both Title Case ('School') and lowercase ('school') toggle values
-            return activeAmenities.includes(landmark.category) ||
+
+            // 1. Category filter — accept both Title Case ('School') and lowercase ('school')
+            const categoryMatch =
+                activeAmenities.includes(landmark.category) ||
                 activeAmenities.includes(landmark.category.toLowerCase());
+            if (!categoryMatch) return false;
+
+            // 2. Strict city geofence — only show amenities in the selected city
+            if (selectedCity && landmark.city) {
+                if (landmark.city.toLowerCase().trim() !== selectedCity.toLowerCase().trim()) return false;
+            }
+
+            // 3. Strict community geofence — only show amenities in the selected community
+            if (selectedCommunity && landmark.community) {
+                if (landmark.community.toLowerCase().trim() !== selectedCommunity.toLowerCase().trim()) return false;
+            }
+
+            return true;
         });
-    }, [activeAmenities, liveLandmarks]);
+    }, [activeAmenities, liveLandmarks, selectedCity, selectedCommunity]);
 
     const handleToggleAmenity = (category: string) => {
         setActiveAmenities(prev =>

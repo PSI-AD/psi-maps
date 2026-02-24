@@ -84,6 +84,17 @@ const App: React.FC = () => {
     return () => unsub();
   }, []);
 
+  // Auto-infer city when a community is selected (prevents dropdown desync)
+  useEffect(() => {
+    if (!selectedCommunity) return;
+    const matched = liveProjects.find(
+      p => p.community?.toLowerCase().trim() === selectedCommunity.toLowerCase().trim()
+    );
+    if (matched?.city && matched.city !== selectedCity) {
+      setSelectedCity(matched.city);
+    }
+  }, [selectedCommunity, liveProjects, selectedCity, setSelectedCity]);
+
   // Handle route geometry from the sidebar's Directions call
   const handleRouteReady = (geometry: any | null) => {
     setActiveRouteGeometry(geometry);
