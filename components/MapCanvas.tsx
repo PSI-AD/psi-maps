@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Map, AttributionControl, Source, Layer, Popup, Marker } from 'react-map-gl';
 import type { CircleLayer, SymbolLayer, FillLayer, LineLayer } from 'react-map-gl';
+import useSupercluster from 'use-supercluster';
 import { Project, Landmark } from '../types';
 import DrawControl from './DrawControl';
 import AmenityMarker from './AmenityMarker';
@@ -165,6 +166,35 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
         return () => clearTimeout(timer);
     }, []);
 
+    // ── Supercluster state — tracks viewport for amenity clustering ──────────
+    const [clusterZoom, setClusterZoom] = useState(10);
+    const [clusterBounds, setClusterBounds] = useState<[number, number, number, number]>([
+        54.0, 24.0, 56.5, 25.5
+    ]);
+
+    // Build GeoJSON points from filteredAmenities (valid coords only)
+    const amenityPoints = filteredAmenities
+        .filter(a => {
+            const lat = Number(a.latitude);
+            const lng = Number(a.longitude);
+            return !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
+        })
+        .map(amenity => ({
+            type: 'Feature' as const,
+            properties: { cluster: false, amenityId: amenity.id, category: amenity.category, amenity },
+            geometry: {
+                type: 'Point' as const,
+                coordinates: [Number(amenity.longitude), Number(amenity.latitude)],
+            },
+        }));
+
+    const { clusters, supercluster } = useSupercluster({
+        points: amenityPoints,
+        bounds: clusterBounds,
+        zoom: clusterZoom,
+        options: { radius: 75, maxZoom: 14 },
+    });
+
     useEffect(() => {
         if (activeIsochrone && selectedProject) {
             const { mode, minutes } = activeIsochrone;
@@ -204,7 +234,16 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
         <Map
             {...viewState}
             ref={mapRef}
-            onMove={evt => { setViewState(evt.viewState); updateBounds(); }}
+            onMove={evt => {
+                setViewState(evt.viewState);
+                updateBounds();
+                // Keep supercluster in sync with the current viewport
+                setClusterZoom(Math.round(evt.viewState.zoom));
+                const b = evt.target.getBounds();
+                setClusterBounds([
+                    b.getWest(), b.getSouth(), b.getEast(), b.getNorth(),
+                ] as [number, number, number, number]);
+            }}
             onLoad={(e) => {
                 e.target.resize();
                 // Failsafe for slower DOM layout paints
@@ -323,17 +362,53 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                 <Layer {...unclusteredLabelLayer} />
             </Source>
 
-            {/* Amenity markers — deferred 800ms to unblock initial paint */}
-            {markersReady && filteredAmenities.map(amenity => (
-                <AmenityMarker
-                    key={amenity.id}
-                    amenity={amenity}
-                    isSelected={selectedLandmarkForSearch?.id === amenity.id}
-                    onClick={() => onLandmarkClick(amenity)}
-                    onMouseEnter={() => setHoveredLandmarkId(amenity.id)}
-                    onMouseLeave={() => setHoveredLandmarkId(null)}
-                />
-            ))}
+            {/* Amenity markers — superclustered; deferred 800ms to unblock initial paint */}
+            {markersReady && clusters.map(cluster => {
+                const [longitude, latitude] = cluster.geometry.coordinates;
+                const { cluster: isCluster, point_count: pointCount } = cluster.properties;
+
+                if (isCluster) {
+                    // ── Cluster badge — click to expand ──────────────────
+                    return (
+                        <Marker
+                            key={`amenity-cluster-${cluster.id}`}
+                            longitude={longitude}
+                            latitude={latitude}
+                        >
+                            <div
+                                className="flex items-center justify-center w-11 h-11 bg-blue-600 hover:bg-blue-700 text-white font-black text-sm rounded-full border-[3px] border-white shadow-xl cursor-pointer hover:scale-110 transition-all ring-4 ring-blue-600/20"
+                                onClick={() => {
+                                    if (!supercluster) return;
+                                    const expansionZoom = Math.min(
+                                        supercluster.getClusterExpansionZoom(cluster.id as number), 20
+                                    );
+                                    mapRef.current?.getMap().flyTo({
+                                        center: [longitude, latitude],
+                                        zoom: expansionZoom,
+                                        duration: 900,
+                                    });
+                                }}
+                                title={`${pointCount} landmarks — click to expand`}
+                            >
+                                {pointCount}
+                            </div>
+                        </Marker>
+                    );
+                }
+
+                // ── Individual amenity — AmenityMarker owns its own <Marker> ──
+                const amenity: Landmark = cluster.properties.amenity;
+                return (
+                    <AmenityMarker
+                        key={`amenity-${amenity.id}`}
+                        amenity={amenity}
+                        isSelected={selectedLandmarkForSearch?.id === amenity.id}
+                        onClick={() => onLandmarkClick(amenity)}
+                        onMouseEnter={() => setHoveredLandmarkId(amenity.id)}
+                        onMouseLeave={() => setHoveredLandmarkId(null)}
+                    />
+                );
+            })}
 
             {/* Real traffic route — drawn when user uses the sidebar distance calculator */}
             {activeRouteGeometry && (
