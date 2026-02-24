@@ -406,7 +406,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
 
                 {/* Sub-tab pill bar */}
                 <div className="flex flex-wrap gap-2 mb-6">
-                  {['All', 'Hotel', 'School', 'Retail', 'Culture', 'Hospital'].map(tab => (
+                  {['All', 'Hotel', 'School', 'Retail', 'Culture', 'Hospital', 'Leisure', 'Airport', 'Port'].map(tab => (
                     <button
                       key={tab}
                       onClick={() => setNearbysCategoryFilter(tab)}
@@ -461,7 +461,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                           <option value="Retail">Mall / Retail</option>
                           <option value="Culture">Culture</option>
                           <option value="Hotel">Hotel</option>
-                          <option value="Leisure">Leisure</option>
+                          <option value="Leisure">Leisure / Park</option>
+                          <option value="Airport">Airport</option>
+                          <option value="Port">Port / Marina</option>
                         </select>
                       </div>
                       <div className="flex flex-col gap-1.5">

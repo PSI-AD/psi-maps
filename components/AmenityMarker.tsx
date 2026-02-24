@@ -73,6 +73,31 @@ const categoryConfig: Record<string, { bg: string; border: string; text: string;
       </svg>
     ),
   },
+  airport: {
+    bg: 'bg-sky-500/10',
+    border: 'border-sky-500',
+    text: 'text-sky-600',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-.5-.5-2.5 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.2-1.1.6L3 8l6 4.5-3 3-2.5-.5L2 16l4 2 2 4 1-1.5-.5-2.5 3-3 4.5 6 1.2-.7c.4-.2.7-.6.6-1.1z" />
+      </svg>
+    ),
+  },
+  port: {
+    bg: 'bg-cyan-500/10',
+    border: 'border-cyan-500',
+    text: 'text-cyan-600',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        <path d="M2 21h20" />
+        <path d="M3 15h18v2a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4v-2z" />
+        <path d="M9 7v6" />
+        <path d="M15 7v6" />
+        <path d="M6 9h12" />
+        <path d="M12 3v12" />
+      </svg>
+    ),
+  },
 };
 
 const AmenityMarker: React.FC<AmenityMarkerProps> = ({ amenity, onClick, onMouseEnter, onMouseLeave }) => {

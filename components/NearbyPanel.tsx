@@ -15,7 +15,9 @@ const categoryGroups: { label: string; cats: string[] }[] = [
     { label: 'Malls & Retail', cats: ['Retail'] },
     { label: 'Hotels', cats: ['Hotel'] },
     { label: 'Culture', cats: ['Culture'] },
-    { label: 'Leisure', cats: ['Leisure'] },
+    { label: 'Leisure & Parks', cats: ['Leisure'] },
+    { label: 'Airports', cats: ['Airport'] },
+    { label: 'Ports & Marinas', cats: ['Port'] },
 ];
 
 const groupColour: Record<string, string> = {
@@ -24,14 +26,16 @@ const groupColour: Record<string, string> = {
     'Malls & Retail': 'bg-rose-50 text-rose-700 border-rose-100',
     'Hotels': 'bg-blue-50 text-blue-700 border-blue-100',
     'Culture': 'bg-purple-50 text-purple-700 border-purple-100',
-    'Leisure': 'bg-teal-50 text-teal-700 border-teal-100',
+    'Leisure & Parks': 'bg-teal-50 text-teal-700 border-teal-100',
+    'Airports': 'bg-sky-50 text-sky-700 border-sky-100',
+    'Ports & Marinas': 'bg-cyan-50 text-cyan-700 border-cyan-100',
 };
 
 const NearbyPanel: React.FC<NearbyPanelProps> = ({ project, landmarks, onClose }) => {
-    const groupedLandmarks = useMemo(() => {
-        const projCoord: [number, number] = [Number(project.longitude), Number(project.latitude)];
+    type LandmarkWithDist = Landmark & { distance: number; time: number };
 
-        type LandmarkWithDist = Landmark & { distance: number; time: number };
+    const groupedLandmarks = useMemo((): Record<string, LandmarkWithDist[]> => {
+        const projCoord: [number, number] = [Number(project.longitude), Number(project.latitude)];
 
         const withDistance: LandmarkWithDist[] = landmarks
             .filter(l => !l.isHidden && !isNaN(Number(l.latitude)) && !isNaN(Number(l.longitude)))
@@ -78,7 +82,7 @@ const NearbyPanel: React.FC<NearbyPanelProps> = ({ project, landmarks, onClose }
                             <p className="text-xs">Use the Admin → Nearby tab to import OSM data.</p>
                         </div>
                     )}
-                    {Object.entries(groupedLandmarks).map(([groupLabel, items]) => (
+                    {(Object.entries(groupedLandmarks) as [string, LandmarkWithDist[]][]).map(([groupLabel, items]) => (
                         <div key={groupLabel}>
                             <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">{groupLabel}</h4>
                             <div className="space-y-2">

@@ -29,7 +29,7 @@ export interface Project {
   responsiveMedia?: { thumb: string; medium: string; large: string } | null;
 }
 
-export type LandmarkCategory = 'School' | 'Retail' | 'Culture' | 'Hospital';
+export type LandmarkCategory = 'School' | 'Retail' | 'Culture' | 'Hospital' | 'Hotel' | 'Leisure' | 'Airport' | 'Port';
 
 export interface Landmark {
   id: string;
