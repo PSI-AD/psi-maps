@@ -103,7 +103,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   }, [project.id]);
 
   // Tick-based slideshow engine — 50ms interval drives SVG progress ring
-  const MAX_TICKS = 60; // 3 seconds at 50ms per tick
+  const MAX_TICKS = 120; // 6 seconds at 50ms per tick
   useEffect(() => {
     if (!isPlaying || !hasMultipleImages) {
       setTick(0);

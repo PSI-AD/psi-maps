@@ -102,11 +102,13 @@ const App: React.FC = () => {
     const topLandmarks: Landmark[] = [];
     const counts: Record<string, number> = {};
     for (const l of withDist) {
+      // Respect active amenity filters — normalise category to lowercase to match toggle values
+      if (activeAmenities.length > 0 && !activeAmenities.includes(l.category.toLowerCase())) continue;
       counts[l.category] = (counts[l.category] || 0) + 1;
       if (counts[l.category] <= 5) topLandmarks.push(l);
     }
     return topLandmarks;
-  }, [selectedProject, liveLandmarks, showNearbyPanel]);
+  }, [selectedProject, liveLandmarks, activeAmenities, showNearbyPanel]);
 
   // Projects within 5km of selected landmark for Reverse Search
   const nearbyProjects = useMemo((): Project[] => {

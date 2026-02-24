@@ -145,7 +145,10 @@ export const useProjectData = () => {
 
     const filteredAmenities = useMemo(() => {
         if (activeAmenities.length === 0) return [];
-        return liveLandmarks.filter(landmark => !landmark.isHidden && activeAmenities.includes(landmark.category));
+        // DB stores Title Case ('School'), buttons pass lowercase ('school') — normalise both sides
+        return liveLandmarks.filter(landmark =>
+            !landmark.isHidden && activeAmenities.includes(landmark.category.toLowerCase())
+        );
     }, [activeAmenities, liveLandmarks]);
 
     const handleToggleAmenity = (category: string) => {
