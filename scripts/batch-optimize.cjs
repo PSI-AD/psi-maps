@@ -1,5 +1,5 @@
 /**
- * PSI MAPS - BATCH IMAGE OPTIMIZER (STRICT SEO NAMING EDITION)
+ * PSI MAPS - BATCH IMAGE OPTIMIZER (STRICT SEO + BULLETPROOF EDITION)
  */
 
 const admin = require('firebase-admin');
@@ -32,7 +32,7 @@ const db = admin.firestore();
 const bucket = admin.storage().bucket();
 
 async function optimizeImages() {
-    console.log("🚀 Starting Full Gallery Batch Optimization (Strict SEO Naming)...");
+    console.log("🚀 Starting Full Gallery Batch Optimization (Bulletproof Edition)...");
 
     try {
         const projectsSnapshot = await db.collection('projects').get();
@@ -48,14 +48,12 @@ async function optimizeImages() {
 
             const safeName = sanitize(data.name || data.propertyName);
 
-            // SMART CHECK: Check if the gallery exists AND if it has the sloppy naming.
-            // If it DOES NOT have the project name in the file URL, we must fix it.
             const isAlreadyClean = data.optimizedGallery &&
                 data.optimizedGallery.length > 0 &&
                 data.optimizedGallery[0].thumb.includes(`${safeName}-`);
 
             if (isAlreadyClean) {
-                continue; // Skip because it already has the perfect SEO name
+                continue; // Skip already perfect ones
             }
 
             const safeCommunity = sanitize(data.community);
@@ -63,15 +61,17 @@ async function optimizeImages() {
             const safeDeveloper = sanitize(data.developerName || data.masterDeveloper || data.Developer);
             const dateStr = new Date().toISOString().split('T')[0];
 
-            // The FULL SEO String
             const baseName = `${safeName}-${safeCommunity}-${safeCity}-${safeDeveloper}-${dateStr}`;
             const folderPath = `optimized/${safeName}`;
 
             console.log(`\n⏳ Processing Project: ${data.name || doc.id}`);
 
             let optimizedGallery = [];
-            let mainThumb = data.thumbnailUrl;
+
+            // CRITICAL FIX: Ensure strict null fallbacks to prevent Firestore crashes
+            let mainThumb = data.thumbnailUrl || null;
             let mainResponsive = data.responsiveMedia || null;
+            let isFirstSuccess = true;
 
             const imagesToProcess = rawImages.slice(0, 10);
 
@@ -84,7 +84,6 @@ async function optimizeImages() {
                     const response = await axios({ url: imgUrl, responseType: 'arraybuffer' });
                     const imageBuffer = Buffer.from(response.data, 'binary');
 
-                    // STRICT NAMING APPLIED HERE (Starting at 1 instead of 0 for clean numbering)
                     const imageIndex = i + 1;
                     const thumbFileName = `${folderPath}/${baseName}-gallery-${imageIndex}-thumb.webp`;
                     const largeFileName = `${folderPath}/${baseName}-gallery-${imageIndex}-large.webp`;
@@ -101,7 +100,8 @@ async function optimizeImages() {
 
                     optimizedGallery.push({ thumb: thumbPublicUrl, large: largePublicUrl });
 
-                    if (i === 0) {
+                    // CRITICAL FIX: Attach main images to the FIRST SUCCESSFUL download, bypassing corrupt images
+                    if (isFirstSuccess) {
                         const mediumFileName = `${folderPath}/${baseName}-gallery-${imageIndex}-medium.webp`;
                         const mediumBuffer = await sharp(imageBuffer).resize({ width: 800, withoutEnlargement: true }).webp({ quality: 80 }).toBuffer();
                         const mediumFile = bucket.file(mediumFileName);
@@ -110,14 +110,16 @@ async function optimizeImages() {
 
                         mainThumb = thumbPublicUrl;
                         mainResponsive = { thumb: thumbPublicUrl, medium: mediumPublicUrl, large: largePublicUrl };
+                        isFirstSuccess = false;
                     }
 
                 } catch (err) {
-                    console.error(`  ⚠️ Failed image ${i + 1}: ${err.message}`);
+                    console.error(`  ⚠️ Failed image ${i + 1}: ${err.message} (Skipping...)`);
                 }
             }
 
             if (optimizedGallery.length > 0) {
+                // Now safely passing valid strings or nulls, never undefined.
                 await doc.ref.update({
                     thumbnailUrl: mainThumb,
                     responsiveMedia: mainResponsive,

@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Project, Landmark } from '../types';
-import { X, MapPin, BedDouble, Bath, Square, Calendar, ArrowRight, Activity, Building, LayoutTemplate, Car, Footprints, Clock, MessageSquare, Compass } from 'lucide-react';
-import { getOptimizedImageUrl } from '../utils/imageHelpers';
+import { X, MapPin, BedDouble, Bath, Square, Calendar, ArrowRight, Activity, Building, LayoutTemplate, Car, Footprints, Clock, MessageSquare, Compass, ChevronLeft, ChevronRight } from 'lucide-react';
 import { calculateDistance } from '../utils/geo';
 import TextModal from './TextModal';
 import InquireModal from './InquireModal';
@@ -52,10 +51,12 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   onFlyTo,
   setShowNearbyPanel,
 }) => {
-  const [activeImage, setActiveImage] = useState<string | null>(null);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [isHighResLoaded, setIsHighResLoaded] = useState(false);
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [isTextModalOpen, setIsTextModalOpen] = useState(false);
   const [isInquireModalOpen, setIsInquireModalOpen] = useState(false);
+  const autoScrollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   if (!project) return null;
 
@@ -68,9 +69,68 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
     }
   };
 
-  const images = project.images && project.images.length > 0 ? project.images : [project.thumbnailUrl];
-  const displayImage = activeImage || images[0] || project.thumbnailUrl;
-  const hasMultipleImages = images.length > 1;
+  // ── Build a unified gallery: prefer optimizedGallery, fall back to images[]
+  const gallery = useMemo(() => {
+    if (project.optimizedGallery && project.optimizedGallery.length > 0) {
+      return project.optimizedGallery; // already { thumb, large }
+    }
+    // Fallback: raw image URLs — use same URL for both layers
+    const rawUrls = (project.images && project.images.length > 0)
+      ? project.images
+      : [project.thumbnailUrl || ''];
+    return rawUrls.filter(Boolean).map(url => ({ thumb: url, large: url }));
+  }, [project.optimizedGallery, project.images, project.thumbnailUrl]);
+
+  const hasMultipleImages = gallery.length > 1;
+  const currentImage = gallery[activeIdx] ?? gallery[0];
+
+  // Reset when project changes
+  useEffect(() => {
+    setActiveIdx(0);
+    setIsHighResLoaded(false);
+  }, [project.id]);
+
+  // Auto-scroll: 3s interval, pauses on hover
+  const startAutoScroll = useCallback(() => {
+    if (!hasMultipleImages) return;
+    autoScrollRef.current = setInterval(() => {
+      setActiveIdx(prev => (prev + 1) % gallery.length);
+      setIsHighResLoaded(false);
+    }, 3000);
+  }, [gallery.length, hasMultipleImages]);
+
+  const stopAutoScroll = useCallback(() => {
+    if (autoScrollRef.current) {
+      clearInterval(autoScrollRef.current);
+      autoScrollRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    startAutoScroll();
+    return stopAutoScroll;
+  }, [startAutoScroll, stopAutoScroll]);
+
+  const handleNextImage = useCallback(() => {
+    setActiveIdx(prev => (prev + 1) % gallery.length);
+    setIsHighResLoaded(false);
+    stopAutoScroll();
+    startAutoScroll();
+  }, [gallery.length, startAutoScroll, stopAutoScroll]);
+
+  const handlePrevImage = useCallback(() => {
+    setActiveIdx(prev => (prev - 1 + gallery.length) % gallery.length);
+    setIsHighResLoaded(false);
+    stopAutoScroll();
+    startAutoScroll();
+  }, [gallery.length, startAutoScroll, stopAutoScroll]);
+
+  const handleThumbClick = useCallback((idx: number) => {
+    setActiveIdx(idx);
+    setIsHighResLoaded(false);
+    stopAutoScroll();
+    startAutoScroll();
+  }, [startAutoScroll, stopAutoScroll]);
 
   const DESCRIPTION_LIMIT = 250;
   const rawDescription = project.description || '';
@@ -113,51 +173,104 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
     <>
       <div className="h-full flex flex-col bg-white text-slate-800 font-sans shadow-2xl relative border-l border-slate-200">
 
-        {/* 1. Hero Image — thumbnails overlaid on bottom 20% */}
-        <div className="relative h-64 w-full shrink-0 bg-slate-100 overflow-hidden group">
-          {/* Main image */}
-          <img
-            src={getOptimizedImageUrl(displayImage, 1200, 800)}
-            alt={project.name}
-            loading="eager"
-            decoding="async"
-            onClick={() => setFullscreenImage(displayImage)}
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 cursor-zoom-in"
-          />
+        {/* 1. Hero Gallery — blur-up progressive, auto-scroll, prev/next controls */}
+        <div
+          className="relative h-64 w-full shrink-0 bg-slate-100 overflow-hidden group"
+          onMouseEnter={stopAutoScroll}
+          onMouseLeave={startAutoScroll}
+        >
+          {/* Progressive image — low-res bottom layer fades out when high-res loads */}
+          <div className="absolute inset-0">
+            {/* Low-res thumb (instantly visible) */}
+            <img
+              src={currentImage.thumb}
+              alt={project.name}
+              aria-hidden="true"
+              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${isHighResLoaded ? 'opacity-0' : 'opacity-100'}`}
+            />
+            {/* High-res large (fades in when loaded) */}
+            <img
+              key={currentImage.large}
+              src={currentImage.large}
+              alt={project.name}
+              loading="eager"
+              decoding="async"
+              onLoad={() => setIsHighResLoaded(true)}
+              onClick={() => setFullscreenImage(currentImage.large)}
+              className={`absolute inset-0 w-full h-full object-cover cursor-zoom-in transition-opacity duration-500 ${isHighResLoaded ? 'opacity-100' : 'opacity-0'}`}
+            />
+          </div>
 
           {/* Close button */}
           <button
             onClick={onClose}
+            aria-label="Close property details"
             className="absolute top-4 right-4 bg-black/40 hover:bg-black/70 backdrop-blur-md text-white p-2 rounded-full transition-all border border-white/20 z-10"
           >
             <X className="w-5 h-5" />
           </button>
 
-          {/* Thumbnail strip — floated over the bottom 20% of the hero */}
+          {/* Prev / Next arrows — visible on hover */}
+          {hasMultipleImages && (
+            <>
+              <button
+                onClick={handlePrevImage}
+                aria-label="Previous image"
+                className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2 bg-black/40 hover:bg-black/70 backdrop-blur-md text-white rounded-full border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button
+                onClick={handleNextImage}
+                aria-label="Next image"
+                className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2 bg-black/40 hover:bg-black/70 backdrop-blur-md text-white rounded-full border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </>
+          )}
+
+          {/* Thumbnail strip — floated over the bottom of the hero */}
           {hasMultipleImages && (
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent pt-6 pb-2 px-2 flex gap-2 overflow-x-auto hide-scrollbar">
-              {images.map((img, idx) => (
+              {gallery.map((img, idx) => (
                 <button
                   key={idx}
-                  onClick={(e) => { e.stopPropagation(); setActiveImage(img); }}
-                  className={`shrink-0 w-14 h-10 rounded-lg overflow-hidden border-2 transition-all ${(activeImage ?? images[0]) === img
-                    ? 'border-white scale-105 shadow-lg'
-                    : 'border-white/40 opacity-70 hover:opacity-100 hover:border-white'
+                  onClick={(e) => { e.stopPropagation(); handleThumbClick(idx); }}
+                  aria-label={`View image ${idx + 1}`}
+                  className={`shrink-0 w-14 h-10 rounded-lg overflow-hidden border-2 transition-all ${activeIdx === idx ? 'border-white scale-105 shadow-lg' : 'border-white/40 opacity-70 hover:opacity-100 hover:border-white'
                     }`}
                 >
-                  <img src={getOptimizedImageUrl(img, 120, 90)} alt="" loading="lazy" className="w-full h-full object-cover" />
+                  {/* Thumbnail strip uses thumb-only for performance */}
+                  <img src={img.thumb} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>
           )}
 
-          {/* Expand hint */}
-          <button
-            onClick={() => setFullscreenImage(displayImage)}
-            className="absolute bottom-2 right-2 bg-black/40 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-lg pointer-events-auto hover:bg-black/60 transition-all z-10"
-          >
-            ⤢ Expand
-          </button>
+          {/* Dot indicator + expand hint row */}
+          <div className="absolute bottom-2 right-2 flex items-center gap-2 z-10">
+            {hasMultipleImages && (
+              <div className="flex gap-1">
+                {gallery.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleThumbClick(idx)}
+                    aria-label={`Go to image ${idx + 1}`}
+                    className={`rounded-full transition-all ${activeIdx === idx ? 'w-4 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/50 hover:bg-white/80'
+                      }`}
+                  />
+                ))}
+              </div>
+            )}
+            <button
+              onClick={() => setFullscreenImage(currentImage.large)}
+              aria-label="View fullscreen"
+              className="bg-black/40 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-lg pointer-events-auto hover:bg-black/60 transition-all"
+            >
+              ⤢ Expand
+            </button>
+          </div>
         </div>
 
         {/* Scrollable Content */}

@@ -24,6 +24,9 @@ export interface Project {
   city?: string;
   community?: string;
   subCommunity?: string;
+  // Optimized media (written by batch-optimize.cjs)
+  optimizedGallery?: { thumb: string; large: string }[];
+  responsiveMedia?: { thumb: string; medium: string; large: string } | null;
 }
 
 export type LandmarkCategory = 'School' | 'Retail' | 'Culture' | 'Hospital';
