@@ -59,7 +59,9 @@ export const useProjectData = () => {
                     amenities: data.aminities?.map((a: any) => a.name) || [],
                     city: data.city,
                     community: data.community,
-                    subCommunity: data.subCommunity
+                    subCommunity: data.subCommunity,
+                    optimizedGallery: data.optimizedGallery || [],
+                    responsiveMedia: data.responsiveMedia || null
                 } as Project;
             });
 
