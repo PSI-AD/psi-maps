@@ -375,16 +375,6 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                                 <p className="text-slate-500 text-xs font-medium mt-1">Refine your search results</p>
                             </div>
 
-                            {/* 3D Buildings Toggle */}
-                            <div className="flex items-center justify-between p-4 bg-blue-50 rounded-2xl border border-blue-100 mb-8">
-                                <div>
-                                    <p className="font-black text-sm text-slate-800">3D Buildings</p>
-                                    <p className="text-xs text-slate-500 mt-0.5">Show architectural extrusions</p>
-                                </div>
-                                <button onClick={() => setMapFeatures(prev => ({ ...prev, show3D: !prev.show3D }))} className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${mapFeatures.show3D ? 'bg-blue-600' : 'bg-slate-300'}`}>
-                                    <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow transition-transform duration-300 ${mapFeatures.show3D ? 'translate-x-6' : 'translate-x-0'}`} />
-                                </button>
-                            </div>
 
                             {/* Status Filter */}
                             <div className="mb-10">
@@ -443,7 +433,24 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
 
                             {/* Nearby Amenities */}
                             <div className="mb-10">
-                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-5">Nearby Amenities</h4>
+                                <div className="flex items-center justify-between mb-4">
+                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Nearby Amenities</h4>
+                                    <button
+                                        onClick={() => {
+                                            const allCats = ['school', 'hospital', 'retail', 'leisure', 'hotel', 'culture', 'airport', 'port', 'park', 'beach', 'hypermarket'];
+                                            if (activeAmenities.length > 0) {
+                                                // Clear all — toggle off each active one
+                                                activeAmenities.forEach(cat => onToggleAmenity?.(cat));
+                                            } else {
+                                                // Select all — toggle on each inactive one
+                                                allCats.forEach(cat => onToggleAmenity?.(cat));
+                                            }
+                                        }}
+                                        className="text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors"
+                                    >
+                                        {activeAmenities.length > 0 ? 'Clear All' : 'Select All'}
+                                    </button>
+                                </div>
                                 <div className="flex flex-wrap gap-2">
                                     {[
                                         { label: 'Schools', cat: 'school' },
@@ -475,8 +482,18 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                                 </div>
                             </div>
 
-                            {/* Spatial Tools */}
+                            {/* 3D Buildings Toggle — moved to bottom */}
+                            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-200 mb-6">
+                                <div>
+                                    <p className="font-black text-sm text-slate-800">3D Buildings</p>
+                                    <p className="text-xs text-slate-500 mt-0.5">Show architectural extrusions</p>
+                                </div>
+                                <button onClick={() => setMapFeatures(prev => ({ ...prev, show3D: !prev.show3D }))} className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${mapFeatures.show3D ? 'bg-blue-600' : 'bg-slate-300'}`}>
+                                    <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow transition-transform duration-300 ${mapFeatures.show3D ? 'translate-x-6' : 'translate-x-0'}`} />
+                                </button>
+                            </div>
 
+                            {/* Spatial Tools */}
                             <div className="mb-8 p-5 bg-blue-50 rounded-2xl border border-blue-100">
                                 <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] mb-4">Spatial Tools</h4>
                                 <button
@@ -493,7 +510,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                         <div className="sticky bottom-0 px-8 pt-4 pb-8 bg-white border-t border-slate-100">
                             <button
                                 onClick={() => setIsFilterModalOpen(false)}
-                                className="w-full py-5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-black uppercase text-sm tracking-widest shadow-xl transition-all flex items-center justify-center gap-3"
+                                className="w-full py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black uppercase text-sm tracking-widest shadow-xl transition-all flex items-center justify-center gap-3"
                             >
                                 <Map className="w-5 h-5" />
                                 View Map ({filteredCount} Results)

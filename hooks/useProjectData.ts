@@ -8,7 +8,7 @@ export const useProjectData = () => {
     const [liveProjects, setLiveProjects] = useState<Project[]>([]);
     const [liveLandmarks, setLiveLandmarks] = useState<Landmark[]>([]);
     const [isRefreshing, setIsRefreshing] = useState(false);
-    const [activeAmenities, setActiveAmenities] = useState<string[]>([]);
+    const [activeAmenities, setActiveAmenities] = useState<string[]>(['airport', 'hotel', 'school', 'leisure', 'retail']);
     const [filterPolygon, setFilterPolygon] = useState<any>(null);
     const [propertyType, setPropertyType] = useState<string>('All');
     const [developerFilter, setDeveloperFilter] = useState<string>('All');

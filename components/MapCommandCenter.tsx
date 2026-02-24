@@ -17,7 +17,7 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
         const map = mapRef?.current?.getMap?.();
         const rotateCamera = (timestamp: number) => {
             if (!map) return;
-            map.rotateTo((timestamp / 150) % 360, { duration: 0 });
+            map.rotateTo(360 - (timestamp / 150) % 360, { duration: 0 });
             animationRef.current = requestAnimationFrame(rotateCamera);
         };
         if (isRotating && map) {
@@ -83,7 +83,7 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
 
                 <button
                     onClick={() => execute('3d')}
-                    className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${is3D ? 'bg-blue-100 text-blue-600 shadow-inner' : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
+                    className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${is3D ? 'bg-purple-100 text-purple-600 shadow-inner border border-purple-200' : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
                         }`}
                     title="Toggle 3D Perspective"
                 >
@@ -112,44 +112,48 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
             <div className="flex flex-col gap-2 border-r border-slate-200 pr-4">
                 <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1 text-center">Style</span>
 
-                <button
-                    onClick={() => setMapStyle('mapbox://styles/mapbox/satellite-streets-v12')}
-                    className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${(mapStyle || '').includes('satellite')
-                            ? 'bg-emerald-100 text-emerald-600 shadow-inner'
-                            : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
-                        }`}
-                    title="Satellite View"
-                >
-                    <Layers className="w-5 h-5" />
-                </button>
-
+                {/* Light Minimal */}
                 <button
                     onClick={() => setMapStyle('mapbox://styles/mapbox/light-v11')}
                     className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${(mapStyle || '').includes('light')
-                            ? 'bg-blue-100 text-blue-600 shadow-inner'
-                            : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
+                        ? 'bg-purple-100 text-purple-600 shadow-inner border border-purple-200'
+                        : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
                         }`}
                     title="Light Minimal"
                 >
                     <Sun className="w-5 h-5" />
                 </button>
 
+                {/* Outdoors & Terrain */}
                 <button
                     onClick={() => setMapStyle('mapbox://styles/mapbox/outdoors-v12')}
                     className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${(mapStyle || '').includes('outdoors')
-                            ? 'bg-teal-100 text-teal-600 shadow-inner'
-                            : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
+                        ? 'bg-purple-100 text-purple-600 shadow-inner border border-purple-200'
+                        : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
                         }`}
                     title="Outdoors & Terrain"
                 >
                     <TreePine className="w-5 h-5" />
                 </button>
 
+                {/* Satellite View */}
+                <button
+                    onClick={() => setMapStyle('mapbox://styles/mapbox/satellite-streets-v12')}
+                    className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${(mapStyle || '').includes('satellite')
+                        ? 'bg-purple-100 text-purple-600 shadow-inner border border-purple-200'
+                        : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
+                        }`}
+                    title="Satellite View"
+                >
+                    <Layers className="w-5 h-5" />
+                </button>
+
+                {/* Standard Streets */}
                 <button
                     onClick={() => setMapStyle('mapbox://styles/mapbox/streets-v12')}
                     className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${(mapStyle || '').includes('streets') && !(mapStyle || '').includes('satellite')
-                            ? 'bg-indigo-100 text-indigo-600 shadow-inner'
-                            : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
+                        ? 'bg-purple-100 text-purple-600 shadow-inner border border-purple-200'
+                        : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
                         }`}
                     title="Standard Streets"
                 >
