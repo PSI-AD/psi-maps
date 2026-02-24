@@ -749,6 +749,17 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                   ✕ Clear isochrone
                 </button>
               )}
+              {/* Quick-action: 15-Min Drive Zone */}
+              <button
+                onClick={() => setActiveIsochrone({ mode: 'driving', minutes: 15 })}
+                className={`mt-3 w-full py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all border ${activeIsochrone?.mode === 'driving' && activeIsochrone?.minutes === 15
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                    : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-600 hover:text-white hover:border-blue-600'
+                  }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                15-Min Drive Zone
+              </button>
             </div>
 
             {/* 7. Top 5 Nearby Amenities List */}

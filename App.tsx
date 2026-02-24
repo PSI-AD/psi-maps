@@ -54,6 +54,22 @@ const App: React.FC = () => {
 
   const [activeBoundary, setActiveBoundary] = useState<any>(null);
 
+  // Lasso spatial-filter state
+  const [isLassoMode, setIsLassoMode] = useState(false);
+  const [drawnCoordinates, setDrawnCoordinates] = useState<[number, number][]>([]);
+
+  // Listen for lasso CustomEvents dispatched by MapCommandCenter
+  useEffect(() => {
+    const handleToggle = () => setIsLassoMode(prev => !prev);
+    const handleClear = () => { setDrawnCoordinates([]); setIsLassoMode(false); };
+    window.addEventListener('lasso-toggle', handleToggle);
+    window.addEventListener('lasso-clear', handleClear);
+    return () => {
+      window.removeEventListener('lasso-toggle', handleToggle);
+      window.removeEventListener('lasso-clear', handleClear);
+    };
+  }, []);
+
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
@@ -118,6 +134,24 @@ const App: React.FC = () => {
   const selectedProject = filteredProjects.find(p => p.id === selectedProjectId) || null;
   const hoveredProject = filteredProjects.find(p => p.id === hoveredProjectId) || null;
   const selectedLandmark = filteredAmenities.find(l => l.id === selectedLandmarkId) || null;
+
+  // Lasso spatial filter: applied on top of filteredProjects when ≥3 points are drawn
+  const lassoFilteredProjects = useMemo(() => {
+    if (!enableLasso || drawnCoordinates.length < 3) return filteredProjects;
+    try {
+      const closed = [...drawnCoordinates, drawnCoordinates[0]];
+      const polygon = turf.polygon([closed]);
+      return filteredProjects.filter(p => {
+        if (isNaN(Number(p.longitude)) || isNaN(Number(p.latitude))) return false;
+        return turf.booleanPointInPolygon(
+          turf.point([Number(p.longitude), Number(p.latitude)]),
+          polygon
+        );
+      });
+    } catch {
+      return filteredProjects;
+    }
+  }, [filteredProjects, drawnCoordinates, enableLasso]);
 
   // Show top 5 proximity landmarks when a project is selected, or strictly map filters
   const projectSpecificLandmarks = useMemo((): Landmark[] => {
@@ -345,7 +379,7 @@ const App: React.FC = () => {
       viewMode={viewMode} setViewMode={setViewMode} isAdminOpen={isAdminOpen} setIsAdminOpen={setIsAdminOpen}
       isAnalysisOpen={isAnalysisOpen} setIsAnalysisOpen={setIsAnalysisOpen} liveProjects={liveProjects} setLiveProjects={setLiveProjects}
       liveLandmarks={liveLandmarks} setLiveLandmarks={setLiveLandmarks}
-      selectedProject={selectedProject} filteredProjects={filteredProjects} isRefreshing={isRefreshing} onRefresh={loadInitialData}
+      selectedProject={selectedProject} filteredProjects={lassoFilteredProjects} isRefreshing={isRefreshing} onRefresh={loadInitialData}
       onProjectClick={handleMarkerClick} onCloseProject={onCloseProject} filterPolygon={filterPolygon}
       activeAmenities={activeAmenities} onToggleAmenity={handleToggleAmenity} isDrawing={isDrawing} onToggleDraw={handleToggleDraw}
       mapStyle={mapStyle} setMapStyle={setMapStyle} onDiscoverNeighborhood={(lat, lng) => fetchNearbyAmenities(lat, lng)}
@@ -392,7 +426,7 @@ const App: React.FC = () => {
           onMarkerClick={handleMarkerClick} onLandmarkClick={handleLandmarkClick}
           selectedProjectId={selectedProjectId} setHoveredProjectId={setHoveredProjectId} setHoveredLandmarkId={setHoveredLandmarkId}
           selectedLandmark={selectedLandmark} selectedProject={selectedProject} hoveredProject={hoveredProject}
-          projects={filteredProjects}
+          projects={lassoFilteredProjects}
           mapFeatures={mapFeatures}
           activeBoundary={activeBoundary}
           activeIsochrone={activeIsochrone}
@@ -401,6 +435,9 @@ const App: React.FC = () => {
           activeRouteGeometry={activeRouteGeometry}
           enableHeatmap={enableHeatmap}
           enableSunlight={enableSunlight}
+          isLassoMode={isLassoMode}
+          drawnCoordinates={drawnCoordinates}
+          setDrawnCoordinates={setDrawnCoordinates}
         />
       </ErrorBoundary>
       {/* Reverse Search: floating nearby projects panel */}

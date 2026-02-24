@@ -38,6 +38,9 @@ interface MapCanvasProps {
     activeRouteGeometry?: any | null;
     enableHeatmap?: boolean;
     enableSunlight?: boolean;
+    isLassoMode?: boolean;
+    drawnCoordinates?: [number, number][];
+    setDrawnCoordinates?: React.Dispatch<React.SetStateAction<[number, number][]>>;
 }
 
 // 🚨 PERMANENT FIX: Base64 decoded token. Passed only via component prop.
@@ -121,6 +124,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
     selectedLandmark, selectedProject, hoveredProject, projects = [], mapFeatures,
     activeBoundary, activeIsochrone, selectedLandmarkForSearch, hoveredProjectId, onBoundsChange,
     activeRouteGeometry, enableHeatmap = false, enableSunlight = false,
+    isLassoMode = false, drawnCoordinates = [], setDrawnCoordinates,
 }) => {
 
     // Safety check for valid GPS coordinates
@@ -237,6 +241,24 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
         }
     }, [enableSunlight, mapRef]);
 
+    // ── Lasso: GeoJSON representation of drawn coordinates ──────────────────────────
+    const drawnGeoJSON = useMemo(() => {
+        if (drawnCoordinates.length === 0) return null;
+        if (drawnCoordinates.length >= 3) {
+            const closed = [...drawnCoordinates, drawnCoordinates[0]];
+            return {
+                type: 'Feature',
+                geometry: { type: 'Polygon', coordinates: [closed] },
+                properties: {},
+            };
+        }
+        return {
+            type: 'Feature',
+            geometry: { type: 'LineString', coordinates: drawnCoordinates },
+            properties: {},
+        };
+    }, [drawnCoordinates]);
+
     // ── Tour camera: listen for CustomEvent dispatched by the Neighborhood Tour ──
     useEffect(() => {
         const handleTourFly = (e: Event) => {
@@ -302,11 +324,15 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
             className="w-full h-full"
             interactiveLayerIds={['clusters', 'cluster-count', 'unclustered-point', 'unclustered-point-hit']}
             onClick={(e) => {
+                if (isLassoMode) {
+                    setDrawnCoordinates?.(prev => [...prev, [e.lngLat.lng, e.lngLat.lat]]);
+                    return;
+                }
                 const features = e.features || [];
                 if (features.length > 0) handleLayerClick(e);
                 else onClick(e);
             }}
-            cursor="pointer"
+            cursor={isLassoMode ? 'crosshair' : 'pointer'}
             preserveDrawingBuffer={true}
         >
             <AttributionControl position="bottom-left" />
@@ -329,7 +355,36 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                 />
             )}
 
-            {/* Market Intelligence Heatmap */}
+            {/* Lasso drawn polygon overlay */}
+            {drawnGeoJSON && (
+                <Source id="lasso-draw" type="geojson" data={drawnGeoJSON as any}>
+                    <Layer
+                        id="lasso-fill"
+                        type="fill"
+                        filter={['==', '$type', 'Polygon']}
+                        paint={{ 'fill-color': '#7c3aed', 'fill-opacity': 0.12 }}
+                    />
+                    <Layer
+                        id="lasso-line"
+                        type="line"
+                        paint={{ 'line-color': '#7c3aed', 'line-width': 2.5, 'line-dasharray': [3, 2] }}
+                    />
+                    <Layer
+                        id="lasso-points"
+                        type="circle"
+                        paint={{ 'circle-radius': 4, 'circle-color': '#7c3aed', 'circle-stroke-width': 2, 'circle-stroke-color': '#ffffff' }}
+                    />
+                </Source>
+            )}
+
+            {/* Lasso mode instruction badge */}
+            {isLassoMode && (
+                <div style={{ position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 100, pointerEvents: 'none' }}>
+                    <div className="bg-violet-600 text-white text-xs font-black uppercase tracking-widest px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
+                        <span>✏️</span> Click to draw selection polygon
+                    </div>
+                </div>
+            )}
             {enableHeatmap && (
                 <Source id="projects-heatmap" type="geojson" data={heatmapGeoJSON as any}>
                     <Layer

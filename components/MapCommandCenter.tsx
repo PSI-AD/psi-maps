@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Layers, Box, Compass, RefreshCw, Bird, Map as MapIcon, Sun, TreePine, ZoomIn, ZoomOut, Crosshair, Camera } from 'lucide-react';
+import { Layers, Box, Compass, RefreshCw, Bird, Map as MapIcon, Sun, TreePine, ZoomIn, ZoomOut, Crosshair, Camera, PenTool, Trash2 } from 'lucide-react';
 
 interface MapCommandCenterProps {
     mapRef: React.MutableRefObject<any>;
@@ -11,6 +11,7 @@ interface MapCommandCenterProps {
 export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapStyle, setMapStyle, onClose }) => {
     const [isRotating, setIsRotating] = useState(false);
     const [is3D, setIs3D] = useState(false);
+    const [isLassoActive, setIsLassoActive] = useState(false);
     const animationRef = useRef<number | undefined>(undefined);
 
     useEffect(() => {
@@ -190,13 +191,43 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
                     <Crosshair className="w-5 h-5" />
                 </button>
 
-                {/* Export screenshot — requires preserveDrawingBuffer=true on <Map> */}
+                {/* Export screenshot */}
                 <button
                     onClick={() => execute('export')}
                     className="w-10 h-10 flex items-center justify-center rounded-xl bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-600 transition-all group mt-auto border border-blue-100"
                     title="Export Map as PNG"
                 >
                     <Camera className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                </button>
+            </div>
+
+            {/* ── Lasso Spatial Filter ────────────────────────────────────── */}
+            <div className="flex flex-col gap-2 border-l border-slate-200 pl-4">
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1 text-center">Lasso</span>
+
+                <button
+                    onClick={() => {
+                        setIsLassoActive(prev => !prev);
+                        window.dispatchEvent(new CustomEvent('lasso-toggle'));
+                    }}
+                    className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${isLassoActive
+                            ? 'bg-violet-100 text-violet-600 shadow-inner border border-violet-200'
+                            : 'bg-slate-50 hover:bg-violet-50 text-slate-600 hover:text-violet-600'
+                        }`}
+                    title={isLassoActive ? 'Exit lasso mode' : 'Draw lasso selection'}
+                >
+                    <PenTool className="w-5 h-5" />
+                </button>
+
+                <button
+                    onClick={() => {
+                        setIsLassoActive(false);
+                        window.dispatchEvent(new CustomEvent('lasso-clear'));
+                    }}
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-rose-50 text-slate-500 hover:text-rose-500 transition-all"
+                    title="Clear lasso selection"
+                >
+                    <Trash2 className="w-5 h-5" />
                 </button>
             </div>
         </div>
