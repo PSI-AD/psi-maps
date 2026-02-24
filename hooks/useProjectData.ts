@@ -149,19 +149,11 @@ export const useProjectData = () => {
         if (activeAmenities.length === 0) return [];
         return liveLandmarks.filter(landmark => {
             if (landmark.isHidden) return false;
-
-            // Handle both Title Case ('School') and lowercase ('school') from toggle buttons
-            const catMatch = activeAmenities.includes(landmark.category) ||
+            // Accept both Title Case ('School') and lowercase ('school') toggle values
+            return activeAmenities.includes(landmark.category) ||
                 activeAmenities.includes(landmark.category.toLowerCase());
-            if (!catMatch) return false;
-
-            // Respect active location filters so markers stay within the city/community scope
-            if (selectedCity && landmark.city?.toLowerCase().trim() !== selectedCity.toLowerCase().trim()) return false;
-            if (selectedCommunity && landmark.community?.toLowerCase().trim() !== selectedCommunity.toLowerCase().trim()) return false;
-
-            return true;
         });
-    }, [activeAmenities, liveLandmarks, selectedCity, selectedCommunity]);
+    }, [activeAmenities, liveLandmarks]);
 
     const handleToggleAmenity = (category: string) => {
         setActiveAmenities(prev =>

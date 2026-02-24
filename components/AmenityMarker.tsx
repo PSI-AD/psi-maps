@@ -47,8 +47,8 @@ const AmenityMarker: React.FC<AmenityMarkerProps> = ({ amenity, onClick, onMouse
         {/* Diamond tail */}
         <div className={`w-2.5 h-2.5 -mt-1.5 rotate-45 ${config.bg} border-r-2 border-b-2 border-white`} />
 
-        {/* Name label */}
-        <div className="mt-1 px-2.5 py-0.5 bg-white/95 backdrop-blur-sm text-slate-800 text-[10px] font-black rounded-lg shadow-md whitespace-nowrap border border-slate-100 opacity-90 group-hover:opacity-100 transition-opacity max-w-[160px] truncate">
+        {/* Name label — same colour as pin for visual continuity */}
+        <div className={`mt-1 px-2.5 py-0.5 ${config.bg} text-white text-[10px] font-black rounded-lg shadow-md whitespace-nowrap border border-white/20 opacity-90 group-hover:opacity-100 transition-opacity max-w-[160px] truncate`}>
           {amenity.name}
         </div>
       </div>

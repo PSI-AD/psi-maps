@@ -70,6 +70,9 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [isTextModalOpen, setIsTextModalOpen] = useState(false);
   const [isInquireModalOpen, setIsInquireModalOpen] = useState(false);
+  const [customDestQuery, setCustomDestQuery] = useState('');
+  const [customDestResult, setCustomDestResult] = useState<{ name: string; distance: number } | null>(null);
+  const [isSearchingDest, setIsSearchingDest] = useState(false);
 
   if (!project) return null;
 
@@ -80,6 +83,34 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
     if (!isNaN(lat) && !isNaN(lng)) {
       onFlyTo(lng, lat, 14.5);
     }
+  };
+
+  // ---- Custom Distance Calculator: Mapbox Geocoding search ----
+  const handleSearchDestination = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter' || !customDestQuery.trim() || !project.latitude || !project.longitude) return;
+    setIsSearchingDest(true);
+    setCustomDestResult(null);
+    try {
+      const token = typeof window !== 'undefined'
+        ? atob('cGsuZXlKMUlqb2ljSE5wYm5ZaUxDSmhJam9pWTIxc2NqQnpNMjF4TURacU56Tm1jMlZtZEd0NU1XMDVaQ0o5LlZ4SUVuMWpMVHpNd0xBTjhtNEIxNWc=')
+        : '';
+      const res = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(customDestQuery)}.json` +
+        `?access_token=${token}&proximity=${project.longitude},${project.latitude}&limit=1`
+      );
+      const data = await res.json();
+      if (data.features && data.features.length > 0) {
+        const best = data.features[0];
+        const dist = calculateDistance(
+          Number(project.latitude), Number(project.longitude),
+          best.center[1], best.center[0]
+        );
+        setCustomDestResult({ name: best.place_name, distance: dist });
+      }
+    } catch (err) {
+      console.error('Geocoding error:', err);
+    }
+    setIsSearchingDest(false);
   };
 
   // ── Build a unified gallery: prefer optimizedGallery, fall back to images[]
@@ -512,6 +543,34 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
             </button>
 
             <div id="sidebar-map-section" />
+
+            {/* 8. Custom Distance Calculator */}
+            <div className="mt-8 pt-6 border-t border-slate-100 pb-4 px-1">
+              <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
+                <MapPin className="w-4 h-4 mr-2 text-blue-600" /> Calculate Custom Distance
+              </h3>
+              <input
+                type="text"
+                placeholder="Type any place & press Enter…"
+                value={customDestQuery}
+                onChange={e => setCustomDestQuery(e.target.value)}
+                onKeyDown={handleSearchDestination}
+                className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-slate-400"
+              />
+              {isSearchingDest && (
+                <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-widest animate-pulse">Calculating…</p>
+              )}
+              {customDestResult && !isSearchingDest && (
+                <div className="mt-3 p-4 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-between shadow-sm">
+                  <span className="text-xs font-bold text-slate-700 flex-1 pr-4 truncate" title={customDestResult.name}>
+                    {customDestResult.name.split(',')[0]}
+                  </span>
+                  <span className="text-sm font-black text-blue-700 whitespace-nowrap">
+                    {customDestResult.distance.toFixed(1)} km
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
