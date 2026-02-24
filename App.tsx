@@ -253,6 +253,31 @@ const App: React.FC = () => {
     setSelectedLandmarkForSearch(null);
   };
 
+  const handleFocusProjectFromReverseSearch = (id: string) => {
+    setSelectedProjectId(id);
+    setIsAnalysisOpen(false); // keep sidebar closed — user is browsing reverse-search results
+
+    const p = liveProjects.find(pr => pr.id === id);
+    if (p && p.latitude && p.longitude && selectedLandmarkForSearch) {
+      const lLng = Number(selectedLandmarkForSearch.longitude);
+      const lLat = Number(selectedLandmarkForSearch.latitude);
+      const pLng = Number(p.longitude);
+      const pLat = Number(p.latitude);
+
+      if (!isNaN(lLng) && !isNaN(lLat) && !isNaN(pLng) && !isNaN(pLat)) {
+        const bbox: [number, number, number, number] = [
+          Math.min(lLng, pLng), Math.min(lLat, pLat),
+          Math.max(lLng, pLng), Math.max(lLat, pLat),
+        ];
+        const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+        const padding = isMobile
+          ? { top: 100, bottom: 350, left: 60, right: 60 }
+          : { top: 150, bottom: 150, left: 150, right: 400 };
+        mapRef.current?.getMap().fitBounds(bbox, { padding, duration: 1200, maxZoom: 15 });
+      }
+    }
+  };
+
   const handleGlobalReset = () => {
     setSelectedProjectId(null);
     setSelectedLandmarkId(null);
@@ -343,7 +368,7 @@ const App: React.FC = () => {
           projects={nearbyProjects}
           onClose={() => setSelectedLandmarkForSearch(null)}
           onHoverProject={setHoveredProjectId}
-          onSelectProject={handleMarkerClick}
+          onSelectProject={handleFocusProjectFromReverseSearch}
         />
       )}
     </MainLayout>

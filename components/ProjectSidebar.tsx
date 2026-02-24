@@ -1,9 +1,14 @@
-import React, { useState, useEffect, useLayoutEffect, useMemo } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { Project, Landmark } from '../types';
 import { X, MapPin, BedDouble, Bath, Square, Calendar, ArrowRight, Activity, Building, LayoutTemplate, Car, Footprints, Clock, MessageSquare, Compass, ChevronLeft, ChevronRight, Play, Pause } from 'lucide-react';
 import { calculateDistance } from '../utils/geo';
 import TextModal from './TextModal';
 import InquireModal from './InquireModal';
+
+const PUBLIC_MAPBOX_TOKEN = typeof window !== 'undefined'
+  ? atob('cGsuZXlKMUlqb2ljSE5wYm5ZaUxDSmhJam9pWTIxc2NqQnpNMjF4TURacU56Tm1jMlZtZEd0NU1XMDVaQ0o5LlZ4SUVuMWpMVHpNd0xBTjhtNEIxNWc=')
+  : '';
+
 
 interface ProjectSidebarProps {
   project: Project | null;
@@ -73,6 +78,8 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   const [customDestQuery, setCustomDestQuery] = useState('');
   const [customDestResult, setCustomDestResult] = useState<{ name: string; distance: number } | null>(null);
   const [isSearchingDest, setIsSearchingDest] = useState(false);
+  const [destSuggestions, setDestSuggestions] = useState<any[]>([]);
+  const destSearchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   if (!project) return null;
 
@@ -85,32 +92,40 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
     }
   };
 
-  // ---- Custom Distance Calculator: Mapbox Geocoding search ----
-  const handleSearchDestination = async (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key !== 'Enter' || !customDestQuery.trim() || !project.latitude || !project.longitude) return;
-    setIsSearchingDest(true);
-    setCustomDestResult(null);
-    try {
-      const token = typeof window !== 'undefined'
-        ? atob('cGsuZXlKMUlqb2ljSE5wYm5ZaUxDSmhJam9pWTIxc2NqQnpNMjF4TURacU56Tm1jMlZtZEd0NU1XMDVaQ0o5LlZ4SUVuMWpMVHpNd0xBTjhtNEIxNWc=')
-        : '';
-      const res = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(customDestQuery)}.json` +
-        `?access_token=${token}&proximity=${project.longitude},${project.latitude}&limit=1`
-      );
-      const data = await res.json();
-      if (data.features && data.features.length > 0) {
-        const best = data.features[0];
-        const dist = calculateDistance(
-          Number(project.latitude), Number(project.longitude),
-          best.center[1], best.center[0]
-        );
-        setCustomDestResult({ name: best.place_name, distance: dist });
-      }
-    } catch (err) {
-      console.error('Geocoding error:', err);
+  // ---- Custom Distance Calculator: live debounced autocomplete ----
+  const fetchDestSuggestions = (query: string) => {
+    setCustomDestQuery(query);
+    if (destSearchRef.current) clearTimeout(destSearchRef.current);
+    if (!query.trim() || !project.latitude || !project.longitude) {
+      setDestSuggestions([]);
+      setIsSearchingDest(false);
+      return;
     }
-    setIsSearchingDest(false);
+    setIsSearchingDest(true);
+    destSearchRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json` +
+          `?access_token=${PUBLIC_MAPBOX_TOKEN}&proximity=${project.longitude},${project.latitude}` +
+          `&types=poi,address,neighborhood,locality,place&limit=5`
+        );
+        const data = await res.json();
+        setDestSuggestions(data.features || []);
+      } catch (err) {
+        console.error('Geocoding autocomplete error:', err);
+      }
+      setIsSearchingDest(false);
+    }, 300);
+  };
+
+  const handleSelectDest = (feature: any) => {
+    const dist = calculateDistance(
+      Number(project.latitude), Number(project.longitude),
+      feature.center[1], feature.center[0]
+    );
+    setCustomDestResult({ name: feature.place_name, distance: dist });
+    setCustomDestQuery(feature.place_name.split(',')[0]);
+    setDestSuggestions([]);
   };
 
   // ── Build a unified gallery: prefer optimizedGallery, fall back to images[]
@@ -556,23 +571,38 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
 
             <div id="sidebar-map-section" />
 
-            {/* 8. Custom Distance Calculator */}
-            <div className="mt-8 pt-6 border-t border-slate-100 pb-4 px-1">
+            {/* 8. Custom Distance Calculator — live autocomplete */}
+            <div className="relative mt-8 pt-6 border-t border-slate-100 pb-4">
               <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
                 <MapPin className="w-4 h-4 mr-2 text-blue-600" /> Calculate Custom Distance
               </h3>
-              <input
-                type="text"
-                placeholder="Type any place & press Enter…"
-                value={customDestQuery}
-                onChange={e => setCustomDestQuery(e.target.value)}
-                onKeyDown={handleSearchDestination}
-                className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-slate-400"
-              />
-              {isSearchingDest && (
-                <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-widest animate-pulse">Calculating…</p>
-              )}
-              {customDestResult && !isSearchingDest && (
+              <div className="relative z-50">
+                <input
+                  type="text"
+                  placeholder="Search any location…"
+                  value={customDestQuery}
+                  onChange={e => fetchDestSuggestions(e.target.value)}
+                  className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 pr-10 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-slate-400"
+                />
+                {isSearchingDest && (
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin pointer-events-none" />
+                )}
+                {destSuggestions.length > 0 && (
+                  <div className="absolute top-full left-0 w-full mt-2 bg-white border border-slate-100 rounded-xl shadow-2xl overflow-hidden max-h-56 overflow-y-auto custom-scrollbar z-50">
+                    {destSuggestions.map((s: any) => (
+                      <button
+                        key={s.id}
+                        onClick={() => handleSelectDest(s)}
+                        className="w-full text-left px-4 py-3 hover:bg-blue-50 border-b border-slate-50 last:border-0 transition-colors"
+                      >
+                        <p className="text-xs font-bold text-slate-800 truncate">{s.text}</p>
+                        <p className="text-[10px] text-slate-400 truncate mt-0.5">{s.place_name}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {customDestResult && destSuggestions.length === 0 && (
                 <div className="mt-3 p-4 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-between shadow-sm">
                   <span className="text-xs font-bold text-slate-700 flex-1 pr-4 truncate" title={customDestResult.name}>
                     {customDestResult.name.split(',')[0]}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Project, Landmark } from '../types';
 import { X, MapPin } from 'lucide-react';
+import * as turf from '@turf/turf';
 
 interface PropertyResultsListProps {
     landmark: any;
@@ -49,28 +50,40 @@ const PropertyResultsList: React.FC<PropertyResultsListProps> = ({
 
             {/* Projects list */}
             <div className="overflow-y-auto max-h-[60vh] py-2">
-                {projects.map(project => (
-                    <button
-                        key={project.id}
-                        onClick={() => onSelectProject(project.id)}
-                        onMouseEnter={() => onHoverProject(project.id)}
-                        onMouseLeave={() => onHoverProject(null)}
-                        className="w-full text-left px-4 py-2.5 hover:bg-blue-50 flex items-center gap-3 transition-colors group border-b border-slate-50 last:border-0"
-                    >
-                        <div className="w-12 h-9 rounded-lg overflow-hidden bg-slate-100 shrink-0 shadow-sm">
-                            <img
-                                src={(project as any).thumbnailUrl || (project as any).image || ''}
-                                alt=""
-                                className="w-full h-full object-cover"
-                            />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <h4 className="text-xs font-bold text-slate-900 truncate leading-tight">{project.name}</h4>
-                            <p className="text-[10px] text-slate-500 truncate">{project.community}</p>
-                            <p className="text-[9px] font-black text-blue-500 uppercase tracking-wide truncate mt-0.5">{project.developerName}</p>
-                        </div>
-                    </button>
-                ))}
+                {projects.map(project => {
+                    const dist = turf.distance(
+                        [Number(landmark.longitude), Number(landmark.latitude)],
+                        [Number(project.longitude), Number(project.latitude)],
+                        { units: 'kilometers' }
+                    );
+                    return (
+                        <button
+                            key={project.id}
+                            onClick={() => onSelectProject(project.id)}
+                            onMouseEnter={() => onHoverProject(project.id)}
+                            onMouseLeave={() => onHoverProject(null)}
+                            className="w-full text-left px-4 py-2.5 hover:bg-blue-50 flex items-center gap-3 transition-colors group border-b border-slate-50 last:border-0"
+                        >
+                            <div className="w-12 h-9 rounded-lg overflow-hidden bg-slate-100 shrink-0 shadow-sm">
+                                <img
+                                    src={(project as any).thumbnailUrl || (project as any).image || ''}
+                                    alt=""
+                                    className="w-full h-full object-cover"
+                                />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <h4 className="text-xs font-bold text-slate-900 truncate leading-tight">{project.name}</h4>
+                                <p className="text-[10px] text-slate-500 truncate">{project.community}</p>
+                                <p className="text-[9px] font-black text-blue-500 uppercase tracking-wide truncate mt-0.5">{project.developerName}</p>
+                            </div>
+                            <div className="shrink-0 text-right pl-2">
+                                <span className="text-[10px] font-black text-amber-600 bg-amber-50 border border-amber-100 px-2 py-1 rounded-md shadow-sm">
+                                    {dist.toFixed(1)} km
+                                </span>
+                            </div>
+                        </button>
+                    );
+                })}
             </div>
         </div>
     );

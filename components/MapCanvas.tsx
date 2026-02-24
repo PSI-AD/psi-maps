@@ -326,6 +326,40 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                 <AmenityMarker key={amenity.id} amenity={amenity} onClick={() => onLandmarkClick(amenity)} onMouseEnter={() => setHoveredLandmarkId(amenity.id)} onMouseLeave={() => setHoveredLandmarkId(null)} />
             ))}
 
+            {/* Dashed amber line from selected landmark to highlighted project */}
+            {selectedLandmarkForSearch && selectedProject &&
+                !isNaN(Number(selectedLandmarkForSearch.longitude)) &&
+                !isNaN(Number(selectedLandmarkForSearch.latitude)) &&
+                !isNaN(Number(selectedProject.longitude)) &&
+                !isNaN(Number(selectedProject.latitude)) && (
+                    <Source
+                        id="distance-line"
+                        type="geojson"
+                        data={{
+                            type: 'Feature',
+                            properties: {},
+                            geometry: {
+                                type: 'LineString',
+                                coordinates: [
+                                    [Number(selectedLandmarkForSearch.longitude), Number(selectedLandmarkForSearch.latitude)],
+                                    [Number(selectedProject.longitude), Number(selectedProject.latitude)]
+                                ]
+                            }
+                        }}
+                    >
+                        <Layer
+                            id="distance-line-layer"
+                            type="line"
+                            paint={{
+                                'line-color': '#f59e0b',
+                                'line-width': 3,
+                                'line-dasharray': [2, 2],
+                                'line-opacity': 0.8
+                            }}
+                        />
+                    </Source>
+                )}
+
 
 
 
