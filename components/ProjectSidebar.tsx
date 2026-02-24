@@ -107,7 +107,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
         const res = await fetch(
           `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json` +
           `?access_token=${PUBLIC_MAPBOX_TOKEN}&proximity=${project.longitude},${project.latitude}` +
-          `&types=poi,address,neighborhood,locality,place&limit=5`
+          `&country=ae&types=poi,address,neighborhood,locality,place&limit=5`
         );
         const data = await res.json();
         setDestSuggestions(data.features || []);

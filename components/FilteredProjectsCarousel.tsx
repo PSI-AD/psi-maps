@@ -305,14 +305,21 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                         <span className="truncate">{project.community}{project.city ? `, ${project.city}` : ''}</span>
                     </div>
                     <div className="flex items-center gap-3 mt-2 pt-2 border-t border-slate-100">
-                        {(project as any).priceRange && (
-                            <div className="flex items-center gap-1">
-                                <Building className="w-3 h-3 text-blue-400" />
-                                <span className="text-[10px] font-black text-slate-700 truncate">
-                                    {(project as any).priceRange.toString().split('-')[0].trim()}
-                                </span>
-                            </div>
-                        )}
+                        {(() => {
+                            const raw = (project as any).priceRange?.toString().split('-')[0].trim().replace(/[^0-9.]/g, '');
+                            const num = Number(raw);
+                            const valid = raw && !isNaN(num) && num > 0;
+                            return valid ? (
+                                <div className="flex items-center gap-1">
+                                    <Building className="w-3 h-3 text-blue-400" />
+                                    <span className="text-[10px] font-black text-slate-700 truncate">
+                                        AED {num.toLocaleString()}
+                                    </span>
+                                </div>
+                            ) : (
+                                <span className="text-slate-400 text-[9px] font-bold uppercase tracking-wider">Price on Request</span>
+                            );
+                        })()}
                         {(project as any).bedrooms &&
                             String((project as any).bedrooms) !== 'N/A' &&
                             String((project as any).bedrooms) !== '0' && (

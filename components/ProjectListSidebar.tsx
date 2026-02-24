@@ -18,8 +18,8 @@ const ProjectListSidebar: React.FC<ProjectListSidebarProps> = ({ project, onClos
     return [
       project.thumbnailUrl,
       ...themes.map(theme => `https://images.unsplash.com/photo-${project.id === 'saad-1' ? '1600607687969-b6139b5f40bb' :
-          project.id === 'saad-2' ? '1512917774080-9991f1c4c750' :
-            '1613490493576-7fde63acd811'
+        project.id === 'saad-2' ? '1512917774080-9991f1c4c750' :
+          '1613490493576-7fde63acd811'
         }?auto=format&fit=crop&w=800&q=80&sig=${project.id}-${theme}`)
     ].slice(0, 5);
   }, [project]);
@@ -127,7 +127,11 @@ const ProjectListSidebar: React.FC<ProjectListSidebarProps> = ({ project, onClos
               </div>
               <div>
                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Starting Price</p>
-                <p className="text-xs font-black text-slate-800">{project.priceRange?.split('-')[0].trim() || 'POA'}</p>
+                <p className="text-xs font-black text-slate-800">{(() => {
+                  const raw = project.priceRange?.split('-')[0].trim().replace(/[^0-9.]/g, '');
+                  const num = Number(raw);
+                  return raw && !isNaN(num) && num > 0 ? `AED ${num.toLocaleString()}` : 'Price on Request';
+                })()}</p>
               </div>
             </div>
             <div className="flex items-start gap-2">

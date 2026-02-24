@@ -15,14 +15,14 @@ const ProjectBottomCard: React.FC<ProjectBottomCardProps> = ({ project, onViewDe
     <div className="fixed bottom-0 left-0 w-full md:bottom-6 md:left-auto md:right-6 md:w-[420px] z-[5000] animate-in slide-in-from-bottom-full duration-300">
       {/* Container - Reduced height on mobile to 30vh / max 220px */}
       <div className="bg-white md:rounded-2xl rounded-t-2xl shadow-[0_-8px_30px_rgba(0,0,0,0.12)] md:shadow-2xl border-t md:border border-slate-100 overflow-hidden flex flex-col h-[30vh] max-h-[220px] md:h-auto md:max-h-none">
-        
+
         {/* Swipe Handle Indicator (Mobile Only) */}
         <div className="flex justify-center pt-2 pb-1 md:hidden">
           <div className="w-8 h-1 bg-slate-200 rounded-full"></div>
         </div>
 
         {/* Close Button - More compact on mobile */}
-        <button 
+        <button
           onClick={onClose}
           className="absolute top-2 right-2 md:top-4 md:right-4 z-10 p-1.5 md:p-2 bg-slate-50/90 hover:bg-slate-100 text-slate-500 rounded-full transition-colors backdrop-blur-sm border border-slate-100"
         >
@@ -34,9 +34,9 @@ const ProjectBottomCard: React.FC<ProjectBottomCardProps> = ({ project, onViewDe
         <div className="flex flex-row flex-1 p-3 md:p-5 gap-3 md:gap-4 min-h-0">
           {/* Thumbnail - Small & Sleek on mobile */}
           <div className="w-20 h-20 md:w-32 md:h-32 shrink-0 overflow-hidden rounded-lg bg-slate-100">
-            <img 
-              src={project.thumbnailUrl} 
-              alt={project.name} 
+            <img
+              src={project.thumbnailUrl}
+              alt={project.name}
               className="w-full h-full object-cover transition-transform hover:scale-105 duration-500"
             />
           </div>
@@ -50,7 +50,7 @@ const ProjectBottomCard: React.FC<ProjectBottomCardProps> = ({ project, onViewDe
               <p className="text-[9px] font-bold text-blue-500 uppercase tracking-widest truncate">
                 {project.developerName}
               </p>
-              
+
               {/* Tight Icon Grid for Details */}
               <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1.5 md:gap-4">
                 {/* Price Item */}
@@ -59,7 +59,13 @@ const ProjectBottomCard: React.FC<ProjectBottomCardProps> = ({ project, onViewDe
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                   </svg>
                   <span className="text-[10px] md:text-xs font-black text-slate-800 truncate">
-                    {project.priceRange?.split('-')[0].trim()}
+                    {(() => {
+                      const raw = project.priceRange?.split('-')[0].trim().replace(/[^0-9.]/g, '');
+                      const num = Number(raw);
+                      return raw && !isNaN(num) && num > 0
+                        ? `AED ${num.toLocaleString()}`
+                        : <span className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Price on Request</span>;
+                    })()}
                   </span>
                 </div>
                 {/* Bed Item */}
@@ -94,13 +100,13 @@ const ProjectBottomCard: React.FC<ProjectBottomCardProps> = ({ project, onViewDe
 
             {/* Actions - Snug & Compact */}
             <div className="mt-auto flex items-center gap-2">
-              <button 
+              <button
                 onClick={onViewDetails}
                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black py-2 rounded-lg text-[9px] uppercase tracking-widest transition-all shadow-md shadow-blue-100 active:scale-95"
               >
                 AI Insights
               </button>
-              <button 
+              <button
                 className="px-3 py-2 border border-slate-900 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-900 hover:bg-slate-900 hover:text-white transition-all shrink-0 active:scale-95"
               >
                 Contact

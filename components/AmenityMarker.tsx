@@ -39,16 +39,24 @@ const AmenityMarker: React.FC<AmenityMarkerProps> = ({ amenity, isSelected = fal
         onMouseLeave={onMouseLeave}
         className={`group relative flex flex-col items-center cursor-pointer transition-all duration-300 ${isSelected ? 'z-[100] scale-110' : 'z-20'}`}
       >
-        {/* Solid pin circle */}
-        <div className={`w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-transform duration-200 ${config.bg} ${isSelected ? 'border-[3px] border-orange-500 ring-4 ring-orange-500/30' : 'border-2 border-white group-hover:scale-110'}`}>
+        {/* Detached highlight ring — sits behind pin, creates a clean visual gap via the bg-transparent gap between ring and circle */}
+        {isSelected && (
+          <div
+            className="absolute rounded-full border-[3px] border-orange-500 bg-orange-500/10 pointer-events-none"
+            style={{ width: '52px', height: '52px', top: '-6px', left: '50%', transform: 'translateX(-50%)' }}
+          />
+        )}
+
+        {/* Icon circle — always keeps white border for clean gap against the ring */}
+        <div className={`relative z-10 w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-transform ${config.bg} border-2 border-white ${!isSelected ? 'group-hover:scale-110' : ''}`}>
           {config.icon}
         </div>
 
         {/* Diamond tail */}
-        <div className={`w-2.5 h-2.5 -mt-1.5 rotate-45 ${config.bg} border-r-2 border-b-2 ${isSelected ? 'border-orange-500' : 'border-white'}`} />
+        <div className={`relative z-10 w-2.5 h-2.5 -mt-1.5 rotate-45 ${config.bg} border-r-2 border-b-2 border-white`} />
 
-        {/* Name label — white background, black text, coloured border */}
-        <div className={`mt-1 px-3 py-1 bg-white text-black text-[11px] font-black rounded-lg shadow-md whitespace-nowrap border-2 ${isSelected ? 'border-orange-500' : config.border} opacity-90 group-hover:opacity-100 transition-opacity max-w-[160px] truncate`}>
+        {/* Name label */}
+        <div className={`relative z-10 mt-1 px-3 py-1 bg-white text-black text-[11px] font-black rounded-lg shadow-md whitespace-nowrap border-2 transition-all max-w-[160px] truncate ${isSelected ? 'border-orange-500 scale-105' : `${config.border} opacity-90 group-hover:opacity-100`}`}>
           {amenity.name}
         </div>
       </div>
