@@ -24,7 +24,7 @@ const groupColour: Record<string, string> = {
     'Schools & Nurseries': 'text-emerald-700 bg-emerald-50 border-emerald-100',
     'Hospitals & Clinics': 'text-red-700 bg-red-50 border-red-100',
     'Malls & Retail': 'text-rose-700 bg-rose-50 border-rose-100',
-    'Hotels': 'text-blue-700 bg-blue-50 border-blue-100',
+    'Hotels': 'text-violet-700 bg-violet-50 border-violet-100',
     'Culture': 'text-purple-700 bg-purple-50 border-purple-100',
     'Leisure & Parks': 'text-teal-700 bg-teal-50 border-teal-100',
     'Airports': 'text-sky-700 bg-sky-50 border-sky-100',

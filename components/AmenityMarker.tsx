@@ -15,7 +15,7 @@ interface AmenityMarkerProps {
 
 const categoryConfig: Record<string, { bg: string; border: string; icon: React.ReactNode }> = {
   school: { bg: 'bg-emerald-600', border: 'border-emerald-600', icon: <GraduationCap className="w-5 h-5 text-white" /> },
-  hotel: { bg: 'bg-blue-600', border: 'border-blue-600', icon: <Hotel className="w-5 h-5 text-white" /> },
+  hotel: { bg: 'bg-violet-600', border: 'border-violet-600', icon: <Hotel className="w-5 h-5 text-white" /> },
   culture: { bg: 'bg-purple-600', border: 'border-purple-600', icon: <CultureIcon className="w-5 h-5 text-white" /> },
   leisure: { bg: 'bg-teal-600', border: 'border-teal-600', icon: <FerrisWheel className="w-5 h-5 text-white" /> },
   retail: { bg: 'bg-rose-600', border: 'border-rose-600', icon: <ShoppingBag className="w-5 h-5 text-white" /> },

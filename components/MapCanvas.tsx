@@ -504,7 +504,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                             latitude={latitude}
                         >
                             <div
-                                className="flex items-center justify-center w-11 h-11 bg-blue-600 hover:bg-blue-700 text-white font-black text-sm rounded-full border-[3px] border-white shadow-xl cursor-pointer hover:scale-110 transition-all ring-4 ring-blue-600/20"
+                                className="flex items-center justify-center w-11 h-11 bg-slate-800 hover:bg-slate-900 text-white font-black text-sm rounded-full border-[3px] border-white shadow-xl cursor-pointer hover:scale-110 transition-all ring-4 ring-slate-800/20"
                                 onClick={() => {
                                     if (!supercluster) return;
                                     const expansionZoom = Math.min(

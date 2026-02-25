@@ -33,7 +33,7 @@ const categoryStyle: Record<string, { bg: string; text: string; dot: string; lab
   hospital: { bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-500', label: 'Hospital' },
   retail: { bg: 'bg-rose-100', text: 'text-rose-700', dot: 'bg-rose-500', label: 'Retail' },
   culture: { bg: 'bg-purple-100', text: 'text-purple-700', dot: 'bg-purple-500', label: 'Culture' },
-  hotel: { bg: 'bg-blue-100', text: 'text-blue-700', dot: 'bg-blue-500', label: 'Hotel' },
+  hotel: { bg: 'bg-violet-100', text: 'text-violet-700', dot: 'bg-violet-500', label: 'Hotel' },
   leisure: { bg: 'bg-teal-100', text: 'text-teal-700', dot: 'bg-teal-500', label: 'Leisure' },
 };
 const defaultStyle = { bg: 'bg-slate-100', text: 'text-slate-700', dot: 'bg-slate-400', label: 'Landmark' };
