@@ -695,36 +695,77 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                       />
                     </div>
 
-                    {/* ── Banner Position D-Pad ─────────────────── */}
+                    {/* ── Banner Position D-Pads ────────────────── */}
                     <div className="pt-4 border-t border-slate-100">
-                      <p className="font-bold text-sm text-slate-800 mb-3">Banner Position (Desktop D-Pad)</p>
-                      <div className="flex items-center gap-6">
-                        <div className="grid grid-cols-3 gap-1 w-24">
-                          <div />
-                          <button
-                            onClick={() => { const c = (props as any).globalSettings?.bannerPosition || { top: 30, left: 12 }; setDoc(doc(db, 'settings', 'global'), { bannerPosition: { ...c, top: c.top - 2 } }, { merge: true }); }}
-                            className="bg-slate-100 hover:bg-blue-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
-                          >↑</button>
-                          <div />
-                          <button
-                            onClick={() => { const c = (props as any).globalSettings?.bannerPosition || { top: 30, left: 12 }; setDoc(doc(db, 'settings', 'global'), { bannerPosition: { ...c, left: c.left - 2 } }, { merge: true }); }}
-                            className="bg-slate-100 hover:bg-blue-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
-                          >←</button>
-                          <div className="bg-slate-50 rounded border border-slate-200" />
-                          <button
-                            onClick={() => { const c = (props as any).globalSettings?.bannerPosition || { top: 30, left: 12 }; setDoc(doc(db, 'settings', 'global'), { bannerPosition: { ...c, left: c.left + 2 } }, { merge: true }); }}
-                            className="bg-slate-100 hover:bg-blue-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
-                          >→</button>
-                          <div />
-                          <button
-                            onClick={() => { const c = (props as any).globalSettings?.bannerPosition || { top: 30, left: 12 }; setDoc(doc(db, 'settings', 'global'), { bannerPosition: { ...c, top: c.top + 2 } }, { merge: true }); }}
-                            className="bg-slate-100 hover:bg-blue-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
-                          >↓</button>
+                      <p className="font-bold text-sm text-slate-800 mb-4">Banner Position</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                        {/* Desktop D-Pad */}
+                        <div>
+                          <p className="text-xs font-black text-slate-500 uppercase tracking-widest mb-3">🖥 Desktop</p>
+                          <div className="flex items-center gap-4">
+                            <div className="grid grid-cols-3 gap-1 w-24">
+                              <div />
+                              <button
+                                onClick={() => { const c = (props as any).globalSettings?.bannerPosition || { top: 30, left: 12 }; setDoc(doc(db, 'settings', 'global'), { bannerPosition: { ...c, top: c.top - 2 } }, { merge: true }); }}
+                                className="bg-slate-100 hover:bg-blue-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
+                              >↑</button>
+                              <div />
+                              <button
+                                onClick={() => { const c = (props as any).globalSettings?.bannerPosition || { top: 30, left: 12 }; setDoc(doc(db, 'settings', 'global'), { bannerPosition: { ...c, left: c.left - 2 } }, { merge: true }); }}
+                                className="bg-slate-100 hover:bg-blue-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
+                              >←</button>
+                              <div className="bg-slate-50 rounded border border-slate-200" />
+                              <button
+                                onClick={() => { const c = (props as any).globalSettings?.bannerPosition || { top: 30, left: 12 }; setDoc(doc(db, 'settings', 'global'), { bannerPosition: { ...c, left: c.left + 2 } }, { merge: true }); }}
+                                className="bg-slate-100 hover:bg-blue-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
+                              >→</button>
+                              <div />
+                              <button
+                                onClick={() => { const c = (props as any).globalSettings?.bannerPosition || { top: 30, left: 12 }; setDoc(doc(db, 'settings', 'global'), { bannerPosition: { ...c, top: c.top + 2 } }, { merge: true }); }}
+                                className="bg-slate-100 hover:bg-blue-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
+                              >↓</button>
+                            </div>
+                            <p className="text-xs text-slate-500 font-mono leading-relaxed">
+                              T: {(props as any).globalSettings?.bannerPosition?.top ?? 30}%<br />
+                              L: {(props as any).globalSettings?.bannerPosition?.left ?? 12}%
+                            </p>
+                          </div>
                         </div>
-                        <p className="text-xs text-slate-500 font-mono leading-relaxed">
-                          T: {(props as any).globalSettings?.bannerPosition?.top ?? 30}%<br />
-                          L: {(props as any).globalSettings?.bannerPosition?.left ?? 12}%
-                        </p>
+
+                        {/* Mobile D-Pad */}
+                        <div>
+                          <p className="text-xs font-black text-slate-500 uppercase tracking-widest mb-3">📱 Mobile</p>
+                          <div className="flex items-center gap-4">
+                            <div className="grid grid-cols-3 gap-1 w-24">
+                              <div />
+                              <button
+                                onClick={() => { const c = (props as any).globalSettings?.bannerPositionMobile || { top: 15, left: 50 }; setDoc(doc(db, 'settings', 'global'), { bannerPositionMobile: { ...c, top: c.top - 2 } }, { merge: true }); }}
+                                className="bg-slate-100 hover:bg-purple-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
+                              >↑</button>
+                              <div />
+                              <button
+                                onClick={() => { const c = (props as any).globalSettings?.bannerPositionMobile || { top: 15, left: 50 }; setDoc(doc(db, 'settings', 'global'), { bannerPositionMobile: { ...c, left: c.left - 2 } }, { merge: true }); }}
+                                className="bg-slate-100 hover:bg-purple-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
+                              >←</button>
+                              <div className="bg-slate-50 rounded border border-slate-200" />
+                              <button
+                                onClick={() => { const c = (props as any).globalSettings?.bannerPositionMobile || { top: 15, left: 50 }; setDoc(doc(db, 'settings', 'global'), { bannerPositionMobile: { ...c, left: c.left + 2 } }, { merge: true }); }}
+                                className="bg-slate-100 hover:bg-purple-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
+                              >→</button>
+                              <div />
+                              <button
+                                onClick={() => { const c = (props as any).globalSettings?.bannerPositionMobile || { top: 15, left: 50 }; setDoc(doc(db, 'settings', 'global'), { bannerPositionMobile: { ...c, top: c.top + 2 } }, { merge: true }); }}
+                                className="bg-slate-100 hover:bg-purple-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
+                              >↓</button>
+                            </div>
+                            <p className="text-xs text-slate-500 font-mono leading-relaxed">
+                              T: {(props as any).globalSettings?.bannerPositionMobile?.top ?? 15}%<br />
+                              L: {(props as any).globalSettings?.bannerPositionMobile?.left ?? 50}%
+                            </p>
+                          </div>
+                        </div>
+
                       </div>
                     </div>
 

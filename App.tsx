@@ -91,7 +91,7 @@ const AppInner: React.FC = () => {
   });
 
   // Banner appearance settings synced from Firestore (duration in seconds, position in %)
-  const [bannerSettings, setBannerSettings] = useState({ duration: 5, position: { top: 30, left: 12 } });
+  const [bannerSettings, setBannerSettings] = useState({ duration: 5, position: { top: 30, left: 12 }, positionMobile: { top: 15, left: 50 } });
 
   // Landmark 3D info modal state
   const [infoLandmark, setInfoLandmark] = useState<Landmark | null>(null);
@@ -110,6 +110,7 @@ const AppInner: React.FC = () => {
         setCameraDuration(data.cameraDuration ?? 2000);
         if (data.bannerDuration !== undefined) setBannerSettings(prev => ({ ...prev, duration: data.bannerDuration }));
         if (data.bannerPosition !== undefined) setBannerSettings(prev => ({ ...prev, position: data.bannerPosition }));
+        if (data.bannerPositionMobile !== undefined) setBannerSettings(prev => ({ ...prev, positionMobile: data.bannerPositionMobile }));
       }
     });
     return () => unsub();
@@ -431,7 +432,8 @@ const AppInner: React.FC = () => {
       enableIsochrone={enableIsochrone} setEnableIsochrone={setEnableIsochrone}
       enableLasso={enableLasso} setEnableLasso={setEnableLasso}
     >
-      <WelcomeBanner show={showWelcomeBanner} isAppLoading={isRefreshing} duration={bannerSettings.duration} position={bannerSettings.position} />
+      <WelcomeBanner show={showWelcomeBanner} isAppLoading={isRefreshing} duration={bannerSettings.duration} position={bannerSettings.position} positionMobile={bannerSettings.positionMobile} />
+
       <ErrorBoundary>
         <MapCanvas
           mapRef={mapRef} viewState={viewState} setViewState={setViewState} updateBounds={updateBounds} mapStyle={mapStyle} onClick={handleMapClick}

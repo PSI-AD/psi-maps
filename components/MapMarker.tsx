@@ -46,15 +46,11 @@ const MapMarker: React.FC<MapMarkerProps> = ({
     >
       <div
         onClick={handleClick}
-        onTouchEnd={(e) => {
-          e.stopPropagation();
-          e.preventDefault();
-          handleClick(e);
-        }}
+        onTouchStart={(e) => { e.stopPropagation(); }}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
         className={`
-          relative flex flex-col items-center cursor-pointer touch-action-manipulation transition-all duration-500
+          relative flex flex-col items-center cursor-pointer pointer-events-auto touch-action-manipulation transition-all duration-500
           ${isDimmed ? 'opacity-40 scale-95' : 'opacity-100 scale-100'}
           ${selected ? 'z-[100] scale-125' : 'z-10'}
         `}

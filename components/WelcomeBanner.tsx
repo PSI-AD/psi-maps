@@ -7,6 +7,8 @@ interface WelcomeBannerProps {
     duration?: number;
     /** Desktop position in % from top-left viewport (default { top:30, left:12 }) */
     position?: { top: number; left: number };
+    /** Mobile position in % (default centred: { top:15, left:50 }) */
+    positionMobile?: { top: number; left: number };
 }
 
 const WelcomeBanner: React.FC<WelcomeBannerProps> = ({
@@ -14,6 +16,7 @@ const WelcomeBanner: React.FC<WelcomeBannerProps> = ({
     isAppLoading = false,
     duration = 5,
     position = { top: 30, left: 12 },
+    positionMobile = { top: 15, left: 50 },
 }) => {
     const [isFading, setIsFading] = useState(false);
     const [isHidden, setIsHidden] = useState(!show);
@@ -36,15 +39,14 @@ const WelcomeBanner: React.FC<WelcomeBannerProps> = ({
 
     if (isHidden) return null;
 
-    // On mobile: centred overlay. On desktop: use admin-controlled position.
+    // Resolve position based on viewport width at render time
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-    const positionStyle: React.CSSProperties = isMobile
-        ? { top: '10%', left: '50%', transform: 'translate(-50%, -50%)' }
-        : {
-            top: `${position.top}%`,
-            left: `${position.left}%`,
-            transform: 'translate(0, -50%)',
-        };
+    const currentPos = isMobile ? positionMobile : position;
+    const positionStyle: React.CSSProperties = {
+        top: `${currentPos.top}%`,
+        left: `${currentPos.left}%`,
+        transform: isMobile ? 'translate(-50%, -50%)' : 'translate(0, -50%)',
+    };
 
     return (
         <div className={`fixed inset-0 z-[1500] pointer-events-none transition-opacity duration-1000 ease-in-out ${isFading ? 'opacity-0' : 'opacity-100'}`}>
