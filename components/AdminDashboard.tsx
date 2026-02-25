@@ -5,7 +5,7 @@ import { db } from '../utils/firebase';
 import { doc, setDoc, addDoc, collection, deleteDoc, writeBatch, updateDoc } from 'firebase/firestore';
 import { generateCleanId } from '../utils/helpers';
 import { fetchAndSaveBoundary } from '../utils/boundaryService';
-import { Database, RefreshCw, Plus, Edit2, Trash2, MapPin, Search, Eye, EyeOff, ImageIcon, Zap, Check, Sliders } from 'lucide-react';
+import { Database, RefreshCw, Plus, Edit2, Trash2, MapPin, Search, Eye, EyeOff, ImageIcon, Zap, Check, Sliders, MonitorPlay } from 'lucide-react';
 import { optimizeAndUploadImage } from '../utils/imageOptimizer';
 import Map, { Marker, NavigationControl } from 'react-map-gl';
 import PresentationManager from './PresentationManager';
@@ -370,12 +370,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
               <p className="text-slate-500 font-medium">Internal Property Moderation & Spatial CMS</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-3 bg-white hover:bg-slate-100 text-slate-400 hover:text-slate-900 rounded-full border border-slate-200 shadow-sm transition-all"
-          >
-            <X className="w-6 h-6" />
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => window.open('/presentation', '_blank')}
+              className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-xl font-bold text-sm shadow-md flex items-center gap-2 transition-all"
+            >
+              <MonitorPlay className="w-4 h-4" /> Management Deck
+            </button>
+            <button
+              onClick={onClose}
+              className="p-3 bg-white hover:bg-slate-100 text-slate-400 hover:text-slate-900 rounded-full border border-slate-200 shadow-sm transition-all"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
         </div>
 
         <div className="w-full max-w-7xl">

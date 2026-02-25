@@ -12,6 +12,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { Project, Landmark, ClientPresentation } from './types';
 import WelcomeBanner from './components/WelcomeBanner';
 import PropertyResultsList from './components/PropertyResultsList';
+import PresentationShowcase from './components/PresentationShowcase';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -26,6 +27,11 @@ const PUBLIC_MAPBOX_TOKEN = getMapboxToken();
 (mapboxgl as any).accessToken = PUBLIC_MAPBOX_TOKEN;
 
 const App: React.FC = () => {
+  // ── Presentation route bypass — renders before any hooks or Firebase init ──
+  if (typeof window !== 'undefined' && window.location.pathname === '/presentation') {
+    return <PresentationShowcase />;
+  }
+
   const {
     liveProjects, setLiveProjects, liveLandmarks, setLiveLandmarks, isRefreshing, loadInitialData, filteredProjects,
     filteredAmenities, activeAmenities, handleToggleAmenity, filterPolygon, setFilterPolygon,
