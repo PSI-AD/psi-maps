@@ -12,6 +12,7 @@
     "@google/genai": "^1.41.0",
     "@google/model-viewer": "^4.1.0",
     "@mapbox/mapbox-gl-draw": "1.4.3",
+    "@react-pdf/renderer": "^4.3.2",
     "@turf/turf": "7.1.0",
     "axios": "^1.13.5",
     "firebase": "^12.9.0",

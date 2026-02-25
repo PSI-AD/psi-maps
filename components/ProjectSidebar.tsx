@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { Project, Landmark } from '../types';
-import { X, MapPin, BedDouble, Bath, Square as SquareIcon, Calendar, ArrowRight, Activity, Building, LayoutTemplate, Car, Footprints, Clock, MessageSquare, Compass, ChevronLeft, ChevronRight, Play, Pause, Square, StopCircle } from 'lucide-react';
+import { X, MapPin, BedDouble, Bath, Square as SquareIcon, Calendar, ArrowRight, Activity, Building, LayoutTemplate, Car, Footprints, Clock, MessageSquare, Compass, ChevronLeft, ChevronRight, Play, Pause, Square, StopCircle, Share2, Heart, GitCompare, Loader2 } from 'lucide-react';
 import { calculateDistance } from '../utils/geo';
 import TextModal from './TextModal';
 import InquireModal from './InquireModal';
+import { pdf } from '@react-pdf/renderer';
+import ProjectPdfDocument from './pdf/ProjectPdfDocument';
+import { getRelatedProjects } from '../utils/projectHelpers';
 
 const PUBLIC_MAPBOX_TOKEN = typeof window !== 'undefined'
   ? atob('cGsuZXlKMUlqb2ljSE5wYm5ZaUxDSmhJam9pWTIxc2NqQnpNMjF4TURacU56Tm1jMlZtZEd0NU1XMDVaQ0o5LlZ4SUVuMWpMVHpNd0xBTjhtNEIxNWc=')
@@ -12,6 +15,7 @@ const PUBLIC_MAPBOX_TOKEN = typeof window !== 'undefined'
 
 interface ProjectSidebarProps {
   project: Project | null;
+  allProjects: Project[];
   onClose: () => void;
   onDiscoverNeighborhood: (lat: number, lng: number) => Promise<void>;
   onQuickFilter?: (type: 'community' | 'developer', value: string) => void;
@@ -112,6 +116,7 @@ const AnimatedMetricPill = ({ distance, driveTime, walkTime }: { distance: numbe
 
 const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   project,
+  allProjects,
   onClose,
   onDiscoverNeighborhood,
   onQuickFilter,
@@ -139,6 +144,53 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   const [isFetchingRoute, setIsFetchingRoute] = useState(false);
   const [destSuggestions, setDestSuggestions] = useState<any[]>([]);
   const destSearchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
+  // ── PDF export handler ──────────────────────────────────────────────────
+  const handleExportPdf = async () => {
+    if (!project) return;
+    setIsGeneratingPdf(true);
+    try {
+      // 1. Capture map snapshot (requires preserveDrawingBuffer: true on the Map)
+      let snapshotUrl = '';
+      try {
+        const mapCanvas = mapRef?.current?.getMap?.()?.getCanvas?.();
+        if (mapCanvas) snapshotUrl = mapCanvas.toDataURL('image/jpeg', 0.85);
+      } catch (e) {
+        console.warn('Map snapshot unavailable:', e);
+      }
+
+      // 2. Gather related projects
+      const related = getRelatedProjects(project, allProjects);
+
+      // 3. Generate PDF blob
+      const blob = await pdf(
+        <ProjectPdfDocument
+          project={project}
+          mapSnapshotUrl={snapshotUrl}
+          nearbys={nearbyLandmarks}
+          related={related as any}
+          communityBrief={`${project.community || 'This community'} is a vibrant, master-planned hub featuring a mix of residential, retail, and leisure spaces designed for modern living.`}
+          developerBrief={`${project.developerName} has established a reputation for excellence, innovation, and timely delivery of iconic developments throughout the UAE.`}
+        />
+      ).toBlob();
+
+      // 4. Trigger download
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${project.name.replace(/\s+/g, '_')}_Brochure.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+      alert('Failed to generate brochure. Please try again.');
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
 
   // ── Neighborhood Tour state ──────────────────────────────────────────────
   const [showNeighborhoodList, setShowNeighborhoodList] = useState(false);
@@ -600,14 +652,43 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
             </button>
           )}
 
-          {/* Close button */}
-          <button
-            onClick={onClose}
-            aria-label="Close property details"
-            className="absolute top-4 right-4 bg-black/40 hover:bg-black/70 backdrop-blur-md text-white p-2 rounded-full transition-all border border-white/20 z-10"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          {/* Header action bar: Compare · Favourite · Export PDF · Close */}
+          <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
+            <button
+              className="p-2 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md text-white border border-white/20 transition-all"
+              title="Add to Comparison"
+              aria-label="Add to comparison"
+            >
+              <GitCompare className="w-4 h-4" />
+            </button>
+            <button
+              className="p-2 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md text-white border border-white/20 transition-all"
+              title="Add to Favourites"
+              aria-label="Add to favourites"
+            >
+              <Heart className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleExportPdf}
+              disabled={isGeneratingPdf}
+              aria-label="Export PDF brochure"
+              title="Export Brochure PDF"
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-full backdrop-blur-md border border-white/20 transition-all text-white text-xs font-bold ${isGeneratingPdf ? 'bg-blue-600/80 cursor-wait' : 'bg-blue-600/80 hover:bg-blue-600'}`}
+            >
+              {isGeneratingPdf ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /><span>Generating…</span></>
+              ) : (
+                <><Share2 className="w-4 h-4" /><span className="hidden sm:inline">Export PDF</span></>
+              )}
+            </button>
+            <button
+              onClick={onClose}
+              aria-label="Close property details"
+              className="p-2 rounded-full bg-black/40 hover:bg-black/70 backdrop-blur-md text-white border border-white/20 transition-all"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
 
           {/* Prev / Next arrows — visible on hover */}
           {hasMultipleImages && (

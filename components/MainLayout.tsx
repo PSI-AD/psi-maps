@@ -225,6 +225,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
           }>
             <ProjectSidebar
               project={selectedProject}
+              allProjects={liveProjects}
               onClose={() => {
                 setIsAnalysisOpen(false);
                 onCloseProject();
