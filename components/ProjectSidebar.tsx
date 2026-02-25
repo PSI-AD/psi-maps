@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { Project, Landmark } from '../types';
-import { X, MapPin, BedDouble, Bath, Square as SquareIcon, Calendar, ArrowRight, Activity, Building, LayoutTemplate, Car, Footprints, Clock, MessageSquare, Compass, ChevronLeft, ChevronRight, Play, Pause, Square, StopCircle, Share2, Heart, GitCompare, Loader2 } from 'lucide-react';
+import { X, MapPin, BedDouble, Bath, Square as SquareIcon, Calendar, ArrowRight, Activity, Building, LayoutTemplate, Car, Footprints, Clock, MessageSquare, Compass, ChevronLeft, ChevronRight, Play, Pause, Square, StopCircle, Share2, Heart, GitCompare, Loader2, Flag, Download } from 'lucide-react';
 import { calculateDistance } from '../utils/geo';
 import TextModal from './TextModal';
 import InquireModal from './InquireModal';
+import ReportModal from './ReportModal';
 import { pdf } from '@react-pdf/renderer';
 import ProjectPdfDocument from './pdf/ProjectPdfDocument';
 import { getRelatedProjects } from '../utils/projectHelpers';
@@ -145,6 +146,41 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   const [destSuggestions, setDestSuggestions] = useState<any[]>([]);
   const destSearchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+
+  // ── localStorage Save helper (Favorites & Compare) ─────────────────────
+  const handleSaveLocal = (type: 'favorite' | 'compare') => {
+    if (!project) return;
+    const key = type === 'favorite' ? 'psi_favorites' : 'psi_compare';
+    const label = type === 'favorite' ? 'Favorites' : 'Comparison List';
+    const existing: string[] = JSON.parse(localStorage.getItem(key) || '[]');
+    if (!existing.includes(project.id)) {
+      localStorage.setItem(key, JSON.stringify([...existing, project.id]));
+      alert(`Added to ${label}!`);
+    } else {
+      alert(`Already in ${label}.`);
+    }
+  };
+
+  // ── Native Web Share (with clipboard fallback) ──────────────────────
+  const handleNativeShare = async () => {
+    if (!project) return;
+    const text = `Check out ${project.name} by ${project.developerName} in ${project.community || project.city || 'UAE'}.`;
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ title: project.name, text, url: window.location.href });
+      } catch (err) {
+        console.log('Share cancelled or failed:', err);
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        alert('Link copied to clipboard!');
+      } catch {
+        alert('Unable to copy — please copy the URL manually.');
+      }
+    }
+  };
 
   // ── PDF export handler ──────────────────────────────────────────────────
   const handleExportPdf = async () => {
@@ -652,41 +688,52 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
             </button>
           )}
 
-          {/* Header action bar: Compare · Favourite · Export PDF · Close */}
-          <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
+          {/* Header action bar: Compare · Favourite · Flag · Share · PDF · Close */}
+          <div className="absolute top-3 right-3 flex items-center gap-1 z-10">
             <button
+              onClick={() => handleSaveLocal('compare')}
               className="p-2 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md text-white border border-white/20 transition-all"
-              title="Add to Comparison"
-              aria-label="Add to comparison"
+              title="Add to Comparison" aria-label="Add to comparison"
             >
               <GitCompare className="w-4 h-4" />
             </button>
             <button
-              className="p-2 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md text-white border border-white/20 transition-all"
-              title="Add to Favourites"
-              aria-label="Add to favourites"
+              onClick={() => handleSaveLocal('favorite')}
+              className="p-2 rounded-full bg-black/40 hover:bg-rose-600/80 backdrop-blur-md text-white border border-white/20 transition-all"
+              title="Add to Favourites" aria-label="Add to favourites"
             >
               <Heart className="w-4 h-4" />
             </button>
             <button
+              onClick={() => setIsReportModalOpen(true)}
+              className="p-2 rounded-full bg-black/40 hover:bg-orange-600/80 backdrop-blur-md text-white border border-white/20 transition-all"
+              title="Report Issue" aria-label="Report an issue with this listing"
+            >
+              <Flag className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleNativeShare}
+              className="p-2 rounded-full bg-black/40 hover:bg-indigo-600/80 backdrop-blur-md text-white border border-white/20 transition-all"
+              title="Share Project" aria-label="Share this project"
+            >
+              <Share2 className="w-4 h-4" />
+            </button>
+            <button
               onClick={handleExportPdf}
               disabled={isGeneratingPdf}
-              aria-label="Export PDF brochure"
-              title="Export Brochure PDF"
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-full backdrop-blur-md border border-white/20 transition-all text-white text-xs font-bold ${isGeneratingPdf ? 'bg-blue-600/80 cursor-wait' : 'bg-blue-600/80 hover:bg-blue-600'}`}
+              aria-label="Download PDF brochure"
+              title="Download Brochure PDF"
+              className={`p-2 rounded-full backdrop-blur-md border border-white/20 transition-all text-white ${isGeneratingPdf ? 'bg-blue-600/80 cursor-wait' : 'bg-blue-600/80 hover:bg-blue-700/90'}`}
             >
-              {isGeneratingPdf ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /><span>Generating…</span></>
-              ) : (
-                <><Share2 className="w-4 h-4" /><span className="hidden sm:inline">Export PDF</span></>
-              )}
+              {isGeneratingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
             </button>
+            <div className="w-px h-4 bg-white/20 mx-0.5" />
             <button
               onClick={onClose}
               aria-label="Close property details"
               className="p-2 rounded-full bg-black/40 hover:bg-black/70 backdrop-blur-md text-white border border-white/20 transition-all"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
 
@@ -1081,6 +1128,9 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
       {isTextModalOpen && (<TextModal text={rawDescription} onClose={() => setIsTextModalOpen(false)} />)}
       {isInquireModalOpen && (
         <InquireModal projectName={project.name} onClose={() => setIsInquireModalOpen(false)} />
+      )}
+      {isReportModalOpen && project && (
+        <ReportModal project={project} onClose={() => setIsReportModalOpen(false)} />
       )}
     </>
   );

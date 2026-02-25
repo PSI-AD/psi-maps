@@ -6,22 +6,11 @@ import {
     View,
     Image,
     StyleSheet,
-    Font,
 } from '@react-pdf/renderer';
 import { Project, Landmark } from '../../types';
 import { formatParagraphs } from '../../utils/projectHelpers';
 
-// Register a clean sans-serif font stack via CDN
-Font.register({
-    family: 'Inter',
-    fonts: [
-        { src: 'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiA.woff2' },
-        {
-            src: 'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuI6fAZ9hiA.woff2',
-            fontWeight: 'bold',
-        },
-    ],
-});
+
 
 const BRAND_BLUE = '#2563eb';
 const DARK = '#1e293b';
@@ -30,7 +19,7 @@ const LIGHT = '#94a3b8';
 const BG_SOFT = '#f8fafc';
 
 const styles = StyleSheet.create({
-    page: { fontFamily: 'Inter', backgroundColor: '#ffffff', padding: 0 },
+    page: { backgroundColor: '#ffffff', padding: 0 },
 
     /* ── Cover page ─────────────────────────────── */
     coverImage: { width: '100%', height: '58%', objectFit: 'cover' },
