@@ -790,8 +790,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                           <td className="px-8 py-5 text-sm text-slate-500 font-medium">{p.developerName}</td>
                           <td className="px-8 py-5 text-sm text-slate-400 font-medium font-mono">{formatCompletionDate(p.completionDate)}</td>
                           <td className="px-8 py-5 text-right">
-                            <button onClick={() => setStagedProject(p)} className="text-blue-600 hover:text-blue-800 text-[10px] font-black uppercase tracking-widest border border-blue-200 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-all">Edit Asset</button>
-                            <button onClick={async () => { if (window.confirm('Delete this project?')) await deleteDoc(doc(db, 'projects', p.id)); }} className="text-rose-500 hover:bg-rose-50 border border-rose-100 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ml-2">Delete</button>
+                            <div className="flex items-center justify-end gap-1">
+                              <button onClick={() => setStagedProject(p)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="Edit Project">
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button onClick={async () => { if (window.confirm('Delete project?')) await deleteDoc(doc(db, 'projects', p.id)); }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-all" title="Delete Project">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
