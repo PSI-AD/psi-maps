@@ -7,7 +7,7 @@ import InquireModal from './InquireModal';
 import ReportModal from './ReportModal';
 import { pdf } from '@react-pdf/renderer';
 import ProjectPdfDocument from './pdf/ProjectPdfDocument';
-import { getRelatedProjects } from '../utils/projectHelpers';
+import { getRelatedProjects, getClosestCategorizedAmenities } from '../utils/projectHelpers';
 
 const PUBLIC_MAPBOX_TOKEN = typeof window !== 'undefined'
   ? atob('cGsuZXlKMUlqb2ljSE5wYm5ZaUxDSmhJam9pWTIxc2NqQnpNMjF4TURacU56Tm1jMlZtZEd0NU1XMDVaQ0o5LlZ4SUVuMWpMVHpNd0xBTjhtNEIxNWc=')
@@ -196,18 +196,17 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
         console.warn('Map snapshot unavailable:', e);
       }
 
-      // 2. Gather related projects
+      // 2. Gather data
       const related = getRelatedProjects(project, allProjects);
+      const categorizedAmenities = getClosestCategorizedAmenities(project, nearbyLandmarks);
 
       // 3. Generate PDF blob
       const blob = await pdf(
         <ProjectPdfDocument
           project={project}
           mapSnapshotUrl={snapshotUrl}
-          nearbys={nearbyLandmarks}
+          categorizedAmenities={categorizedAmenities as any}
           related={related as any}
-          communityBrief={`${project.community || 'This community'} is a vibrant, master-planned hub featuring a mix of residential, retail, and leisure spaces designed for modern living.`}
-          developerBrief={`${project.developerName} has established a reputation for excellence, innovation, and timely delivery of iconic developments throughout the UAE.`}
         />
       ).toBlob();
 
