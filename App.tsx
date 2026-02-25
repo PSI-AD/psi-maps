@@ -12,6 +12,8 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { Project, Landmark, ClientPresentation } from './types';
 import WelcomeBanner from './components/WelcomeBanner';
 import PropertyResultsList from './components/PropertyResultsList';
+import PresentationShowcase from './components/PresentationShowcase';
+import LandmarkInfoModal from './components/LandmarkInfoModal';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -25,7 +27,8 @@ const getMapboxToken = () => {
 const PUBLIC_MAPBOX_TOKEN = getMapboxToken();
 (mapboxgl as any).accessToken = PUBLIC_MAPBOX_TOKEN;
 
-const App: React.FC = () => {
+const AppInner: React.FC = () => {
+
   const {
     liveProjects, setLiveProjects, liveLandmarks, setLiveLandmarks, isRefreshing, loadInitialData, filteredProjects,
     filteredAmenities, activeAmenities, handleToggleAmenity, filterPolygon, setFilterPolygon,
@@ -87,20 +90,28 @@ const App: React.FC = () => {
     return saved !== null ? saved === 'true' : true;
   });
 
+  // Banner appearance settings synced from Firestore (duration in seconds, position in %)
+  const [bannerSettings, setBannerSettings] = useState({ duration: 5, position: { top: 30, left: 12 }, positionMobile: { top: 15, left: 50 }, mobileFooterTheme: 'glass' });
+
+  // Landmark 3D info modal state
+  const [infoLandmark, setInfoLandmark] = useState<Landmark | null>(null);
+
   const setShowWelcomeBanner = (newValue: boolean) => {
     _setShowWelcomeBanner(newValue);
     localStorage.setItem('psi_banner_enabled', String(newValue));
   };
 
-  // Real-time listener: settings/global.showWelcomeBanner
+  // Real-time listener: settings/global
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'settings', 'global'), (snap) => {
       if (snap.exists()) {
         const data = snap.data();
-        if (data.showWelcomeBanner !== undefined) {
-          setShowWelcomeBanner(data.showWelcomeBanner);
-        }
+        if (data.showWelcomeBanner !== undefined) setShowWelcomeBanner(data.showWelcomeBanner);
         setCameraDuration(data.cameraDuration ?? 2000);
+        if (data.bannerDuration !== undefined) setBannerSettings(prev => ({ ...prev, duration: data.bannerDuration }));
+        if (data.bannerPosition !== undefined) setBannerSettings(prev => ({ ...prev, position: data.bannerPosition }));
+        if (data.bannerPositionMobile !== undefined) setBannerSettings(prev => ({ ...prev, positionMobile: data.bannerPositionMobile }));
+        if (data.mobileFooterTheme !== undefined) setBannerSettings(prev => ({ ...prev, mobileFooterTheme: data.mobileFooterTheme }));
       }
     });
     return () => unsub();
@@ -297,12 +308,17 @@ const App: React.FC = () => {
   };
 
   const handleLandmarkClick = (l: any) => {
+    // Fly gently — don't deselect the active project or close the sidebar
     setSelectedLandmarkId(l.id);
-    setSelectedProjectId(null);
     setSelectedLandmarkForSearch(l as Landmark);
     if (l.latitude && l.longitude && !isNaN(l.latitude) && !isNaN(l.longitude)) {
-      handleFlyTo(l.longitude, l.latitude, 14);
+      handleFlyTo(l.longitude, l.latitude, 15);
     }
+  };
+
+  // Separate handler for the ⓘ badge — only opens modal, never moves the map
+  const handleLandmarkInfoClick = (l: Landmark) => {
+    setInfoLandmark(l);
   };
 
   const handleMapClick = (e: any) => {
@@ -416,8 +432,10 @@ const App: React.FC = () => {
       enableSunlight={enableSunlight} setEnableSunlight={setEnableSunlight}
       enableIsochrone={enableIsochrone} setEnableIsochrone={setEnableIsochrone}
       enableLasso={enableLasso} setEnableLasso={setEnableLasso}
+      mobileFooterTheme={bannerSettings.mobileFooterTheme}
     >
-      <WelcomeBanner show={showWelcomeBanner} isAppLoading={isRefreshing} />
+      <WelcomeBanner show={showWelcomeBanner} isAppLoading={isRefreshing} duration={bannerSettings.duration} position={bannerSettings.position} positionMobile={bannerSettings.positionMobile} />
+
       <ErrorBoundary>
         <MapCanvas
           mapRef={mapRef} viewState={viewState} setViewState={setViewState} updateBounds={updateBounds} mapStyle={mapStyle} onClick={handleMapClick}
@@ -438,6 +456,7 @@ const App: React.FC = () => {
           isLassoMode={isLassoMode}
           drawnCoordinates={drawnCoordinates}
           setDrawnCoordinates={setDrawnCoordinates}
+          onLandmarkInfo={handleLandmarkInfoClick}
         />
       </ErrorBoundary>
       {/* Reverse Search: floating nearby projects panel */}
@@ -450,7 +469,24 @@ const App: React.FC = () => {
           onSelectProject={handleFocusProjectFromReverseSearch}
         />
       )}
+      {/* Landmark 3D Info Modal */}
+      {infoLandmark && (
+        <LandmarkInfoModal
+          landmark={infoLandmark}
+          onClose={() => setInfoLandmark(null)}
+        />
+      )}
     </MainLayout>
   );
 };
+
+// ── Outer router — checks pathname BEFORE any hooks fire ─────────────────────
+// PresentationShowcase self-loads its Firestore data, so no props needed here.
+const App: React.FC = () => {
+  if (typeof window !== 'undefined' && window.location.pathname === '/presentation') {
+    return <PresentationShowcase />;
+  }
+  return <AppInner />;
+};
+
 export default App;

@@ -1,9 +1,13 @@
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { Project, Landmark } from '../types';
-import { X, MapPin, BedDouble, Bath, Square as SquareIcon, Calendar, ArrowRight, Activity, Building, LayoutTemplate, Car, Footprints, Clock, MessageSquare, Compass, ChevronLeft, ChevronRight, Play, Pause, Square, StopCircle } from 'lucide-react';
+import { X, MapPin, BedDouble, Bath, Square as SquareIcon, Calendar, ArrowRight, Activity, Building, LayoutTemplate, Car, Footprints, Clock, MessageSquare, Compass, ChevronLeft, ChevronRight, Play, Pause, Square, StopCircle, Share2, Heart, GitCompare, Loader2, Flag, Download } from 'lucide-react';
 import { calculateDistance } from '../utils/geo';
 import TextModal from './TextModal';
 import InquireModal from './InquireModal';
+import ReportModal from './ReportModal';
+import { pdf } from '@react-pdf/renderer';
+import ProjectPdfDocument from './pdf/ProjectPdfDocument';
+import { getRelatedProjects, getClosestCategorizedAmenities } from '../utils/projectHelpers';
 
 const PUBLIC_MAPBOX_TOKEN = typeof window !== 'undefined'
   ? atob('cGsuZXlKMUlqb2ljSE5wYm5ZaUxDSmhJam9pWTIxc2NqQnpNMjF4TURacU56Tm1jMlZtZEd0NU1XMDVaQ0o5LlZ4SUVuMWpMVHpNd0xBTjhtNEIxNWc=')
@@ -12,6 +16,7 @@ const PUBLIC_MAPBOX_TOKEN = typeof window !== 'undefined'
 
 interface ProjectSidebarProps {
   project: Project | null;
+  allProjects: Project[];
   onClose: () => void;
   onDiscoverNeighborhood: (lat: number, lng: number) => Promise<void>;
   onQuickFilter?: (type: 'community' | 'developer', value: string) => void;
@@ -33,7 +38,7 @@ const categoryStyle: Record<string, { bg: string; text: string; dot: string; lab
   hospital: { bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-500', label: 'Hospital' },
   retail: { bg: 'bg-rose-100', text: 'text-rose-700', dot: 'bg-rose-500', label: 'Retail' },
   culture: { bg: 'bg-purple-100', text: 'text-purple-700', dot: 'bg-purple-500', label: 'Culture' },
-  hotel: { bg: 'bg-blue-100', text: 'text-blue-700', dot: 'bg-blue-500', label: 'Hotel' },
+  hotel: { bg: 'bg-violet-100', text: 'text-violet-700', dot: 'bg-violet-500', label: 'Hotel' },
   leisure: { bg: 'bg-teal-100', text: 'text-teal-700', dot: 'bg-teal-500', label: 'Leisure' },
 };
 const defaultStyle = { bg: 'bg-slate-100', text: 'text-slate-700', dot: 'bg-slate-400', label: 'Landmark' };
@@ -63,10 +68,10 @@ const AnimatedMetricPill = ({ distance, driveTime, walkTime }: { distance: numbe
   const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
-    if (isHovered) return; // Pause auto-rotation on hover
+    if (isHovered) return;
     const interval = setInterval(() => {
       setActiveIndex((prev) => (prev + 1) % 3);
-    }, 4000);
+    }, 6000);
     return () => clearInterval(interval);
   }, [isHovered]);
 
@@ -81,28 +86,38 @@ const AnimatedMetricPill = ({ distance, driveTime, walkTime }: { distance: numbe
     { label: 'Walk', value: `${walkTime} min`, icon: <Footprints className="w-3 h-3" />, color: 'text-amber-600' },
   ];
 
-  const current = metrics[activeIndex];
-
   return (
-    <div 
+    <div
       onClick={handleClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="relative h-10 min-w-[100px] bg-slate-50 hover:bg-white border border-slate-100 hover:border-blue-200 rounded-lg px-3 flex items-center justify-between gap-3 cursor-pointer transition-all group overflow-hidden select-none"
+      className="relative h-10 w-[110px] bg-slate-50 hover:bg-white border border-slate-100 hover:border-blue-200 rounded-lg cursor-pointer transition-all group overflow-hidden select-none shrink-0"
     >
-        <span className={`${current.color} bg-white p-1 rounded-md shadow-sm border border-slate-100 group-hover:scale-110 transition-transform`}>
-            {current.icon}
-        </span>
-        <div className="flex flex-col items-end leading-none animate-in slide-in-from-bottom-2 fade-in duration-300 key={activeIndex}">
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{current.label}</span>
-            <span className={`text-xs font-bold ${current.color}`}>{current.value}</span>
-        </div>
+      {metrics.map((metric, idx) => {
+        const isActive = activeIndex === idx;
+        return (
+          <div
+            key={idx}
+            className={`absolute inset-0 px-3 flex items-center justify-between gap-2 transition-opacity duration-700 ease-in-out ${isActive ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
+              }`}
+          >
+            <span className={`${metric.color} bg-white p-1 rounded-md shadow-sm border border-slate-100 group-hover:scale-110 transition-transform shrink-0`}>
+              {metric.icon}
+            </span>
+            <div className="flex flex-col items-end leading-none min-w-0 flex-1">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest truncate w-full text-right">{metric.label}</span>
+              <span className={`text-xs font-bold ${metric.color} truncate w-full text-right`}>{metric.value}</span>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 };
 
 const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   project,
+  allProjects,
   onClose,
   onDiscoverNeighborhood,
   onQuickFilter,
@@ -130,12 +145,101 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   const [isFetchingRoute, setIsFetchingRoute] = useState(false);
   const [destSuggestions, setDestSuggestions] = useState<any[]>([]);
   const destSearchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+
+  // ── localStorage Save helper (Favorites & Compare) ─────────────────────
+  const handleSaveLocal = (type: 'favorite' | 'compare') => {
+    if (!project) return;
+    const key = type === 'favorite' ? 'psi_favorites' : 'psi_compare';
+    const label = type === 'favorite' ? 'Favorites' : 'Comparison List';
+    const existing: string[] = JSON.parse(localStorage.getItem(key) || '[]');
+    if (!existing.includes(project.id)) {
+      localStorage.setItem(key, JSON.stringify([...existing, project.id]));
+      alert(`Added to ${label}!`);
+    } else {
+      alert(`Already in ${label}.`);
+    }
+  };
+
+  // ── Native Web Share (with clipboard fallback) ──────────────────────
+  const handleNativeShare = async () => {
+    if (!project) return;
+    const text = `Check out ${project.name} by ${project.developerName} in ${project.community || project.city || 'UAE'}.`;
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ title: project.name, text, url: window.location.href });
+      } catch (err) {
+        console.log('Share cancelled or failed:', err);
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        alert('Link copied to clipboard!');
+      } catch {
+        alert('Unable to copy — please copy the URL manually.');
+      }
+    }
+  };
+
+  // ── PDF export handler ──────────────────────────────────────────────────
+  const handleExportPdf = async () => {
+    if (!project) return;
+    setIsGeneratingPdf(true);
+    try {
+      // 1. Capture map snapshot (requires preserveDrawingBuffer: true on the Map)
+      let snapshotUrl = '';
+      try {
+        const mapCanvas = mapRef?.current?.getMap?.()?.getCanvas?.();
+        if (mapCanvas) snapshotUrl = mapCanvas.toDataURL('image/jpeg', 0.85);
+      } catch (e) {
+        console.warn('Map snapshot unavailable:', e);
+      }
+
+      // 2. Gather data
+      const related = getRelatedProjects(project, allProjects);
+      const categorizedAmenities = getClosestCategorizedAmenities(project, nearbyLandmarks);
+
+      // 3. Generate PDF blob
+      const blob = await pdf(
+        <ProjectPdfDocument
+          project={project}
+          mapSnapshotUrl={snapshotUrl}
+          categorizedAmenities={categorizedAmenities as any}
+          related={related as any}
+        />
+      ).toBlob();
+
+      // 4. Trigger download
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${project.name.replace(/\s+/g, '_')}_Brochure.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+      alert('Failed to generate brochure. Please try again.');
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
 
   // ── Neighborhood Tour state ──────────────────────────────────────────────
   const [showNeighborhoodList, setShowNeighborhoodList] = useState(false);
   const [isTouringNeighborhood, setIsTouringNeighborhood] = useState(false);
   const [activeTourAmenityIdx, setActiveTourAmenityIdx] = useState<number | null>(null);
   const [amenitySearch, setAmenitySearch] = useState('');
+  const [visibleAmenitiesCount, setVisibleAmenitiesCount] = useState(15);
+
+  // Auto-expand visible window if tour advances past the current limit
+  useEffect(() => {
+    if (activeTourAmenityIdx !== null && activeTourAmenityIdx >= visibleAmenitiesCount) {
+      setVisibleAmenitiesCount(activeTourAmenityIdx + 5);
+    }
+  }, [activeTourAmenityIdx, visibleAmenitiesCount]);
 
   // ── Sort nearbyLandmarks by distance for the tour ───────────────────────
   const localAmenities = useMemo(() => {
@@ -166,7 +270,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
     );
   }, [localAmenities, amenitySearch]);
 
-  // ── Cinematic tour timer — dispatches CustomEvent every 5 s ─────────────
+  // ── Cinematic tour timer — dispatches CustomEvent every 8 s ─────────────
   useEffect(() => {
     if (!isTouringNeighborhood || searchedAmenities.length === 0) return;
     const timer = setInterval(() => {
@@ -184,9 +288,17 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
         }
         return nextIdx;
       });
-    }, 5000);
+    }, 8000);
     return () => clearInterval(timer);
   }, [isTouringNeighborhood, searchedAmenities, project]);
+
+  // ── Auto-scroll tour list to keep active item centred in view ────────────
+  useEffect(() => {
+    if (isTouringNeighborhood) {
+      const activeEl = document.getElementById(`tour-amenity-${activeTourAmenityIdx}`);
+      if (activeEl) activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [activeTourAmenityIdx, isTouringNeighborhood]);
 
   // ── Sync active tour amenity → global map highlight ──────────────────────
   useEffect(() => {
@@ -206,7 +318,6 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   const fetchDestSuggestions = (query: string) => {
     setCustomDestQuery(query);
     if (destSearchRef.current) clearTimeout(destSearchRef.current);
-    // Clear route when user clears the input
     if (!query.trim()) {
       setDestSuggestions([]);
       setCustomDestResult(null);
@@ -216,19 +327,25 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
     }
     if (!project.latitude || !project.longitude) return;
     setIsSearchingDest(true);
-    destSearchRef.current = setTimeout(async () => {
-      try {
-        const res = await fetch(
-          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json` +
-          `?access_token=${PUBLIC_MAPBOX_TOKEN}&proximity=${project.longitude},${project.latitude}` +
-          `&country=ae&types=poi,address,neighborhood,locality,place&limit=5`
+    destSearchRef.current = setTimeout(() => {
+      if ((window as any).google && (window as any).google.maps.places) {
+        const service = new (window as any).google.maps.places.AutocompleteService();
+        service.getPlacePredictions(
+          { input: query, componentRestrictions: { country: 'ae' } },
+          (predictions: any, status: any) => {
+            if (status === (window as any).google.maps.places.PlacesServiceStatus.OK && predictions) {
+              setDestSuggestions(predictions);
+            } else {
+              console.error('Google Places API Error (ProjectSidebar):', status);
+              setDestSuggestions([]);
+            }
+            setIsSearchingDest(false);
+          }
         );
-        const data = await res.json();
-        setDestSuggestions(data.features || []);
-      } catch (err) {
-        console.error('Geocoding autocomplete error:', err);
+      } else {
+        console.error('Google Maps API script is missing or blocked.');
+        setIsSearchingDest(false);
       }
-      setIsSearchingDest(false);
     }, 300);
   };
 
@@ -259,15 +376,20 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
     setIsFetchingRoute(false);
   };
 
-  const handleSelectDest = async (feature: any) => {
-    const destLng = feature.center[0];
-    const destLat = feature.center[1];
-    const label = feature.text || feature.place_name.split(',')[0];
-    // Optimistic UI: set name immediately, route stats arrive via fetchRealRoute
-    setCustomDestResult({ name: feature.place_name, roadKm: 0, driveMinutes: 0 });
+  const handleSelectDest = (prediction: any) => {
+    const label = prediction.description;
+    setCustomDestResult({ name: label, roadKm: 0, driveMinutes: 0 });
     setCustomDestQuery(label);
     setDestSuggestions([]);
-    await fetchRealRoute(destLng, destLat);
+    if ((window as any).google) {
+      const geocoder = new (window as any).google.maps.Geocoder();
+      geocoder.geocode({ placeId: prediction.place_id }, async (results: any, status: any) => {
+        if (status === 'OK' && results && results[0]) {
+          const loc = results[0].geometry.location;
+          await fetchRealRoute(loc.lng(), loc.lat());
+        }
+      });
+    }
   };
 
   // ── Build a unified gallery: prefer optimizedGallery, fall back to images[]
@@ -383,12 +505,15 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
             <span className="font-bold text-sm">Back to Project</span>
           </button>
           <button
-            onClick={() => {
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
               if (isTouringNeighborhood) {
-                stopTour();
+                setIsTouringNeighborhood(false);
+                setActiveTourAmenityIdx(null);
+                setVisibleAmenitiesCount(15);
               } else {
                 setIsTouringNeighborhood(true);
-                // Kick off immediately with first amenity via CustomEvent
                 const first = searchedAmenities[0];
                 if (first && project) {
                   setActiveTourAmenityIdx(0);
@@ -448,12 +573,13 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {searchedAmenities.map((amenity, idx) => {
+              {searchedAmenities.slice(0, visibleAmenitiesCount).map((amenity, idx) => {
                 const isActive = activeTourAmenityIdx === idx;
                 const style = categoryStyle[amenity.category?.toLowerCase?.()] ?? defaultStyle;
                 return (
                   <div
                     key={amenity.id}
+                    id={`tour-amenity-${idx}`}
                     onClick={() => {
                       setActiveTourAmenityIdx(idx);
                       if (project) {
@@ -479,9 +605,11 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                         </span>
                       </div>
                       <div className="shrink-0 flex flex-col items-end gap-1">
-                        <span className="bg-slate-100 px-2.5 py-1 rounded-lg text-xs font-bold text-slate-600 whitespace-nowrap">
-                          {amenity.distance.toFixed(1)} km
-                        </span>
+                        <AnimatedMetricPill
+                          distance={amenity.distance}
+                          driveTime={Math.ceil((amenity.distance / 40) * 60) + 2}
+                          walkTime={Math.ceil((amenity.distance / 5) * 60)}
+                        />
                         {isActive && (
                           <span className="text-[9px] font-black text-blue-500 uppercase tracking-widest">● Live</span>
                         )}
@@ -490,6 +618,18 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                   </div>
                 );
               })}
+
+              {/* View More button */}
+              {visibleAmenitiesCount < searchedAmenities.length && (
+                <div className="pt-4 pb-8 flex justify-center">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setVisibleAmenitiesCount(prev => prev + 15); }}
+                    className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-black uppercase tracking-widest rounded-full transition-colors border border-slate-200 shadow-sm"
+                  >
+                    View More ({searchedAmenities.length - visibleAmenitiesCount} remaining)
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -547,14 +687,54 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
             </button>
           )}
 
-          {/* Close button */}
-          <button
-            onClick={onClose}
-            aria-label="Close property details"
-            className="absolute top-4 right-4 bg-black/40 hover:bg-black/70 backdrop-blur-md text-white p-2 rounded-full transition-all border border-white/20 z-10"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          {/* Header action bar: Compare · Favourite · Flag · Share · PDF · Close */}
+          <div className="absolute top-3 right-3 flex items-center gap-1 z-10">
+            <button
+              onClick={() => handleSaveLocal('compare')}
+              className="p-2 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md text-white border border-white/20 transition-all"
+              title="Add to Comparison" aria-label="Add to comparison"
+            >
+              <GitCompare className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => handleSaveLocal('favorite')}
+              className="p-2 rounded-full bg-black/40 hover:bg-rose-600/80 backdrop-blur-md text-white border border-white/20 transition-all"
+              title="Add to Favourites" aria-label="Add to favourites"
+            >
+              <Heart className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setIsReportModalOpen(true)}
+              className="p-2 rounded-full bg-black/40 hover:bg-orange-600/80 backdrop-blur-md text-white border border-white/20 transition-all"
+              title="Report Issue" aria-label="Report an issue with this listing"
+            >
+              <Flag className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleNativeShare}
+              className="p-2 rounded-full bg-black/40 hover:bg-indigo-600/80 backdrop-blur-md text-white border border-white/20 transition-all"
+              title="Share Project" aria-label="Share this project"
+            >
+              <Share2 className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleExportPdf}
+              disabled={isGeneratingPdf}
+              aria-label="Download PDF brochure"
+              title="Download Brochure PDF"
+              className={`p-2 rounded-full backdrop-blur-md border border-white/20 transition-all text-white ${isGeneratingPdf ? 'bg-blue-600/80 cursor-wait' : 'bg-blue-600/80 hover:bg-blue-700/90'}`}
+            >
+              {isGeneratingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            </button>
+            <div className="w-px h-4 bg-white/20 mx-0.5" />
+            <button
+              onClick={onClose}
+              aria-label="Close property details"
+              className="p-2 rounded-full bg-black/40 hover:bg-black/70 backdrop-blur-md text-white border border-white/20 transition-all"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
 
           {/* Prev / Next arrows — visible on hover */}
           {hasMultipleImages && (
@@ -796,8 +976,8 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
               <button
                 onClick={() => setActiveIsochrone({ mode: 'driving', minutes: 15 })}
                 className={`mt-3 w-full py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all border ${activeIsochrone?.mode === 'driving' && activeIsochrone?.minutes === 15
-                    ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                    : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-600 hover:text-white hover:border-blue-600'
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                  : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-600 hover:text-white hover:border-blue-600'
                   }`}
               >
                 <Clock className="w-3.5 h-3.5" />
@@ -826,11 +1006,11 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                           </div>
                         </div>
                         <div className="sm:text-right shrink-0">
-                            <AnimatedMetricPill 
-                                distance={amenity.distance} 
-                                driveTime={amenity.driveTime} 
-                                walkTime={amenity.walkTime} 
-                            />
+                          <AnimatedMetricPill
+                            distance={amenity.distance}
+                            driveTime={amenity.driveTime}
+                            walkTime={amenity.walkTime}
+                          />
                         </div>
                       </div>
                     );
@@ -871,12 +1051,12 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                   <div className="absolute top-full left-0 w-full mt-2 bg-white border border-slate-100 rounded-xl shadow-2xl overflow-hidden max-h-56 overflow-y-auto custom-scrollbar z-50">
                     {destSuggestions.map((s: any) => (
                       <button
-                        key={s.id}
+                        key={s.place_id}
                         onClick={() => handleSelectDest(s)}
                         className="w-full text-left px-4 py-3 hover:bg-blue-50 border-b border-slate-50 last:border-0 transition-colors"
                       >
-                        <p className="text-xs font-bold text-slate-800 truncate">{s.text}</p>
-                        <p className="text-[10px] text-slate-400 truncate mt-0.5">{s.place_name}</p>
+                        <p className="text-xs font-bold text-slate-800 truncate">{s.structured_formatting?.main_text || s.description.split(',')[0]}</p>
+                        <p className="text-[10px] text-slate-400 truncate mt-0.5">{s.description}</p>
                       </button>
                     ))}
                   </div>
@@ -947,6 +1127,9 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
       {isTextModalOpen && (<TextModal text={rawDescription} onClose={() => setIsTextModalOpen(false)} />)}
       {isInquireModalOpen && (
         <InquireModal projectName={project.name} onClose={() => setIsInquireModalOpen(false)} />
+      )}
+      {isReportModalOpen && project && (
+        <ReportModal project={project} onClose={() => setIsReportModalOpen(false)} />
       )}
     </>
   );

@@ -5,7 +5,7 @@ import { db } from '../utils/firebase';
 import { doc, setDoc, addDoc, collection, deleteDoc, writeBatch, updateDoc } from 'firebase/firestore';
 import { generateCleanId } from '../utils/helpers';
 import { fetchAndSaveBoundary } from '../utils/boundaryService';
-import { Database, RefreshCw, Plus, Edit2, Trash2, MapPin, Search, Eye, EyeOff, ImageIcon, Zap, Check, Sliders } from 'lucide-react';
+import { Database, RefreshCw, Plus, Edit2, Trash2, MapPin, Search, Eye, EyeOff, ImageIcon, Zap, Check, Sliders, MonitorPlay } from 'lucide-react';
 import { optimizeAndUploadImage } from '../utils/imageOptimizer';
 import Map, { Marker, NavigationControl } from 'react-map-gl';
 import PresentationManager from './PresentationManager';
@@ -42,7 +42,7 @@ interface AdminDashboardProps {
 }
 
 
-type TabType = 'general' | 'presentations' | 'media' | 'settings' | 'nearbys';
+type TabType = 'general' | 'presentations' | 'nearbys' | 'settings';
 
 const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
   const { onClose, liveProjects, setLiveProjects, liveLandmarks, setLiveLandmarks, setMapFeatures } = props;
@@ -74,7 +74,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
   // Nearbys CMS Filters
   const [nearbysCategoryFilter, setNearbysCategoryFilter] = useState<string>('All');
   const [nearbysCommunityFilter, setNearbysCommunityFilter] = useState<string>('All');
-    
+
   // Default Amenities State
   const [defaultAmenities, setDefaultAmenities] = useState<string[]>(() => {
     try {
@@ -89,11 +89,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
 
   const toggleDefaultAmenity = (category: string) => {
     const updated = defaultAmenities.includes(category)
-        ? defaultAmenities.filter(c => c !== category)
-        : [...defaultAmenities, category];
+      ? defaultAmenities.filter(c => c !== category)
+      : [...defaultAmenities, category];
     setDefaultAmenities(updated);
     localStorage.setItem('psi-default-amenities', JSON.stringify(updated));
-    
+
     // Show success indicator
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2000);
@@ -149,29 +149,43 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
     if (mapSearchDebounceRef.current) clearTimeout(mapSearchDebounceRef.current);
     if (!query.trim()) { setMapSearchResults([]); setMapSearchLoading(false); return; }
     setMapSearchLoading(true);
-    mapSearchDebounceRef.current = setTimeout(async () => {
-      try {
-        const proximity = `${mapModalViewState.longitude},${mapModalViewState.latitude}`;
-        const res = await fetch(
-          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${PUBLIC_MAPBOX_TOKEN}&country=ae&proximity=${proximity}&types=poi,address,neighborhood,locality,place&limit=6`
+    mapSearchDebounceRef.current = setTimeout(() => {
+      if ((window as any).google && (window as any).google.maps.places) {
+        const service = new (window as any).google.maps.places.AutocompleteService();
+        service.getPlacePredictions(
+          { input: query, componentRestrictions: { country: 'ae' } },
+          (predictions: any, status: any) => {
+            setMapSearchLoading(false);
+            if (status === (window as any).google.maps.places.PlacesServiceStatus.OK && predictions) {
+              setMapSearchResults(predictions);
+            } else {
+              console.error('Google Places API Error (AdminDashboard):', status);
+              setMapSearchResults([]);
+            }
+          }
         );
-        const data = await res.json();
-        setMapSearchResults(data.features || []);
-      } catch (e) {
-        console.error('Geocoding error', e);
-        setMapSearchResults([]);
-      } finally {
+      } else {
+        console.error('Google Maps API script is missing or blocked.');
         setMapSearchLoading(false);
       }
     }, 300);
   };
 
-  const handleSelectSearchResult = (feature: any) => {
-    const [lng, lat] = feature.center;
-    setStagedProject(prev => prev ? { ...prev, latitude: lat, longitude: lng } : prev);
-    setMapModalViewState({ longitude: lng, latitude: lat, zoom: 16 });
-    setMapSearchQuery(feature.place_name);
+  const handleSelectSearchResult = (prediction: any) => {
+    setMapSearchQuery(prediction.description);
     setMapSearchResults([]);
+    if ((window as any).google) {
+      const geocoder = new (window as any).google.maps.Geocoder();
+      geocoder.geocode({ placeId: prediction.place_id }, (results: any, status: any) => {
+        if (status === 'OK' && results && results[0]) {
+          const loc = results[0].geometry.location;
+          const lng = loc.lng();
+          const lat = loc.lat();
+          setStagedProject(prev => prev ? { ...prev, latitude: lat, longitude: lng } : prev);
+          setMapModalViewState({ longitude: lng, latitude: lat, zoom: 16 });
+        }
+      });
+    }
   };
 
   const clearMapSearch = () => {
@@ -370,18 +384,26 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
               <p className="text-slate-500 font-medium">Internal Property Moderation & Spatial CMS</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-3 bg-white hover:bg-slate-100 text-slate-400 hover:text-slate-900 rounded-full border border-slate-200 shadow-sm transition-all"
-          >
-            <X className="w-6 h-6" />
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => window.open('/presentation', '_blank')}
+              className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-xl font-bold text-sm shadow-md flex items-center gap-2 transition-all"
+            >
+              <MonitorPlay className="w-4 h-4" /> Management Deck
+            </button>
+            <button
+              onClick={onClose}
+              className="p-3 bg-white hover:bg-slate-100 text-slate-400 hover:text-slate-900 rounded-full border border-slate-200 shadow-sm transition-all"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
         </div>
 
         <div className="w-full max-w-7xl">
           {/* Main Tab Navigation */}
           <div className="flex gap-4 mb-8 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm sticky top-0 z-[11000] overflow-x-auto hide-scrollbar w-full">
-            {(['general', 'presentations', 'media', 'nearbys', 'settings'] as TabType[]).map((tab) => (
+            {(['general', 'presentations', 'nearbys', 'settings'] as TabType[]).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -391,7 +413,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                   }`}
               >
                 {tab === 'nearbys' ? <MapPin className="w-4 h-4" /> : null}
-                {tab === 'general' ? 'Projects' : tab === 'presentations' ? 'Presentations' : tab === 'media' ? 'Media' : tab === 'nearbys' ? 'Nearbys CMS' : 'Settings'}
+                {tab === 'general' ? 'Projects' : tab === 'presentations' ? 'Presentations' : tab === 'nearbys' ? 'Nearbys CMS' : 'Settings'}
               </button>
             ))}
           </div>
@@ -407,33 +429,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                     <p className="text-slate-500 font-medium text-sm">Manage educational, retail, cultural, and medical points of interest</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <button
-                      onClick={seedTopFiveCommunities}
-                      disabled={isHydrating}
-                      className="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-emerald-100"
-                    >
-                      <RefreshCw className={`w-4 h-4 ${isHydrating ? 'animate-spin' : ''}`} />
-                      {isHydrating ? 'Hydrating...' : 'Hydrate Top 5'}
-                    </button>
-                    {/* OSM Real Data Importer */}
-                    <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
-                      <select
-                        value={osmCommunity}
-                        onChange={e => setOsmCommunity(e.target.value)}
-                        className="h-10 px-3 bg-white border border-slate-200 rounded-lg text-[10px] font-bold outline-none text-slate-700"
-                      >
-                        <option value="">Select Community to Import from OSM...</option>
-                        {uniqueProjectCommunities.map(c => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                      <button
-                        onClick={() => fetchRealAmenitiesFromOSM(osmCommunity)}
-                        disabled={!osmCommunity || isHydrating}
-                        className="px-4 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-black uppercase tracking-widest shadow-md disabled:bg-slate-300 disabled:cursor-not-allowed transition-all flex items-center gap-2 whitespace-nowrap"
-                      >
-                        <MapPin className="w-3.5 h-3.5" />
-                        {isHydrating ? 'Importing...' : 'Fetch Real Data'}
-                      </button>
-                    </div>
                     <button
                       onClick={() => setStagedLandmark({ name: '', category: 'School', community: '', latitude: 24.4, longitude: 54.4 })}
                       className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-blue-100"
@@ -505,6 +500,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                           <option value="Airport">Airport</option>
                           <option value="Port">Port / Marina</option>
                         </select>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest ml-1">Brand Domain (For Logo)</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. hilton.com"
+                          value={(stagedLandmark as any).domain || ''}
+                          onChange={(e) => setStagedLandmark({ ...stagedLandmark, domain: e.target.value } as any)}
+                          className="h-12 bg-white border border-blue-200 rounded-xl px-4 text-slate-800 font-medium outline-none focus:ring-4 focus:ring-blue-100"
+                        />
                       </div>
                       <div className="flex flex-col gap-1.5">
                         <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest ml-1">Community</label>
@@ -650,134 +655,195 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
             )}
 
             {activeTab === 'settings' && (
-               <div className="p-8 max-w-3xl mx-auto w-full overflow-y-auto">
+              <div className="p-8 max-w-3xl mx-auto w-full overflow-y-auto">
+                {/* Global App Settings */}
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-                    <div className="flex items-center justify-between mb-6">
-                        <div>
-                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                <Sliders className="w-5 h-5 text-blue-600" />
-                                Default Map State Controls
-                            </h3>
-                            <p className="text-sm text-slate-500 mt-1">Select which amenities should be active when the map first loads.</p>
-                        </div>
-                        {saveSuccess && (
-                            <span className="flex items-center gap-1.5 text-sm font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full animate-fade-in-out">
-                                <Check className="w-4 h-4" /> Saved!
-                            </span>
-                        )}
+                  <h3 className="text-lg font-bold text-slate-800 mb-6">Global App Settings</h3>
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-bold text-sm text-slate-800">Show Welcome Banner (Logo)</p>
+                        <p className="text-xs text-slate-500">Display the cinematic intro logo on initial load.</p>
+                      </div>
+                      <button
+                        onClick={() => setDoc(doc(db, 'settings', 'global'), { showWelcomeBanner: !(props as any).globalSettings?.showWelcomeBanner }, { merge: true })}
+                        className={`relative w-12 h-6 rounded-full transition-colors ${(props as any).globalSettings?.showWelcomeBanner !== false ? 'bg-blue-600' : 'bg-slate-300'}`}
+                      >
+                        <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${(props as any).globalSettings?.showWelcomeBanner !== false ? 'translate-x-6' : 'translate-x-0'}`} />
+                      </button>
                     </div>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {AMENITY_CATEGORIES.map(category => {
-                            const isActive = defaultAmenities.includes(category);
-                            return (
-                                <button
-                                    key={category}
-                                    onClick={() => toggleDefaultAmenity(category)}
-                                    className={`
+                    <div>
+                      <p className="font-bold text-sm text-slate-800 mb-2">Map Camera Flight Duration: {((props as any).globalSettings?.cameraDuration ?? 2000) / 1000}s</p>
+                      <input
+                        type="range" min="500" max="5000" step="500"
+                        value={(props as any).globalSettings?.cameraDuration ?? 2000}
+                        onChange={(e) => setDoc(doc(db, 'settings', 'global'), { cameraDuration: Number(e.target.value) }, { merge: true })}
+                        className="w-full accent-blue-600"
+                      />
+                    </div>
+
+                    {/* ── Banner Duration ──────────────────────── */}
+                    <div className="mt-2 pt-4 border-t border-slate-100 flex items-center justify-between">
+                      <p className="font-bold text-sm text-slate-800">
+                        Banner Duration: {(props as any).globalSettings?.bannerDuration || 5}s
+                      </p>
+                      <input
+                        type="range" min="3" max="20" step="1"
+                        value={(props as any).globalSettings?.bannerDuration || 5}
+                        onChange={(e) => setDoc(doc(db, 'settings', 'global'), { bannerDuration: Number(e.target.value) }, { merge: true })}
+                        className="w-48 accent-blue-600"
+                      />
+                    </div>
+
+                    {/* ── Banner Position D-Pads ────────────────── */}
+                    <div className="pt-4 border-t border-slate-100">
+                      <p className="font-bold text-sm text-slate-800 mb-4">Banner Position</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                        {/* Desktop D-Pad */}
+                        <div>
+                          <p className="text-xs font-black text-slate-500 uppercase tracking-widest mb-3">🖥 Desktop</p>
+                          <div className="flex items-center gap-4">
+                            <div className="grid grid-cols-3 gap-1 w-24">
+                              <div />
+                              <button
+                                onClick={() => { const c = (props as any).globalSettings?.bannerPosition || { top: 30, left: 12 }; setDoc(doc(db, 'settings', 'global'), { bannerPosition: { ...c, top: c.top - 2 } }, { merge: true }); }}
+                                className="bg-slate-100 hover:bg-blue-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
+                              >↑</button>
+                              <div />
+                              <button
+                                onClick={() => { const c = (props as any).globalSettings?.bannerPosition || { top: 30, left: 12 }; setDoc(doc(db, 'settings', 'global'), { bannerPosition: { ...c, left: c.left - 2 } }, { merge: true }); }}
+                                className="bg-slate-100 hover:bg-blue-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
+                              >←</button>
+                              <div className="bg-slate-50 rounded border border-slate-200" />
+                              <button
+                                onClick={() => { const c = (props as any).globalSettings?.bannerPosition || { top: 30, left: 12 }; setDoc(doc(db, 'settings', 'global'), { bannerPosition: { ...c, left: c.left + 2 } }, { merge: true }); }}
+                                className="bg-slate-100 hover:bg-blue-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
+                              >→</button>
+                              <div />
+                              <button
+                                onClick={() => { const c = (props as any).globalSettings?.bannerPosition || { top: 30, left: 12 }; setDoc(doc(db, 'settings', 'global'), { bannerPosition: { ...c, top: c.top + 2 } }, { merge: true }); }}
+                                className="bg-slate-100 hover:bg-blue-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
+                              >↓</button>
+                            </div>
+                            <p className="text-xs text-slate-500 font-mono leading-relaxed">
+                              T: {(props as any).globalSettings?.bannerPosition?.top ?? 30}%<br />
+                              L: {(props as any).globalSettings?.bannerPosition?.left ?? 12}%
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Mobile D-Pad */}
+                        <div>
+                          <p className="text-xs font-black text-slate-500 uppercase tracking-widest mb-3">📱 Mobile</p>
+                          <div className="flex items-center gap-4">
+                            <div className="grid grid-cols-3 gap-1 w-24">
+                              <div />
+                              <button
+                                onClick={() => { const c = (props as any).globalSettings?.bannerPositionMobile || { top: 15, left: 50 }; setDoc(doc(db, 'settings', 'global'), { bannerPositionMobile: { ...c, top: c.top - 2 } }, { merge: true }); }}
+                                className="bg-slate-100 hover:bg-purple-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
+                              >↑</button>
+                              <div />
+                              <button
+                                onClick={() => { const c = (props as any).globalSettings?.bannerPositionMobile || { top: 15, left: 50 }; setDoc(doc(db, 'settings', 'global'), { bannerPositionMobile: { ...c, left: c.left - 2 } }, { merge: true }); }}
+                                className="bg-slate-100 hover:bg-purple-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
+                              >←</button>
+                              <div className="bg-slate-50 rounded border border-slate-200" />
+                              <button
+                                onClick={() => { const c = (props as any).globalSettings?.bannerPositionMobile || { top: 15, left: 50 }; setDoc(doc(db, 'settings', 'global'), { bannerPositionMobile: { ...c, left: c.left + 2 } }, { merge: true }); }}
+                                className="bg-slate-100 hover:bg-purple-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
+                              >→</button>
+                              <div />
+                              <button
+                                onClick={() => { const c = (props as any).globalSettings?.bannerPositionMobile || { top: 15, left: 50 }; setDoc(doc(db, 'settings', 'global'), { bannerPositionMobile: { ...c, top: c.top + 2 } }, { merge: true }); }}
+                                className="bg-slate-100 hover:bg-purple-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
+                              >↓</button>
+                            </div>
+                            <p className="text-xs text-slate-500 font-mono leading-relaxed">
+                              T: {(props as any).globalSettings?.bannerPositionMobile?.top ?? 15}%<br />
+                              L: {(props as any).globalSettings?.bannerPositionMobile?.left ?? 50}%
+                            </p>
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+
+                    {/* ── Mobile Footer Theme ─────────────────────── */}
+                    <div className="mt-4 pt-4 border-t border-slate-100">
+                      <p className="font-bold text-sm text-slate-800 mb-2">Mobile Footer Theme</p>
+                      <select
+                        value={(props as any).globalSettings?.mobileFooterTheme || 'glass'}
+                        onChange={(e) => setDoc(doc(db, 'settings', 'global'), { mobileFooterTheme: e.target.value }, { merge: true })}
+                        className="w-full md:w-64 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-blue-500 transition-colors"
+                      >
+                        <option value="glass">Glass (Transparent / Gray)</option>
+                        <option value="brand">Brand (Solid Blue)</option>
+                        <option value="orange">Vibrant (Solid Orange)</option>
+                        <option value="dark">Dark (Slate 900)</option>
+                      </select>
+                    </div>
+
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <Sliders className="w-5 h-5 text-blue-600" />
+                        Default Map State Controls
+                      </h3>
+                      <p className="text-sm text-slate-500 mt-1">Select which amenities should be active when the map first loads.</p>
+                    </div>
+                    {saveSuccess && (
+                      <span className="flex items-center gap-1.5 text-sm font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full animate-fade-in-out">
+                        <Check className="w-4 h-4" /> Saved!
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {AMENITY_CATEGORIES.map(category => {
+                      const isActive = defaultAmenities.includes(category);
+                      return (
+                        <button
+                          key={category}
+                          onClick={() => toggleDefaultAmenity(category)}
+                          className={`
                                         group flex items-center justify-between p-4 rounded-xl border transition-all duration-200
-                                        ${isActive 
-                                            ? 'bg-blue-50 border-blue-200 shadow-sm' 
-                                            : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                                        }
+                                        ${isActive
+                              ? 'bg-blue-50 border-blue-200 shadow-sm'
+                              : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                            }
                                     `}
-                                >
-                                    <span className={`text-sm font-bold capitalize ${isActive ? 'text-blue-700' : 'text-slate-600'}`}>
-                                        {category}
-                                    </span>
-                                    
-                                    <div className={`
+                        >
+                          <span className={`text-sm font-bold capitalize ${isActive ? 'text-blue-700' : 'text-slate-600'}`}>
+                            {category}
+                          </span>
+
+                          <div className={`
                                         w-10 h-6 rounded-full relative transition-colors duration-200
                                         ${isActive ? 'bg-blue-600' : 'bg-slate-300'}
                                     `}>
-                                        <div className={`
+                            <div className={`
                                             absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200
                                             ${isActive ? 'translate-x-4' : 'translate-x-0'}
                                         `} />
-                                    </div>
-                                </button>
-                            );
-                        })}
-                    </div>
-
-                    <div className="mt-6 pt-6 border-t border-slate-100">
-                        <p className="text-xs text-slate-400 font-medium text-center">
-                            Changes are saved automatically to your browser's local storage and will persist across sessions.
-                        </p>
-                    </div>
-                </div>
-            </div>
-            )}
-
-            {activeTab === 'media' && (
-              <section className="animate-in fade-in duration-300 space-y-6">
-                {/* Header */}
-                <div>
-                  <h2 className="text-2xl font-black text-slate-900 tracking-tight">Media Optimizer</h2>
-                  <p className="text-slate-500 font-medium text-sm mt-1">Compress external images to WebP via Canvas and store them in Firebase Storage.</p>
-                </div>
-
-                {/* Warning Banner */}
-                <div className="flex gap-4 items-start p-5 bg-amber-50 border border-amber-200 rounded-2xl">
-                  <Zap className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-black text-amber-800 text-sm">Important: Do Not Close This Tab</p>
-                    <p className="text-amber-700 text-xs font-medium mt-1">Optimization runs in-browser and requires an active connection. Each batch processes 10 projects. Run multiple times to optimize the full database.</p>
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
-                </div>
 
-                {/* Stats Row */}
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-sm">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Projects</p>
-                    <p className="text-3xl font-black text-slate-900">{liveProjects.length}</p>
-                  </div>
-                  <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-sm">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Already Optimized</p>
-                    <p className="text-3xl font-black text-emerald-600">
-                      {liveProjects.filter(p => (p.image || p.thumbnailUrl || '').includes('firebasestorage')).length}
-                    </p>
-                  </div>
-                  <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-sm">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Pending</p>
-                    <p className="text-3xl font-black text-amber-600">
-                      {liveProjects.filter(p => { const u = p.image || p.thumbnailUrl; return u && !u.includes('firebasestorage'); }).length}
+                  <div className="mt-6 pt-6 border-t border-slate-100">
+                    <p className="text-xs text-slate-400 font-medium text-center">
+                      Changes are saved automatically to your browser's local storage and will persist across sessions.
                     </p>
                   </div>
                 </div>
-
-                {/* Progress Bar */}
-                {optimizeProgress && (
-                  <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-sm">
-                    <div className="flex justify-between items-center mb-3">
-                      <p className="text-sm font-black text-slate-800">
-                        Processing {optimizeProgress.current} / {optimizeProgress.total}
-                      </p>
-                      <div className="flex gap-3">
-                        <span className="text-xs font-bold text-emerald-600">{optimizeProgress.optimized} ✓</span>
-                        {optimizeProgress.failed > 0 && <span className="text-xs font-bold text-rose-500">{optimizeProgress.failed} ✗</span>}
-                      </div>
-                    </div>
-                    <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
-                      <div
-                        className="h-full bg-blue-600 rounded-full transition-all duration-500"
-                        style={{ width: `${optimizeProgress.total > 0 ? (optimizeProgress.current / optimizeProgress.total) * 100 : 0}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Action Button */}
-                <button
-                  onClick={handleOptimizeMedia}
-                  disabled={isOptimizing}
-                  className="w-full py-5 flex items-center justify-center gap-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] shadow-xl shadow-blue-100 transition-all"
-                >
-                  <ImageIcon className="w-5 h-5" />
-                  {isOptimizing ? 'Compressing & Uploading...' : 'Optimize Next 10 Properties'}
-                </button>
-              </section>
+              </div>
             )}
+
 
             {activeTab === 'presentations' && (
               <section className="animate-in fade-in duration-300">
@@ -829,7 +895,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                           <td className="px-8 py-5 text-sm text-slate-500 font-medium">{p.developerName}</td>
                           <td className="px-8 py-5 text-sm text-slate-400 font-medium font-mono">{formatCompletionDate(p.completionDate)}</td>
                           <td className="px-8 py-5 text-right">
-                            <button onClick={() => setStagedProject(p)} className="text-blue-600 hover:text-blue-800 text-[10px] font-black uppercase tracking-widest border border-blue-200 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-all">Edit Asset</button>
+                            <div className="flex items-center justify-end gap-1">
+                              <button onClick={() => setStagedProject(p)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="Edit Project">
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button onClick={async () => { if (window.confirm('Delete project?')) await deleteDoc(doc(db, 'projects', p.id)); }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-all" title="Delete Project">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -1107,12 +1180,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                       <div className="absolute top-full left-0 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-2xl overflow-hidden max-h-72 overflow-y-auto">
                         {mapSearchResults.map((res: any) => (
                           <button
-                            key={res.id}
+                            key={res.place_id}
                             onClick={() => handleSelectSearchResult(res)}
                             className="w-full text-left px-5 py-3.5 hover:bg-blue-50 border-b border-slate-50 last:border-0 transition-colors group"
                           >
-                            <span className="font-black text-slate-900 block truncate text-sm group-hover:text-blue-700">{res.text}</span>
-                            <span className="text-[11px] text-slate-400 truncate block">{res.place_name}</span>
+                            <span className="font-black text-slate-900 block truncate text-sm group-hover:text-blue-700">{res.structured_formatting?.main_text || res.description.split(',')[0]}</span>
+                            <span className="text-[11px] text-slate-400 truncate block">{res.description}</span>
                           </button>
                         ))}
                       </div>

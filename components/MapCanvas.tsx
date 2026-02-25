@@ -43,6 +43,8 @@ interface MapCanvasProps {
     setDrawnCoordinates?: React.Dispatch<React.SetStateAction<[number, number][]>>;
     clusters?: any[];
     supercluster?: any;
+    /** Called when the ⓘ badge on an AmenityMarker is clicked */
+    onLandmarkInfo?: (landmark: Landmark) => void;
 }
 
 // 🚨 PERMANENT FIX: Base64 decoded token. Passed only via component prop.
@@ -127,6 +129,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
     activeBoundary, activeIsochrone, selectedLandmarkForSearch, hoveredProjectId, onBoundsChange,
     activeRouteGeometry, enableHeatmap = false, enableSunlight = false,
     isLassoMode = false, drawnCoordinates = [], setDrawnCoordinates,
+    onLandmarkInfo,
 }) => {
 
     // Safety check for valid GPS coordinates
@@ -272,7 +275,12 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
             const south = Math.min(Number(pLat), Number(aLat));
             const north = Math.max(Number(pLat), Number(aLat));
             map.fitBounds([west, south, east, north], {
-                padding: 150, pitch: 45, duration: 2500, maxZoom: 15,
+                padding: { top: 150, bottom: 150, left: 150, right: 150 },
+                maxZoom: 15,
+                speed: 0.6,
+                curve: 1.8,
+                essential: true,
+                easing: (t: number) => t * (2 - t),
             });
         };
         window.addEventListener('tour-fly-bounds', handleTourFly);
@@ -501,7 +509,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                             latitude={latitude}
                         >
                             <div
-                                className="flex items-center justify-center w-11 h-11 bg-blue-600 hover:bg-blue-700 text-white font-black text-sm rounded-full border-[3px] border-white shadow-xl cursor-pointer hover:scale-110 transition-all ring-4 ring-blue-600/20"
+                                className="flex items-center justify-center w-11 h-11 bg-slate-800 hover:bg-slate-900 text-white font-black text-sm rounded-full border-[3px] border-white shadow-xl cursor-pointer hover:scale-110 transition-all ring-4 ring-slate-800/20"
                                 onClick={() => {
                                     if (!supercluster) return;
                                     const expansionZoom = Math.min(
@@ -531,6 +539,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                         onClick={() => onLandmarkClick(amenity)}
                         onMouseEnter={() => setHoveredLandmarkId(amenity.id)}
                         onMouseLeave={() => setHoveredLandmarkId(null)}
+                        onInfo={onLandmarkInfo}
                     />
                 );
             })}

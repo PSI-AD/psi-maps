@@ -24,7 +24,7 @@ const groupColour: Record<string, string> = {
     'Schools & Nurseries': 'text-emerald-700 bg-emerald-50 border-emerald-100',
     'Hospitals & Clinics': 'text-red-700 bg-red-50 border-red-100',
     'Malls & Retail': 'text-rose-700 bg-rose-50 border-rose-100',
-    'Hotels': 'text-blue-700 bg-blue-50 border-blue-100',
+    'Hotels': 'text-violet-700 bg-violet-50 border-violet-100',
     'Culture': 'text-purple-700 bg-purple-50 border-purple-100',
     'Leisure & Parks': 'text-teal-700 bg-teal-50 border-teal-100',
     'Airports': 'text-sky-700 bg-sky-50 border-sky-100',
@@ -95,6 +95,19 @@ const NearbyPanel: React.FC<NearbyPanelProps> = ({ project, landmarks, onClose }
                                         key={item.id}
                                         className="flex items-center justify-between px-5 py-3.5 bg-white rounded-xl border border-slate-100 gap-4 shadow-sm hover:shadow-md transition-shadow group"
                                     >
+                                        {/* Brand logo / category chip */}
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 overflow-hidden relative border ${groupColour[groupLabel] ?? 'bg-slate-50 text-slate-500 border-slate-100'}`}>
+                                            <span className="text-lg font-black opacity-30 select-none">{item.name.charAt(0)}</span>
+                                            {item.domain && (
+                                                <img
+                                                    src={`https://logo.clearbit.com/${item.domain}`}
+                                                    alt={item.name}
+                                                    className="absolute inset-0 w-full h-full object-cover bg-white z-20"
+                                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                                />
+                                            )}
+                                        </div>
+
                                         {/* Name */}
                                         <span className="font-black text-sm text-slate-800 flex-1 truncate group-hover:text-blue-600 transition-colors">
                                             {item.name}

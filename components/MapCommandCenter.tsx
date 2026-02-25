@@ -68,7 +68,7 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
     };
 
     return (
-        <div className="absolute bottom-[110%] left-0 bg-white/95 backdrop-blur-xl border border-slate-200 shadow-2xl rounded-2xl p-4 flex gap-4 z-50 animate-in slide-in-from-bottom-2 duration-200 origin-bottom-left text-slate-700">
+        <div className="bg-white/95 backdrop-blur-xl border border-slate-200 shadow-2xl rounded-2xl p-4 flex gap-4 animate-in slide-in-from-bottom-2 duration-200 origin-bottom-left text-slate-700">
 
             {/* ── Camera Controls ──────────────────────────────── */}
             <div className="flex flex-col gap-2 border-r border-slate-200 pr-4">
@@ -211,8 +211,8 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
                         window.dispatchEvent(new CustomEvent('lasso-toggle'));
                     }}
                     className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${isLassoActive
-                            ? 'bg-violet-100 text-violet-600 shadow-inner border border-violet-200'
-                            : 'bg-slate-50 hover:bg-violet-50 text-slate-600 hover:text-violet-600'
+                        ? 'bg-violet-100 text-violet-600 shadow-inner border border-violet-200'
+                        : 'bg-slate-50 hover:bg-violet-50 text-slate-600 hover:text-violet-600'
                         }`}
                     title={isLassoActive ? 'Exit lasso mode' : 'Draw lasso selection'}
                 >
