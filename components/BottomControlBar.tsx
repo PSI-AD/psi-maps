@@ -428,29 +428,29 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
             {/* ─────────────────── MOBILE TAB BAR ─────────────────── */}
             <div
                 className={`md:hidden fixed bottom-0 left-0 w-full border-t z-[6000] transition-colors duration-300 ${activeThemeClass}`}
-                style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+                style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 12px)' }}
             >
-                <div className="flex justify-between items-center px-1 py-2">
+                <div className="flex justify-between items-center px-1 pt-3">
                     <button onClick={onGlobalReset} aria-label="Reset map to full UAE view" className={`flex flex-col items-center gap-1 flex-1 py-1 ${inactiveIconColor} transition-colors`}>
-                        <svg viewBox="0 0 100 120" className="w-6 h-6" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <svg viewBox="0 0 100 120" width={26} height={26} fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                             <path d="M50 115C50 115 92 72 92 46C92 22.804 73.196 4 50 4C26.804 4 8 22.804 8 46C8 72 50 115 50 115Z" />
                         </svg>
-                        <span className="text-[9px] font-black uppercase tracking-widest">Home</span>
+                        <span className="text-[11px] font-bold tracking-wide mt-1">Home</span>
                     </button>
 
                     <button onClick={() => setIsMobileSearchOpen(true)} aria-label="Open property search" className={`flex flex-col items-center gap-1 flex-1 py-1 ${inactiveIconColor} transition-colors`}>
-                        <Search className="w-6 h-6" />
-                        <span className="text-[9px] font-black uppercase tracking-widest">Search</span>
+                        <Search size={26} strokeWidth={2.5} />
+                        <span className="text-[11px] font-bold tracking-wide mt-1">Search</span>
                     </button>
 
                     <button onClick={() => setIsMobileFilterOpen(true)} aria-label="Open property filters" className={`flex flex-col items-center gap-1 flex-1 py-1 transition-colors ${isAnyFilterActive ? activeIconColor : inactiveIconColor}`}>
-                        <FilterIcon className="w-6 h-6" />
-                        <span className="text-[9px] font-black uppercase tracking-widest">Filters</span>
+                        <FilterIcon size={26} strokeWidth={2.5} />
+                        <span className="text-[11px] font-bold tracking-wide mt-1">Filters</span>
                     </button>
 
                     <button onClick={onAdminClick} aria-label="Open admin dashboard" className={`flex flex-col items-center gap-1 flex-1 py-1 ${inactiveIconColor} transition-colors`}>
-                        <Settings className="w-6 h-6" />
-                        <span className="text-[9px] font-black uppercase tracking-widest">Admin</span>
+                        <Settings size={26} strokeWidth={2.5} />
+                        <span className="text-[11px] font-bold tracking-wide mt-1">Admin</span>
                     </button>
                 </div>
             </div>

@@ -496,7 +496,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
       <div className="flex flex-col h-full bg-white relative">
 
         {/* Sticky header */}
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-md z-20 shadow-sm">
+        <div className="p-4 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-md z-20 shadow-sm" style={{ paddingTop: 'max(env(safe-area-inset-top), 16px)' }}>
           <button
             onClick={() => { setShowNeighborhoodList(false); stopTour(); }}
             className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors"
@@ -808,7 +808,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
         <div className="flex-1 overflow-y-auto custom-scrollbar bg-white">
 
           {/* 2. Name → Location → Developer — sticky while scrolling */}
-          <div className="sticky top-0 z-20 bg-white px-6 pt-6 pb-5 border-b border-slate-100 shadow-sm">
+          <div className="sticky top-0 z-20 bg-white px-6 pt-6 pb-5 border-b border-slate-100 shadow-sm" style={{ paddingTop: 'max(env(safe-area-inset-top), 24px)' }}>
             <h1 className="text-2xl font-black text-slate-900 leading-tight tracking-tight mb-2">{project.name}</h1>
             <div className="flex items-center text-slate-500 text-xs font-bold uppercase tracking-widest mb-3">
               <MapPin className="w-4 h-4 mr-1.5 text-blue-600 shrink-0" />
