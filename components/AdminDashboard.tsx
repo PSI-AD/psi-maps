@@ -42,7 +42,7 @@ interface AdminDashboardProps {
 }
 
 
-type TabType = 'general' | 'presentations' | 'nearbys' | 'settings';
+type TabType = 'general' | 'presentations' | 'developers' | 'communities' | 'nearbys' | 'settings';
 
 const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
   const { onClose, liveProjects, setLiveProjects, liveLandmarks, setLiveLandmarks, setMapFeatures } = props;
@@ -403,17 +403,24 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
         <div className="w-full max-w-7xl">
           {/* Main Tab Navigation */}
           <div className="flex gap-4 mb-8 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm sticky top-0 z-[11000] overflow-x-auto hide-scrollbar w-full">
-            {(['general', 'presentations', 'nearbys', 'settings'] as TabType[]).map((tab) => (
+            {(['general', 'presentations', 'developers', 'communities', 'nearbys', 'settings'] as TabType[]).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`flex-1 py-3 px-6 text-[11px] font-black uppercase tracking-[0.2em] transition-all rounded-xl flex items-center justify-center gap-2 ${activeTab === tab
+                className={`flex-1 py-3 px-4 text-[11px] font-black uppercase tracking-[0.2em] transition-all rounded-xl flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === tab
                   ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
                   : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
                   }`}
               >
-                {tab === 'nearbys' ? <MapPin className="w-4 h-4" /> : null}
-                {tab === 'general' ? 'Projects' : tab === 'presentations' ? 'Presentations' : tab === 'nearbys' ? 'Nearbys CMS' : 'Settings'}
+                {tab === 'nearbys' && <MapPin className="w-4 h-4" />}
+                {tab === 'developers' && <Database className="w-4 h-4" />}
+                {tab === 'communities' && <MapPin className="w-4 h-4" />}
+                {tab === 'general' ? 'Projects'
+                  : tab === 'presentations' ? 'Presentations'
+                    : tab === 'developers' ? 'Developers'
+                      : tab === 'communities' ? 'Communities'
+                        : tab === 'nearbys' ? 'Nearbys'
+                          : 'Settings'}
               </button>
             ))}
           </div>
@@ -855,6 +862,30 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                   liveProjects={liveProjects}
                   onLaunchPresentation={props.onLaunchPresentation}
                 />
+              </section>
+            )}
+
+            {activeTab === 'developers' && (
+              <section className="animate-in fade-in duration-300">
+                <div className="text-center py-20 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                  <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Database className="w-8 h-8 text-blue-500" />
+                  </div>
+                  <h2 className="text-xl font-black text-slate-800 mb-2">Developer CMS</h2>
+                  <p className="text-slate-500 text-sm max-w-sm mx-auto">Database collection setup required. Ready to implement rich developer profiles — logos, bio, project count, gallery, and contact info.</p>
+                </div>
+              </section>
+            )}
+
+            {activeTab === 'communities' && (
+              <section className="animate-in fade-in duration-300">
+                <div className="text-center py-20 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                  <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <MapPin className="w-8 h-8 text-emerald-500" />
+                  </div>
+                  <h2 className="text-xl font-black text-slate-800 mb-2">Community CMS</h2>
+                  <p className="text-slate-500 text-sm max-w-sm mx-auto">Database collection setup required. Ready to implement rich community profiles — images, tags, location data, and boundary polygons.</p>
+                </div>
               </section>
             )}
 

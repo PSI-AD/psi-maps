@@ -9,6 +9,23 @@ import { pdf } from '@react-pdf/renderer';
 import ProjectPdfDocument from './pdf/ProjectPdfDocument';
 import { getRelatedProjects, getClosestCategorizedAmenities } from '../utils/projectHelpers';
 
+const DEV_DOMAINS: Record<string, string> = {
+  'emaar': 'emaar.com',
+  'aldar': 'aldar.com',
+  'damac': 'damacproperties.com',
+  'nakheel': 'nakheel.com',
+  'sobha': 'sobharealty.com',
+  'meraas': 'meraas.com',
+  'tiger': 'tigergroup.net',
+  'binghatti': 'binghatti.com',
+  'danube': 'danubeproperties.ae',
+  'imkan': 'imkan.ae',
+  'reportage': 'reportageuae.com',
+  'ellington': 'ellingtonproperties.ae',
+  'bloom': 'bloomholding.com',
+  'azizi': 'azizidevelopments.com',
+};
+
 const PUBLIC_MAPBOX_TOKEN = typeof window !== 'undefined'
   ? atob('cGsuZXlKMUlqb2ljSE5wYm5ZaUxDSmhJam9pWTIxc2NqQnpNMjF4TURacU56Tm1jMlZtZEd0NU1XMDVaQ0o5LlZ4SUVuMWpMVHpNd0xBTjhtNEIxNWc=')
   : '';
@@ -828,14 +845,33 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                   </button></>
               )}
             </div>
-            <p className="text-sm font-black text-blue-600 uppercase tracking-widest">
-              <button
-                onClick={() => onQuickFilter && project.developerName ? onQuickFilter('developer', project.developerName) : undefined}
-                className="hover:text-blue-800 hover:underline transition-all text-left"
-              >
-                {project.developerName || 'Exclusive Developer'}
-              </button>
-            </p>
+            <div className="flex items-center gap-2 mt-1">
+              {(() => {
+                const devLower = (project.developerName || '').toLowerCase();
+                const key = Object.keys(DEV_DOMAINS).find(k => devLower.includes(k));
+                const url = key ? `https://logo.clearbit.com/${DEV_DOMAINS[key]}` : null;
+                return url ? (
+                  <img
+                    src={url}
+                    alt={project.developerName}
+                    className="w-5 h-5 object-contain rounded-sm shrink-0 bg-white"
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
+                ) : (
+                  <div className="w-5 h-5 bg-blue-100 rounded-sm flex items-center justify-center shrink-0">
+                    <span className="text-[10px] font-black text-blue-600">{project.developerName?.charAt(0) || 'D'}</span>
+                  </div>
+                );
+              })()}
+              <p className="text-sm font-black text-blue-600 uppercase tracking-widest">
+                <button
+                  onClick={() => onQuickFilter && project.developerName ? onQuickFilter('developer', project.developerName) : undefined}
+                  className="hover:text-blue-800 hover:underline transition-all text-left"
+                >
+                  {project.developerName || 'Exclusive Developer'}
+                </button>
+              </p>
+            </div>
           </div>
 
           <div className="px-6 py-6 space-y-8">
