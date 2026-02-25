@@ -26,12 +26,7 @@ const getMapboxToken = () => {
 const PUBLIC_MAPBOX_TOKEN = getMapboxToken();
 (mapboxgl as any).accessToken = PUBLIC_MAPBOX_TOKEN;
 
-const App: React.FC = () => {
-  // ── Presentation route bypass — renders before any hooks or Firebase init ──
-  // The component self-loads its own Firestore data, so no props are needed here.
-  if (typeof window !== 'undefined' && window.location.pathname === '/presentation') {
-    return <PresentationShowcase />;
-  }
+const AppInner: React.FC = () => {
 
   const {
     liveProjects, setLiveProjects, liveLandmarks, setLiveLandmarks, isRefreshing, loadInitialData, filteredProjects,
@@ -460,4 +455,14 @@ const App: React.FC = () => {
     </MainLayout>
   );
 };
+
+// ── Outer router — checks pathname BEFORE any hooks fire ─────────────────────
+// PresentationShowcase self-loads its Firestore data, so no props needed here.
+const App: React.FC = () => {
+  if (typeof window !== 'undefined' && window.location.pathname === '/presentation') {
+    return <PresentationShowcase />;
+  }
+  return <AppInner />;
+};
+
 export default App;
