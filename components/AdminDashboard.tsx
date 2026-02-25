@@ -666,7 +666,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                         <p className="text-xs text-slate-500">Display the cinematic intro logo on initial load.</p>
                       </div>
                       <button
-                        onClick={() => updateDoc(doc(db, 'settings', 'global'), { showWelcomeBanner: !(props as any).globalSettings?.showWelcomeBanner })}
+                        onClick={() => setDoc(doc(db, 'settings', 'global'), { showWelcomeBanner: !(props as any).globalSettings?.showWelcomeBanner }, { merge: true })}
                         className={`relative w-12 h-6 rounded-full transition-colors ${(props as any).globalSettings?.showWelcomeBanner !== false ? 'bg-blue-600' : 'bg-slate-300'}`}
                       >
                         <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${(props as any).globalSettings?.showWelcomeBanner !== false ? 'translate-x-6' : 'translate-x-0'}`} />
@@ -677,7 +677,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                       <input
                         type="range" min="500" max="5000" step="500"
                         value={(props as any).globalSettings?.cameraDuration ?? 2000}
-                        onChange={(e) => updateDoc(doc(db, 'settings', 'global'), { cameraDuration: Number(e.target.value) })}
+                        onChange={(e) => setDoc(doc(db, 'settings', 'global'), { cameraDuration: Number(e.target.value) }, { merge: true })}
                         className="w-full accent-blue-600"
                       />
                     </div>
@@ -690,7 +690,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                       <input
                         type="range" min="3" max="20" step="1"
                         value={(props as any).globalSettings?.bannerDuration || 5}
-                        onChange={(e) => updateDoc(doc(db, 'settings', 'global'), { bannerDuration: Number(e.target.value) })}
+                        onChange={(e) => setDoc(doc(db, 'settings', 'global'), { bannerDuration: Number(e.target.value) }, { merge: true })}
                         className="w-48 accent-blue-600"
                       />
                     </div>
@@ -702,22 +702,22 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                         <div className="grid grid-cols-3 gap-1 w-24">
                           <div />
                           <button
-                            onClick={() => { const c = (props as any).globalSettings?.bannerPosition || { top: 30, left: 12 }; updateDoc(doc(db, 'settings', 'global'), { bannerPosition: { ...c, top: c.top - 2 } }); }}
+                            onClick={() => { const c = (props as any).globalSettings?.bannerPosition || { top: 30, left: 12 }; setDoc(doc(db, 'settings', 'global'), { bannerPosition: { ...c, top: c.top - 2 } }, { merge: true }); }}
                             className="bg-slate-100 hover:bg-blue-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
                           >↑</button>
                           <div />
                           <button
-                            onClick={() => { const c = (props as any).globalSettings?.bannerPosition || { top: 30, left: 12 }; updateDoc(doc(db, 'settings', 'global'), { bannerPosition: { ...c, left: c.left - 2 } }); }}
+                            onClick={() => { const c = (props as any).globalSettings?.bannerPosition || { top: 30, left: 12 }; setDoc(doc(db, 'settings', 'global'), { bannerPosition: { ...c, left: c.left - 2 } }, { merge: true }); }}
                             className="bg-slate-100 hover:bg-blue-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
                           >←</button>
                           <div className="bg-slate-50 rounded border border-slate-200" />
                           <button
-                            onClick={() => { const c = (props as any).globalSettings?.bannerPosition || { top: 30, left: 12 }; updateDoc(doc(db, 'settings', 'global'), { bannerPosition: { ...c, left: c.left + 2 } }); }}
+                            onClick={() => { const c = (props as any).globalSettings?.bannerPosition || { top: 30, left: 12 }; setDoc(doc(db, 'settings', 'global'), { bannerPosition: { ...c, left: c.left + 2 } }, { merge: true }); }}
                             className="bg-slate-100 hover:bg-blue-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
                           >→</button>
                           <div />
                           <button
-                            onClick={() => { const c = (props as any).globalSettings?.bannerPosition || { top: 30, left: 12 }; updateDoc(doc(db, 'settings', 'global'), { bannerPosition: { ...c, top: c.top + 2 } }); }}
+                            onClick={() => { const c = (props as any).globalSettings?.bannerPosition || { top: 30, left: 12 }; setDoc(doc(db, 'settings', 'global'), { bannerPosition: { ...c, top: c.top + 2 } }, { merge: true }); }}
                             className="bg-slate-100 hover:bg-blue-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
                           >↓</button>
                         </div>
