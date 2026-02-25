@@ -150,20 +150,22 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
     if (!query.trim()) { setMapSearchResults([]); setMapSearchLoading(false); return; }
     setMapSearchLoading(true);
     mapSearchDebounceRef.current = setTimeout(() => {
-      if ((window as any).google) {
+      if ((window as any).google && (window as any).google.maps.places) {
         const service = new (window as any).google.maps.places.AutocompleteService();
         service.getPlacePredictions(
           { input: query, componentRestrictions: { country: 'ae' } },
           (predictions: any, status: any) => {
+            setMapSearchLoading(false);
             if (status === (window as any).google.maps.places.PlacesServiceStatus.OK && predictions) {
               setMapSearchResults(predictions);
             } else {
+              console.error('Google Places API Error (AdminDashboard):', status);
               setMapSearchResults([]);
             }
-            setMapSearchLoading(false);
           }
         );
       } else {
+        console.error('Google Maps API script is missing or blocked.');
         setMapSearchLoading(false);
       }
     }, 300);

@@ -233,7 +233,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
     if (!project.latitude || !project.longitude) return;
     setIsSearchingDest(true);
     destSearchRef.current = setTimeout(() => {
-      if ((window as any).google) {
+      if ((window as any).google && (window as any).google.maps.places) {
         const service = new (window as any).google.maps.places.AutocompleteService();
         service.getPlacePredictions(
           { input: query, componentRestrictions: { country: 'ae' } },
@@ -241,12 +241,14 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
             if (status === (window as any).google.maps.places.PlacesServiceStatus.OK && predictions) {
               setDestSuggestions(predictions);
             } else {
+              console.error('Google Places API Error (ProjectSidebar):', status);
               setDestSuggestions([]);
             }
             setIsSearchingDest(false);
           }
         );
       } else {
+        console.error('Google Maps API script is missing or blocked.');
         setIsSearchingDest(false);
       }
     }, 300);
