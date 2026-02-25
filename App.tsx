@@ -90,6 +90,9 @@ const AppInner: React.FC = () => {
     return saved !== null ? saved === 'true' : true;
   });
 
+  // Banner appearance settings synced from Firestore (duration in seconds, position in %)
+  const [bannerSettings, setBannerSettings] = useState({ duration: 5, position: { top: 30, left: 12 } });
+
   // Landmark 3D info modal state
   const [infoLandmark, setInfoLandmark] = useState<Landmark | null>(null);
 
@@ -98,15 +101,15 @@ const AppInner: React.FC = () => {
     localStorage.setItem('psi_banner_enabled', String(newValue));
   };
 
-  // Real-time listener: settings/global.showWelcomeBanner
+  // Real-time listener: settings/global
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'settings', 'global'), (snap) => {
       if (snap.exists()) {
         const data = snap.data();
-        if (data.showWelcomeBanner !== undefined) {
-          setShowWelcomeBanner(data.showWelcomeBanner);
-        }
+        if (data.showWelcomeBanner !== undefined) setShowWelcomeBanner(data.showWelcomeBanner);
         setCameraDuration(data.cameraDuration ?? 2000);
+        if (data.bannerDuration !== undefined) setBannerSettings(prev => ({ ...prev, duration: data.bannerDuration }));
+        if (data.bannerPosition !== undefined) setBannerSettings(prev => ({ ...prev, position: data.bannerPosition }));
       }
     });
     return () => unsub();
@@ -428,7 +431,7 @@ const AppInner: React.FC = () => {
       enableIsochrone={enableIsochrone} setEnableIsochrone={setEnableIsochrone}
       enableLasso={enableLasso} setEnableLasso={setEnableLasso}
     >
-      <WelcomeBanner show={showWelcomeBanner} isAppLoading={isRefreshing} />
+      <WelcomeBanner show={showWelcomeBanner} isAppLoading={isRefreshing} duration={bannerSettings.duration} position={bannerSettings.position} />
       <ErrorBoundary>
         <MapCanvas
           mapRef={mapRef} viewState={viewState} setViewState={setViewState} updateBounds={updateBounds} mapStyle={mapStyle} onClick={handleMapClick}

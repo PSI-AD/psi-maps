@@ -388,98 +388,75 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
 
             {/* ─────────────────── FILTER MODAL ─────────────────── */}
             {isFilterModalOpen && (
-                <div className="fixed inset-0 z-[7000] bg-slate-900/60 backdrop-blur-sm flex justify-end animate-in fade-in duration-300">
-                    <div className="absolute inset-0" onClick={() => setIsFilterModalOpen(false)} />
-                    {/* Full-width on mobile, max-sm on desktop */}
+                <div className="fixed inset-0 z-[7000] pointer-events-none flex justify-center md:justify-end items-end p-4 md:p-6 pb-[90px] md:pb-[100px]">
+                    {/* Clickable backdrop */}
+                    <div className="absolute inset-0 pointer-events-auto bg-slate-900/20 backdrop-blur-sm" onClick={() => setIsFilterModalOpen(false)} />
+
                     <div
-                        className="relative h-full w-full max-w-full md:max-w-sm bg-white shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-right duration-300"
+                        className="relative w-full md:w-[360px] bg-white shadow-2xl rounded-3xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-8 duration-300 pointer-events-auto border border-slate-100 max-h-[75vh]"
                         onMouseEnter={handleFilterMouseEnter}
                         onMouseLeave={handleFilterMouseLeave}
                     >
-                        <div className="p-8 pb-4 overflow-y-auto flex-1">
-                            {/* Header — no X (close via View Map button) */}
-                            <div className="mb-8">
-                                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Project Filters</h3>
-                                <p className="text-slate-500 text-xs font-medium mt-1">Refine your search results</p>
+                        {/* Header */}
+                        <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
+                            <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest">Map Filters</h3>
+                            <button onClick={() => setIsFilterModalOpen(false)} className="p-1.5 bg-white rounded-full text-slate-500 hover:text-slate-900 transition-colors shadow-sm border border-slate-200">
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        {/* Scrollable body */}
+                        <div className="p-5 overflow-y-auto flex-1 custom-scrollbar space-y-4">
+
+                            {/* Status pills */}
+                            <div className="flex gap-1.5">
+                                {['All', 'Off-Plan', 'Completed'].map((status) => (
+                                    <button key={status} onClick={() => setStatusFilter(status)}
+                                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${statusFilter === status ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
+                                        {status}
+                                    </button>
+                                ))}
                             </div>
 
-
-                            {/* Status Filter */}
-                            <div className="mb-10">
-                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-5">Construction Status</h4>
-                                <div className="flex gap-2 p-1.5 bg-slate-100 rounded-2xl">
-                                    {['All', 'Off-Plan', 'Completed'].map((status) => (
-                                        <button
-                                            key={status}
-                                            onClick={() => setStatusFilter(status)}
-                                            className={`flex-1 py-3 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all ${statusFilter === status ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-600 hover:text-slate-900'}`}
-                                        >
-                                            {status}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Developer Filter */}
-                            <div className="mb-10">
-                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-5">Preferred Developer</h4>
-                                <select value={developerFilter} onChange={(e) => setDeveloperFilter(e.target.value)} className={selectCls}>
-                                    <option value="All">All Developers</option>
-                                    {developerOptions.filter(d => d.name !== 'All').map(dev => (
-                                        <option key={dev.name} value={dev.name}>{dev.name} ({dev.count})</option>
-                                    ))}
+                            {/* Location */}
+                            <div className="flex flex-col gap-2">
+                                <select value={selectedCity} onChange={handleCityChange}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 outline-none">
+                                    <option value="">All Emirates</option>
+                                    {cityOptions.map(city => <option key={city.id} value={city.id}>{city.label}</option>)}
+                                </select>
+                                <select value={selectedCommunity} onChange={handleCommunityChange} disabled={!selectedCity}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 outline-none disabled:opacity-50">
+                                    <option value="">All Communities</option>
+                                    {availableCommunities.map(([name, count]) => <option key={name} value={name}>{name} ({count})</option>)}
                                 </select>
                             </div>
 
-                            {/* Location Filters */}
-                            <div className="mb-10">
-                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-5">Location</h4>
-                                <div className="flex flex-col gap-3">
-                                    <select
-                                        value={selectedCity}
-                                        onChange={handleCityChange}
-                                        className={selectCls}
-                                    >
-                                        <option value="">All Emirates</option>
-                                        {cityOptions.map(city => (
-                                            <option key={city.id} value={city.id}>{city.label}</option>
-                                        ))}
-                                    </select>
-                                    <select
-                                        value={selectedCommunity}
-                                        onChange={handleCommunityChange}
-                                        disabled={!selectedCity}
-                                        className={`${selectCls} disabled:opacity-50`}
-                                    >
-                                        <option value="">All Communities</option>
-                                        {availableCommunities.map(([name, count]) => (
-                                            <option key={name} value={name}>{name} ({count})</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
+                            {/* Developer */}
+                            <select value={developerFilter} onChange={(e) => setDeveloperFilter(e.target.value)}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 outline-none">
+                                <option value="All">All Developers</option>
+                                {developerOptions.filter(d => d.name !== 'All').map(dev => (
+                                    <option key={dev.name} value={dev.name}>{dev.name} ({dev.count})</option>
+                                ))}
+                            </select>
 
-                            {/* Nearby Amenities */}
-                            <div className="mb-10">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Nearby Amenities</h4>
-                                    <button
-                                        onClick={() => {
-                                            const allCats = ['school', 'hospital', 'retail', 'leisure', 'hotel', 'culture', 'airport', 'port', 'park', 'beach', 'hypermarket'];
-                                            if (activeAmenities.length > 0) {
-                                                // Clear all — toggle off each active one
-                                                activeAmenities.forEach(cat => onToggleAmenity?.(cat));
-                                            } else {
-                                                // Select all — toggle on each inactive one
-                                                allCats.forEach(cat => onToggleAmenity?.(cat));
-                                            }
-                                        }}
-                                        className="text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors"
-                                    >
+                            {/* Amenities */}
+                            <div>
+                                <div className="flex justify-between items-center mb-2">
+                                    <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Amenities</h4>
+                                    <button onClick={() => {
+                                        const allCats = ['school', 'hospital', 'retail', 'leisure', 'hotel', 'culture', 'airport', 'port', 'park', 'beach', 'hypermarket'];
+                                        if (activeAmenities.length > 0) {
+                                            activeAmenities.forEach(cat => onToggleAmenity?.(cat));
+                                        } else {
+                                            allCats.forEach(cat => onToggleAmenity?.(cat));
+                                        }
+                                    }} className="text-[9px] font-bold text-blue-600 hover:text-blue-800 transition-colors">
                                         {activeAmenities.length > 0 ? 'Clear All' : 'Select All'}
                                     </button>
                                 </div>
-                                <div className="flex flex-wrap gap-2">
+                                <div className="flex flex-wrap gap-1.5">
                                     {[
                                         { label: 'Schools', cat: 'school' },
                                         { label: 'Hospitals', cat: 'hospital' },
@@ -492,56 +469,37 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                                         { label: 'Parks', cat: 'park' },
                                         { label: 'Beaches', cat: 'beach' },
                                         { label: 'Hypermarkets', cat: 'hypermarket' },
-                                    ].map(({ label, cat }) => {
-                                        const isActive = activeAmenities.includes(cat);
-                                        return (
-                                            <button
-                                                key={cat}
-                                                onClick={() => onToggleAmenity?.(cat)}
-                                                className={`px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest border transition-all ${isActive
-                                                    ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                                                    : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300 hover:text-blue-600'
-                                                    }`}
-                                            >
-                                                {label}
-                                            </button>
-                                        );
-                                    })}
+                                    ].map(({ label, cat }) => (
+                                        <button key={cat} onClick={() => onToggleAmenity?.(cat)}
+                                            className={`px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider border transition-all ${activeAmenities.includes(cat) ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300'}`}>
+                                            {label}
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
 
-                            {/* 3D Buildings Toggle — moved to bottom */}
-                            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-200 mb-6">
-                                <div>
-                                    <p className="font-black text-sm text-slate-800">3D Buildings</p>
-                                    <p className="text-xs text-slate-500 mt-0.5">Show architectural extrusions</p>
+                            {/* Toggles row */}
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 flex justify-between items-center">
+                                    <span className="text-[10px] font-bold text-slate-700">3D Buildings</span>
+                                    <button onClick={() => setMapFeatures(prev => ({ ...prev, show3D: !prev.show3D }))}
+                                        className={`relative w-8 h-4 rounded-full transition-colors ${mapFeatures.show3D ? 'bg-blue-600' : 'bg-slate-300'}`}>
+                                        <span className={`absolute top-0.5 left-0.5 bg-white w-3 h-3 rounded-full transition-transform ${mapFeatures.show3D ? 'translate-x-4' : 'translate-x-0'}`} />
+                                    </button>
                                 </div>
-                                <button onClick={() => setMapFeatures(prev => ({ ...prev, show3D: !prev.show3D }))} className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${mapFeatures.show3D ? 'bg-blue-600' : 'bg-slate-300'}`}>
-                                    <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow transition-transform duration-300 ${mapFeatures.show3D ? 'translate-x-6' : 'translate-x-0'}`} />
-                                </button>
-                            </div>
-
-                            {/* Spatial Tools */}
-                            <div className="mb-8 p-5 bg-blue-50 rounded-2xl border border-blue-100">
-                                <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] mb-4">Spatial Tools</h4>
-                                <button
-                                    onClick={() => { onToggleDraw(); setIsFilterModalOpen(false); }}
-                                    className={`w-full py-4 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-3 transition-all ${isDrawing ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-slate-700 border border-blue-200 hover:border-blue-400'}`}
-                                >
-                                    <Pencil className="w-4 h-4" />
-                                    <span>{isDrawing ? 'Cancel Custom Area' : 'Draw Custom Area'}</span>
+                                <button onClick={() => { onToggleDraw(); setIsFilterModalOpen(false); }}
+                                    className={`p-2.5 rounded-xl border flex items-center justify-center gap-1.5 text-[10px] font-bold transition-all ${isDrawing ? 'bg-violet-600 text-white border-violet-600' : 'bg-violet-50 text-violet-700 border-violet-100 hover:bg-violet-100'}`}>
+                                    <Pencil className="w-3.5 h-3.5" />
+                                    {isDrawing ? 'Cancel Area' : 'Draw Area'}
                                 </button>
                             </div>
                         </div>
 
-                        {/* Sticky "View Map" footer — primary close action on mobile */}
-                        <div className="sticky bottom-0 px-8 pt-4 pb-8 bg-white border-t border-slate-100">
-                            <button
-                                onClick={() => setIsFilterModalOpen(false)}
-                                className="w-full py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black uppercase text-sm tracking-widest shadow-xl transition-all flex items-center justify-center gap-3"
-                            >
-                                <Map className="w-5 h-5" />
-                                View Map ({filteredCount} Results)
+                        {/* Footer */}
+                        <div className="p-3 bg-white border-t border-slate-100 shrink-0">
+                            <button onClick={() => setIsFilterModalOpen(false)}
+                                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-md transition-colors">
+                                View {filteredCount} Results
                             </button>
                         </div>
                     </div>

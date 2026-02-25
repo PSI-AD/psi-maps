@@ -679,6 +679,53 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                         className="w-full accent-blue-600"
                       />
                     </div>
+
+                    {/* ── Banner Duration ──────────────────────── */}
+                    <div className="mt-2 pt-4 border-t border-slate-100 flex items-center justify-between">
+                      <p className="font-bold text-sm text-slate-800">
+                        Banner Duration: {(props as any).globalSettings?.bannerDuration || 5}s
+                      </p>
+                      <input
+                        type="range" min="3" max="20" step="1"
+                        value={(props as any).globalSettings?.bannerDuration || 5}
+                        onChange={(e) => updateDoc(doc(db, 'settings', 'global'), { bannerDuration: Number(e.target.value) })}
+                        className="w-48 accent-blue-600"
+                      />
+                    </div>
+
+                    {/* ── Banner Position D-Pad ─────────────────── */}
+                    <div className="pt-4 border-t border-slate-100">
+                      <p className="font-bold text-sm text-slate-800 mb-3">Banner Position (Desktop D-Pad)</p>
+                      <div className="flex items-center gap-6">
+                        <div className="grid grid-cols-3 gap-1 w-24">
+                          <div />
+                          <button
+                            onClick={() => { const c = (props as any).globalSettings?.bannerPosition || { top: 30, left: 12 }; updateDoc(doc(db, 'settings', 'global'), { bannerPosition: { ...c, top: c.top - 2 } }); }}
+                            className="bg-slate-100 hover:bg-blue-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
+                          >↑</button>
+                          <div />
+                          <button
+                            onClick={() => { const c = (props as any).globalSettings?.bannerPosition || { top: 30, left: 12 }; updateDoc(doc(db, 'settings', 'global'), { bannerPosition: { ...c, left: c.left - 2 } }); }}
+                            className="bg-slate-100 hover:bg-blue-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
+                          >←</button>
+                          <div className="bg-slate-50 rounded border border-slate-200" />
+                          <button
+                            onClick={() => { const c = (props as any).globalSettings?.bannerPosition || { top: 30, left: 12 }; updateDoc(doc(db, 'settings', 'global'), { bannerPosition: { ...c, left: c.left + 2 } }); }}
+                            className="bg-slate-100 hover:bg-blue-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
+                          >→</button>
+                          <div />
+                          <button
+                            onClick={() => { const c = (props as any).globalSettings?.bannerPosition || { top: 30, left: 12 }; updateDoc(doc(db, 'settings', 'global'), { bannerPosition: { ...c, top: c.top + 2 } }); }}
+                            className="bg-slate-100 hover:bg-blue-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
+                          >↓</button>
+                        </div>
+                        <p className="text-xs text-slate-500 font-mono leading-relaxed">
+                          T: {(props as any).globalSettings?.bannerPosition?.top ?? 30}%<br />
+                          L: {(props as any).globalSettings?.bannerPosition?.left ?? 12}%
+                        </p>
+                      </div>
+                    </div>
+
                   </div>
                 </div>
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
