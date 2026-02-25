@@ -309,6 +309,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
         <Map
             {...viewState}
             ref={mapRef}
+            doubleClickZoom={false}
             onMove={evt => {
                 setViewState(evt.viewState);
                 updateBounds();
@@ -479,7 +480,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                         'circle-stroke-color': '#ffffff'
                     }}
                 />
-                {/* Invisible hit-target layer — 25px radius makes pins tappable on mobile */}
+                {/* Invisible hit-target layer — 35px radius makes pins tappable on mobile */}
                 <Layer
                     id="unclustered-point-hit"
                     type="circle"
@@ -488,7 +489,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                     paint={{
                         'circle-color': '#000000',
                         'circle-opacity': 0.01,
-                        'circle-radius': 25
+                        'circle-radius': 35
                     }}
                 />
                 {/* Project name labels — visible at zoom ≥ 13.5 */}

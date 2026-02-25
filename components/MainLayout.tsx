@@ -123,11 +123,11 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
     selectedCity ||
     selectedCommunity
   );
-  // Desktop: stays visible even when a project is open (side-by-side layout)
-  // Mobile: hides when a project is selected to avoid overlap
-  const showCarousel = isAnyFilterActive;
-  // Chips: on mobile lift above carousel height; on desktop lift just above dock
-  const chipsBottomClass = showCarousel && !selectedProject
+  // Desktop: always visible when a project is open or a filter is active
+  // Mobile: carousel appears instantly when a pin is tapped
+  const showCarousel = isAnyFilterActive || !!selectedProject;
+  // Chips: lift above carousel when it's showing
+  const chipsBottomClass = showCarousel
     ? 'bottom-[245px] md:bottom-[96px]'
     : 'bottom-[88px]';
 
