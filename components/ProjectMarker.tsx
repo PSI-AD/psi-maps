@@ -1,9 +1,8 @@
-
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import { Marker } from 'react-map-gl';
 import { Project } from '../types';
 
-interface MapMarkerProps {
+interface ProjectMarkerProps {
   project: Project;
   selected: boolean;
   isDimmed?: boolean;
@@ -12,7 +11,7 @@ interface MapMarkerProps {
   onMouseLeave?: () => void;
 }
 
-const MapMarker: React.FC<MapMarkerProps> = ({ 
+const ProjectMarker: React.FC<ProjectMarkerProps> = ({ 
   project, 
   selected, 
   isDimmed = false, 
@@ -21,15 +20,7 @@ const MapMarker: React.FC<MapMarkerProps> = ({
   onMouseLeave
 }) => {
   const [isPulsating, setIsPulsating] = useState(false);
-  
-  const handleClick = useCallback((e: any) => {
-    if (e.originalEvent) e.originalEvent.stopPropagation();
-    setIsPulsating(true);
-    setTimeout(() => {
-      setIsPulsating(false);
-      onClick();
-    }, 300);
-  }, [onClick]);
+  const touchPos = useRef<{x: number, y: number} | null>(null);
 
   const displayPrice = useMemo(() => {
     if (!project.priceRange) return 'Enquire';
@@ -38,21 +29,46 @@ const MapMarker: React.FC<MapMarkerProps> = ({
     return match ? match[1] : cleaned;
   }, [project.priceRange]);
 
+  const handleTap = () => {
+    setIsPulsating(true);
+    onClick();
+    setTimeout(() => setIsPulsating(false), 300);
+  };
+
   return (
     <Marker 
-      longitude={project.longitude} 
-      latitude={project.latitude} 
+      longitude={Number(project.longitude)} 
+      latitude={Number(project.latitude)} 
       anchor="bottom"
-      onClick={handleClick}
     >
-      <div 
+      <button 
+        type="button"
+        onClick={(e) => { e.stopPropagation(); handleTap(); }}
+        onTouchStart={(e) => {
+            e.stopPropagation();
+            touchPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        }}
+        onTouchEnd={(e) => {
+            e.stopPropagation();
+            if (!touchPos.current) return;
+            const dx = e.changedTouches[0].clientX - touchPos.current.x;
+            const dy = e.changedTouches[0].clientY - touchPos.current.y;
+            // If thumb moved less than 10 pixels, it's a tap, not a drag!
+            if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
+                e.preventDefault(); // Stop ghost double-clicks
+                handleTap(); 
+            }
+            touchPos.current = null;
+        }}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
         className={`
-          relative flex flex-col items-center cursor-pointer transition-all duration-500
+          relative group flex flex-col items-center cursor-pointer pointer-events-auto touch-action-manipulation 
+          transition-transform duration-300 border-none bg-transparent p-0 m-0 outline-none
           ${isDimmed ? 'opacity-40 scale-95' : 'opacity-100 scale-100'}
-          ${selected ? 'z-[100] scale-125' : 'z-10'}
+          ${selected ? 'scale-110 z-50' : 'hover:scale-105 z-40'}
         `}
+        style={{ transform: `translate(-50%, -50%) scale(${selected ? 1.1 : 1})` }}
       >
         {/* Premium Pill Marker */}
         <div className={`
@@ -81,9 +97,9 @@ const MapMarker: React.FC<MapMarkerProps> = ({
         {selected && (
           <div className="absolute -inset-2 bg-blue-600/20 blur-xl rounded-full animate-pulse -z-10"></div>
         )}
-      </div>
+      </button>
     </Marker>
   );
 };
 
-export default MapMarker;
+export default ProjectMarker;

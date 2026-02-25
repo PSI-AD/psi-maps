@@ -50,7 +50,7 @@ graph TD
     Root[root] --> IndexHTML[index.html]
     Root --> App[App.tsx]
     App --> Components[components/]
-    Components --> MapMarkers[MapMarker.tsx]
+    Components --> MapMarkers[ProjectMarker.tsx]
     Components --> Sidebars[ProjectSidebar.tsx / ProjectListSidebar.tsx]
     Components --> Nav[TopNavBar.tsx / MapStyleSwitcher.tsx]
     App --> Services[services/]
@@ -103,7 +103,7 @@ stateDiagram-v2
 *   **Technical Logic**: Uses the **Haversine formula** to calculate the great-circle distance between property coordinates and landmark datasets. If distance < 500m, it applies a "Cultural District" multiplier to projected yields.
 *   **Business Value**: Automates the "Location, Location, Location" rule, providing investors with immediate quantitative justification for premium prices.
 
-### 2. High-Performance Marker UI (`MapMarker.tsx`)
+### 2. High-Performance Marker UI (`ProjectMarker.tsx`)
 *   **Technical Logic**: Markers are rendered as individual React components on top of the Mapbox canvas. Features `onMouseEnter` tooltips and a CSS-based `marker-pulse` animation on click.
 *   **Business Value**: Increases engagement through tactile feedback; clarifies complex map clusters.
 
