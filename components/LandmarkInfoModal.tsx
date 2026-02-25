@@ -1,219 +1,220 @@
-// @google/model-viewer registers the <model-viewer> custom element and merges
-// its type into JSX.IntrinsicElements automatically when imported.
-import '@google/model-viewer';
-
 import React, { useState, useEffect } from 'react';
 import { Landmark } from '../types';
-import { X, Info, MapPin, Tag } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Info, Image as ImageIcon } from 'lucide-react';
 
 interface Props {
     landmark: Landmark;
     onClose: () => void;
 }
 
-// ── Default facts by category when the DB has none ───────────────────────────
+// ── Per-category default facts when the DB has none ──────────────────────────
 const DEFAULT_FACTS: Record<string, string[]> = {
     Hotel: [
-        'A landmark of ultra-luxury hospitality in the UAE.',
-        'Consistently rated among the world\'s top lifestyle destinations.',
-        'Steps from the project, dramatically elevating resale appeal.',
-        'Exclusive residences here command a significant lifestyle premium.',
+        `A landmark of ultra-luxury hospitality in the UAE.`,
+        `Consistently ranked among the world's top lifestyle destinations.`,
+        `Steps from the property, dramatically elevating resale appeal.`,
+        `Exclusive residences nearby command a significant lifestyle premium.`,
     ],
     School: [
-        'Accredited under international curriculum standards.',
-        'Within the catchment area — a major draw for family buyers.',
-        'Top-tier educational facilities increase property desirability.',
-        'One of the highest-rated institutions in the community.',
+        `Accredited under international curriculum standards.`,
+        `Within the catchment area — a major draw for family buyers.`,
+        `Top-tier educational facilities increase property desirability.`,
+        `One of the highest-rated institutions in the community.`,
     ],
     Culture: [
-        'A globally recognised landmark on the world cultural stage.',
-        'Attracts millions of international visitors annually.',
-        'Proximity to landmark culture is a proven price driver.',
-        'Architecture alone makes it one of the UAE\'s iconic silhouettes.',
+        `A globally recognised landmark on the world cultural stage.`,
+        `Attracts millions of international visitors annually.`,
+        `Proximity to landmark culture is a proven price driver.`,
+        `Architecture alone makes it one of the UAE's most iconic silhouettes.`,
     ],
     Leisure: [
-        'World-class recreational facilities accessible within minutes.',
-        'An anchor for lifestyle branding in marketing materials.',
-        'Consistent footfall makes the surrounding area highly sought.',
-        'Exclusive membership access available to residents.',
+        `World-class recreational facilities accessible minutes away.`,
+        `An anchor for lifestyle branding in marketing materials.`,
+        `Consistent footfall makes the surrounding area highly sought-after.`,
+        `Exclusive membership access often available to residents.`,
     ],
     Retail: [
-        'A premium retail anchor serving the catchment community.',
-        'Leading international and luxury brands represented.',
-        'Walkable distance makes the neighbourhood exceptionally liveable.',
-        'High footfall drives neighbourhood vibrancy and value.',
+        `A premium retail anchor serving the catchment community.`,
+        `Leading international and luxury brands represented.`,
+        `Walkable distance makes the neighbourhood exceptionally liveable.`,
+        `High footfall drives neighbourhood vibrancy and long-term value.`,
     ],
     Hospital: [
-        'A JCI-accredited facility meeting international care standards.',
-        'Peace of mind for families — a critical buyer consideration.',
-        'Response times under 10 minutes from the development.',
-        'Specialist and emergency care, both available 24/7.',
+        `A JCI-accredited facility meeting international care standards.`,
+        `Peace of mind for families — a critical buyer consideration.`,
+        `Response times under 10 minutes from the development.`,
+        `Specialist and emergency care available 24/7.`,
     ],
     Airport: [
-        'Direct international connectivity to over 150 destinations.',
-        'Sub-30-minute transfer ideal for global investors.',
-        'A key driver of capital appreciation in the surrounding area.',
-        'Expansion plans underway to further boost regional status.',
+        `Direct international connectivity to over 150 destinations.`,
+        `Sub-30-minute transfer time — ideal for global investors.`,
+        `A key driver of capital appreciation in the surrounding area.`,
+        `Major expansion plans underway to further boost regional status.`,
     ],
     Port: [
-        'A gateway for international maritime trade and tourism.',
-        'Iconic waterfront views add significant lifestyle value.',
-        'Cruise and super-yacht berths adjacent to the community.',
-        'A focal point for Abu Dhabi\'s rising maritime economy.',
+        `A gateway for international maritime trade and tourism.`,
+        `Iconic waterfront views add significant lifestyle value.`,
+        `Cruise and super-yacht berths adjacent to the community.`,
+        `A focal point for the UAE's rising maritime economy.`,
     ],
 };
 
 const getFacts = (landmark: Landmark): string[] => {
     if (landmark.facts && landmark.facts.length > 0) return landmark.facts;
-    return DEFAULT_FACTS[landmark.category] ?? [
-        `An iconic landmark in ${landmark.community}.`,
-        `A premier destination for ${landmark.category.toLowerCase()} enthusiasts.`,
-        'World-class architecture and design recognised globally.',
-        'Proximity drives neighbourhood prestige and resale value.',
-    ];
+    return (
+        DEFAULT_FACTS[landmark.category] ?? [
+            `An iconic landmark in ${landmark.community}.`,
+            `A premier destination for ${landmark.category.toLowerCase()} enthusiasts.`,
+            `World-class architecture and design recognised globally.`,
+            `Proximity drives neighbourhood prestige and resale value.`,
+        ]
+    );
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────
 const LandmarkInfoModal: React.FC<Props> = ({ landmark, onClose }) => {
     const [activeIdx, setActiveIdx] = useState(0);
+    const [isHovered, setIsHovered] = useState(false);
+
     const facts = getFacts(landmark);
 
-    // Auto-rotate facts every 4 s
+    // Auto-advance every 5 s — pause while user hovers the facts panel
     useEffect(() => {
-        const t = setInterval(() => setActiveIdx(p => (p + 1) % facts.length), 4000);
+        if (isHovered) return;
+        const t = setInterval(() => setActiveIdx((p) => (p + 1) % facts.length), 5000);
         return () => clearInterval(t);
-    }, [facts.length]);
+    }, [facts.length, isHovered]);
 
-    // Close on Escape
+    // Keyboard navigation + Escape close
     useEffect(() => {
-        const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+        const handler = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') { onClose(); return; }
+            if (e.key === 'ArrowRight') setActiveIdx((p) => (p + 1) % facts.length);
+            if (e.key === 'ArrowLeft') setActiveIdx((p) => (p - 1 + facts.length) % facts.length);
+        };
         window.addEventListener('keydown', handler);
         return () => window.removeEventListener('keydown', handler);
-    }, [onClose]);
+    }, [facts.length, onClose]);
 
-    const categoryBadgeColor: Record<string, string> = {
-        Hotel: 'bg-blue-100 text-blue-700',
-        School: 'bg-emerald-100 text-emerald-700',
-        Culture: 'bg-purple-100 text-purple-700',
-        Leisure: 'bg-teal-100 text-teal-700',
-        Retail: 'bg-rose-100 text-rose-700',
-        Hospital: 'bg-red-100 text-red-700',
-        Airport: 'bg-sky-100 text-sky-700',
-        Port: 'bg-cyan-100 text-cyan-700',
-    };
-    const badgeClass = categoryBadgeColor[landmark.category] ?? 'bg-slate-100 text-slate-600';
+    const next = () => setActiveIdx((p) => (p + 1) % facts.length);
+    const prev = () => setActiveIdx((p) => (p - 1 + facts.length) % facts.length);
 
     return (
-        <div
-            className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/75 backdrop-blur-sm p-4"
-            onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-        >
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6">
+            {/* Blurred dark backdrop */}
             <div
-                className="bg-white rounded-3xl w-full max-w-4xl overflow-hidden shadow-2xl flex flex-col md:flex-row"
-                style={{ maxHeight: '85vh' }}
-            >
+                className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+                onClick={onClose}
+            />
 
-                {/* ── Left: 3D Viewer ─────────────────────────────────────────────── */}
-                <div className="relative flex-1 bg-gradient-to-br from-slate-100 to-slate-200 min-h-[260px] md:min-h-0 flex items-center justify-center overflow-hidden">
+            <div className="bg-slate-900 border border-slate-700/60 rounded-[2rem] w-full max-w-5xl overflow-hidden shadow-2xl shadow-black/60 relative z-10 flex flex-col md:flex-row" style={{ height: 'min(85vh, 600px)' }}>
 
-                    {/* Clearbit logo watermark when domain available */}
-                    {landmark.domain && (
-                        <div className="absolute top-4 left-4 z-20 bg-white/80 backdrop-blur rounded-xl p-2 shadow-sm border border-slate-200">
-                            <img
-                                src={`https://logo.clearbit.com/${landmark.domain}?size=48`}
-                                alt={landmark.name}
-                                className="w-10 h-10 object-contain"
-                                onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}
-                            />
+                {/* ── Close ──────────────────────────────────────────────────────────── */}
+                <button
+                    onClick={onClose}
+                    className="absolute top-4 right-4 z-50 w-10 h-10 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white rounded-full flex items-center justify-center transition-colors border border-slate-600/60 shadow-lg"
+                >
+                    <X className="w-5 h-5" />
+                </button>
+
+                {/* ── Left: Media ────────────────────────────────────────────────────── */}
+                <div className="w-full md:w-1/2 bg-slate-950 relative overflow-hidden group flex-shrink-0">
+                    {landmark.imageUrl ? (
+                        <img
+                            src={landmark.imageUrl}
+                            alt={landmark.name}
+                            className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-[2s] ease-out"
+                        />
+                    ) : (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-700 select-none">
+                            <ImageIcon className="w-16 h-16 mb-4 opacity-40" />
+                            <p className="font-mono text-xs uppercase tracking-widest text-slate-600">Awaiting Image</p>
                         </div>
                     )}
 
-                    {/* 3D model viewer */}
-                    <model-viewer
-                        src={landmark.modelUrl || 'https://modelviewer.dev/shared-assets/models/Astronaut.glb'}
-                        alt={`3D model of ${landmark.name}`}
-                        auto-rotate
-                        camera-controls
-                        rotation-per-second="25deg"
-                        shadow-intensity="1"
-                        style={{ width: '100%', height: '100%', minHeight: '260px' }}
-                    />
+                    {/* Gradient vignette */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent pointer-events-none" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent to-slate-950/30 pointer-events-none hidden md:block" />
 
-                    {/* Interactive badge */}
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2 shadow-sm border border-slate-200 whitespace-nowrap pointer-events-none">
-                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse block" />
-                        Interactive 3D · Drag to rotate
+                    {/* Verified badge */}
+                    <div className="absolute bottom-5 left-5 flex items-center gap-2 bg-blue-600/20 backdrop-blur-md border border-blue-500/30 px-4 py-2 rounded-full shadow-lg">
+                        <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse block" />
+                        <span className="text-blue-300 font-black text-[10px] uppercase tracking-widest">Verified Landmark</span>
+                    </div>
+
+                    {/* Category chip top-left */}
+                    <div className="absolute top-5 left-5 px-3 py-1.5 rounded-full bg-slate-900/70 backdrop-blur border border-slate-700/60 text-[10px] font-black uppercase tracking-widest text-slate-300">
+                        {landmark.category}
                     </div>
                 </div>
 
-                {/* ── Right: Info ──────────────────────────────────────────────────── */}
-                <div className="flex-1 p-8 md:p-10 flex flex-col bg-gradient-to-br from-white to-slate-50 relative overflow-y-auto">
-
-                    {/* Close button */}
-                    <button
-                        onClick={onClose}
-                        className="absolute top-4 right-4 w-9 h-9 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-full flex items-center justify-center transition-colors z-10"
-                    >
-                        <X className="w-4 h-4" />
-                    </button>
-
-                    {/* Icon + header */}
-                    <div className="mb-8">
-                        <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl mb-5">
+                {/* ── Right: Facts ───────────────────────────────────────────────────── */}
+                <div
+                    className="w-full md:w-1/2 p-8 md:p-10 flex flex-col justify-between bg-gradient-to-br from-slate-900 to-slate-800 overflow-y-auto"
+                    onMouseEnter={() => setIsHovered(true)}
+                    onMouseLeave={() => setIsHovered(false)}
+                >
+                    {/* Header */}
+                    <div>
+                        <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-600/20 border border-blue-500/30 text-blue-400 rounded-2xl mb-6">
                             <Info className="w-6 h-6" />
                         </div>
-
-                        <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-tight mb-3">
+                        <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight leading-none mb-3">
                             {landmark.name}
                         </h2>
-
-                        {/* Metadata pills */}
-                        <div className="flex flex-wrap gap-2">
-                            {landmark.community && (
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-full">
-                                    <MapPin className="w-3 h-3" />
-                                    {landmark.community}
-                                </span>
-                            )}
-                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full ${badgeClass}`}>
-                                <Tag className="w-3 h-3" />
-                                {landmark.category}
-                            </span>
-                        </div>
+                        <p className="text-xs font-black text-blue-400 uppercase tracking-[0.2em]">
+                            {landmark.community}{landmark.city ? `, ${landmark.city}` : ''}
+                        </p>
                     </div>
 
-                    {/* Animated fact carousel */}
-                    <div className="flex-1">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mb-3">Highlights</p>
+                    {/* Fact carousel */}
+                    <div className="relative flex-1 flex items-center my-8" style={{ minHeight: '160px' }}>
+                        {/* Decorative open-quote */}
+                        <span className="text-[120px] font-serif leading-none text-slate-700/40 absolute -top-6 -left-3 select-none pointer-events-none">&ldquo;</span>
 
-                        <div className="relative bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden" style={{ minHeight: '120px' }}>
-                            {facts.map((fact, idx) => (
-                                <div
-                                    key={idx}
-                                    className={`absolute inset-0 p-5 flex items-center transition-all duration-700 ${activeIdx === idx
-                                            ? 'opacity-100 translate-y-0'
-                                            : 'opacity-0 translate-y-3 pointer-events-none'
-                                        }`}
-                                >
-                                    <p className="text-base text-slate-700 font-semibold leading-relaxed">
-                                        &ldquo;{fact}&rdquo;
-                                    </p>
-                                </div>
-                            ))}
-                        </div>
+                        {facts.map((fact, idx) => (
+                            <div
+                                key={idx}
+                                className={`absolute inset-0 flex items-center transition-all duration-700 ease-in-out ${activeIdx === idx
+                                        ? 'opacity-100 translate-x-0'
+                                        : 'opacity-0 translate-x-8 pointer-events-none'
+                                    }`}
+                            >
+                                <p className="text-lg md:text-xl text-slate-200 font-medium leading-relaxed pl-5 border-l-2 border-blue-500 relative z-10">
+                                    {fact}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
 
-                        {/* Dot progress indicators */}
-                        <div className="flex items-center gap-2 mt-4">
+                    {/* Navigation */}
+                    <div className="flex items-center justify-between border-t border-slate-700/60 pt-6">
+                        {/* Dot indicators */}
+                        <div className="flex items-center gap-2">
                             {facts.map((_, idx) => (
                                 <button
                                     key={idx}
                                     onClick={() => setActiveIdx(idx)}
-                                    className={`rounded-full transition-all duration-300 ${activeIdx === idx
-                                            ? 'w-6 h-2 bg-blue-600'
-                                            : 'w-2 h-2 bg-slate-200 hover:bg-slate-300'
+                                    className={`h-1.5 rounded-full transition-all duration-300 ${activeIdx === idx ? 'w-8 bg-blue-500' : 'w-2 bg-slate-600 hover:bg-slate-500'
                                         }`}
                                 />
                             ))}
+                        </div>
+
+                        {/* Prev / Next */}
+                        <div className="flex gap-2">
+                            <button
+                                onClick={prev}
+                                className="w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-600/60 flex items-center justify-center text-white transition-colors"
+                            >
+                                <ChevronLeft className="w-5 h-5" />
+                            </button>
+                            <button
+                                onClick={next}
+                                className="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-500 border border-blue-500 flex items-center justify-center text-white transition-colors shadow-lg shadow-blue-900/50"
+                            >
+                                <ChevronRight className="w-5 h-5" />
+                            </button>
                         </div>
                     </div>
                 </div>
