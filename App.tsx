@@ -28,6 +28,7 @@ const PUBLIC_MAPBOX_TOKEN = getMapboxToken();
 
 const App: React.FC = () => {
   // ── Presentation route bypass — renders before any hooks or Firebase init ──
+  // The component self-loads its own Firestore data, so no props are needed here.
   if (typeof window !== 'undefined' && window.location.pathname === '/presentation') {
     return <PresentationShowcase />;
   }
