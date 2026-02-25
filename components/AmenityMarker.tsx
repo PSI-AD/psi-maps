@@ -51,8 +51,16 @@ const AmenityMarker: React.FC<AmenityMarkerProps> = ({ amenity, isSelected = fal
         )}
 
         {/* Icon circle — always keeps white border for clean gap against the ring */}
-        <div className={`relative z-10 w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-transform ${config.bg} border-2 border-white ${!isSelected ? 'group-hover:scale-110' : ''}`}>
+        <div className={`relative z-10 w-10 h-10 rounded-full shadow-lg flex items-center justify-center overflow-hidden transition-transform ${config.bg} border-2 border-white ${!isSelected ? 'group-hover:scale-110' : ''}`}>
           {config.icon}
+          {amenity.domain && (
+            <img
+              src={`https://logo.clearbit.com/${amenity.domain}`}
+              alt={amenity.name}
+              className="absolute inset-0 w-full h-full object-cover bg-white z-20"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
+          )}
         </div>
 
         {/* Diamond tail */}

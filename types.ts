@@ -41,6 +41,7 @@ export interface Landmark {
   isHidden?: boolean;
   thumbnailUrl?: string;
   modelUrl?: string; // URL to a .glb / .gltf 3D model file
+  domain?: string;   // Brand domain for Clearbit logo (e.g. hilton.com)
 }
 
 export interface MapViewState {

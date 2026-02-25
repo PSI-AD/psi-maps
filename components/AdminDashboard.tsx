@@ -74,7 +74,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
   // Nearbys CMS Filters
   const [nearbysCategoryFilter, setNearbysCategoryFilter] = useState<string>('All');
   const [nearbysCommunityFilter, setNearbysCommunityFilter] = useState<string>('All');
-    
+
   // Default Amenities State
   const [defaultAmenities, setDefaultAmenities] = useState<string[]>(() => {
     try {
@@ -89,11 +89,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
 
   const toggleDefaultAmenity = (category: string) => {
     const updated = defaultAmenities.includes(category)
-        ? defaultAmenities.filter(c => c !== category)
-        : [...defaultAmenities, category];
+      ? defaultAmenities.filter(c => c !== category)
+      : [...defaultAmenities, category];
     setDefaultAmenities(updated);
     localStorage.setItem('psi-default-amenities', JSON.stringify(updated));
-    
+
     // Show success indicator
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2000);
@@ -507,6 +507,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                         </select>
                       </div>
                       <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest ml-1">Brand Domain (For Logo)</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. hilton.com"
+                          value={(stagedLandmark as any).domain || ''}
+                          onChange={(e) => setStagedLandmark({ ...stagedLandmark, domain: e.target.value } as any)}
+                          className="h-12 bg-white border border-blue-200 rounded-xl px-4 text-slate-800 font-medium outline-none focus:ring-4 focus:ring-blue-100"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
                         <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest ml-1">Community</label>
                         <select
                           value={stagedLandmark.community || ''}
@@ -650,63 +660,63 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
             )}
 
             {activeTab === 'settings' && (
-               <div className="p-8 max-w-3xl mx-auto w-full overflow-y-auto">
+              <div className="p-8 max-w-3xl mx-auto w-full overflow-y-auto">
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-                    <div className="flex items-center justify-between mb-6">
-                        <div>
-                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                <Sliders className="w-5 h-5 text-blue-600" />
-                                Default Map State Controls
-                            </h3>
-                            <p className="text-sm text-slate-500 mt-1">Select which amenities should be active when the map first loads.</p>
-                        </div>
-                        {saveSuccess && (
-                            <span className="flex items-center gap-1.5 text-sm font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full animate-fade-in-out">
-                                <Check className="w-4 h-4" /> Saved!
-                            </span>
-                        )}
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <Sliders className="w-5 h-5 text-blue-600" />
+                        Default Map State Controls
+                      </h3>
+                      <p className="text-sm text-slate-500 mt-1">Select which amenities should be active when the map first loads.</p>
                     </div>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {AMENITY_CATEGORIES.map(category => {
-                            const isActive = defaultAmenities.includes(category);
-                            return (
-                                <button
-                                    key={category}
-                                    onClick={() => toggleDefaultAmenity(category)}
-                                    className={`
+                    {saveSuccess && (
+                      <span className="flex items-center gap-1.5 text-sm font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full animate-fade-in-out">
+                        <Check className="w-4 h-4" /> Saved!
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {AMENITY_CATEGORIES.map(category => {
+                      const isActive = defaultAmenities.includes(category);
+                      return (
+                        <button
+                          key={category}
+                          onClick={() => toggleDefaultAmenity(category)}
+                          className={`
                                         group flex items-center justify-between p-4 rounded-xl border transition-all duration-200
-                                        ${isActive 
-                                            ? 'bg-blue-50 border-blue-200 shadow-sm' 
-                                            : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                                        }
+                                        ${isActive
+                              ? 'bg-blue-50 border-blue-200 shadow-sm'
+                              : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                            }
                                     `}
-                                >
-                                    <span className={`text-sm font-bold capitalize ${isActive ? 'text-blue-700' : 'text-slate-600'}`}>
-                                        {category}
-                                    </span>
-                                    
-                                    <div className={`
+                        >
+                          <span className={`text-sm font-bold capitalize ${isActive ? 'text-blue-700' : 'text-slate-600'}`}>
+                            {category}
+                          </span>
+
+                          <div className={`
                                         w-10 h-6 rounded-full relative transition-colors duration-200
                                         ${isActive ? 'bg-blue-600' : 'bg-slate-300'}
                                     `}>
-                                        <div className={`
+                            <div className={`
                                             absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200
                                             ${isActive ? 'translate-x-4' : 'translate-x-0'}
                                         `} />
-                                    </div>
-                                </button>
-                            );
-                        })}
-                    </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
 
-                    <div className="mt-6 pt-6 border-t border-slate-100">
-                        <p className="text-xs text-slate-400 font-medium text-center">
-                            Changes are saved automatically to your browser's local storage and will persist across sessions.
-                        </p>
-                    </div>
+                  <div className="mt-6 pt-6 border-t border-slate-100">
+                    <p className="text-xs text-slate-400 font-medium text-center">
+                      Changes are saved automatically to your browser's local storage and will persist across sessions.
+                    </p>
+                  </div>
                 </div>
-            </div>
+              </div>
             )}
 
             {activeTab === 'media' && (
