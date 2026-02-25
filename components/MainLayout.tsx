@@ -79,6 +79,7 @@ interface MainLayoutProps {
   enableLasso?: boolean;
   setEnableLasso?: (v: boolean) => void;
   mobileFooterTheme?: string;
+  bannerSettings?: { duration: number; position: { top: number; left: number }; positionMobile: { top: number; left: number }; mobileFooterTheme: string };
 }
 
 const MainLayout: React.FC<MainLayoutProps> = (props) => {
@@ -175,7 +176,16 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
             setEnableIsochrone={props.setEnableIsochrone ?? (() => { })}
             enableLasso={props.enableLasso ?? false}
             setEnableLasso={props.setEnableLasso ?? (() => { })}
-            {...({ globalSettings: { mobileFooterTheme: props.mobileFooterTheme } } as any)}
+            {...({
+              globalSettings: {
+                showWelcomeBanner,
+                cameraDuration,
+                bannerDuration: props.bannerSettings?.duration,
+                bannerPosition: props.bannerSettings?.position,
+                bannerPositionMobile: props.bannerSettings?.positionMobile,
+                mobileFooterTheme: props.bannerSettings?.mobileFooterTheme ?? props.mobileFooterTheme,
+              }
+            } as any)}
           />
         </Suspense>
       )}

@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Marker } from 'react-map-gl';
 import { Project } from '../types';
 
@@ -11,16 +11,15 @@ interface ProjectMarkerProps {
   onMouseLeave?: () => void;
 }
 
-const ProjectMarker: React.FC<ProjectMarkerProps> = ({ 
-  project, 
-  selected, 
-  isDimmed = false, 
+const ProjectMarker: React.FC<ProjectMarkerProps> = ({
+  project,
+  selected,
+  isDimmed = false,
   onClick,
   onMouseEnter,
   onMouseLeave
 }) => {
   const [isPulsating, setIsPulsating] = useState(false);
-  const touchPos = useRef<{x: number, y: number} | null>(null);
 
   const displayPrice = useMemo(() => {
     if (!project.priceRange) return 'Enquire';
@@ -36,34 +35,18 @@ const ProjectMarker: React.FC<ProjectMarkerProps> = ({
   };
 
   return (
-    <Marker 
-      longitude={Number(project.longitude)} 
-      latitude={Number(project.latitude)} 
+    <Marker
+      longitude={Number(project.longitude)}
+      latitude={Number(project.latitude)}
       anchor="bottom"
     >
-      <button 
+      <button
         type="button"
         onClick={(e) => { e.stopPropagation(); handleTap(); }}
-        onTouchStart={(e) => {
-            e.stopPropagation();
-            touchPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-        }}
-        onTouchEnd={(e) => {
-            e.stopPropagation();
-            if (!touchPos.current) return;
-            const dx = e.changedTouches[0].clientX - touchPos.current.x;
-            const dy = e.changedTouches[0].clientY - touchPos.current.y;
-            // If thumb moved less than 10 pixels, it's a tap, not a drag!
-            if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
-                e.preventDefault(); // Stop ghost double-clicks
-                handleTap(); 
-            }
-            touchPos.current = null;
-        }}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
         className={`
-          relative group flex flex-col items-center cursor-pointer pointer-events-auto touch-action-manipulation 
+          relative group flex flex-col items-center cursor-pointer pointer-events-auto touch-action-manipulation
           transition-transform duration-300 border-none bg-transparent p-0 m-0 outline-none
           ${isDimmed ? 'opacity-40 scale-95' : 'opacity-100 scale-100'}
           ${selected ? 'scale-110 z-50' : 'hover:scale-105 z-40'}

@@ -433,6 +433,7 @@ const AppInner: React.FC = () => {
       enableIsochrone={enableIsochrone} setEnableIsochrone={setEnableIsochrone}
       enableLasso={enableLasso} setEnableLasso={setEnableLasso}
       mobileFooterTheme={bannerSettings.mobileFooterTheme}
+      bannerSettings={bannerSettings}
     >
       <WelcomeBanner show={showWelcomeBanner} isAppLoading={isRefreshing} duration={bannerSettings.duration} position={bannerSettings.position} positionMobile={bannerSettings.positionMobile} />
 
