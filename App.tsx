@@ -303,12 +303,17 @@ const AppInner: React.FC = () => {
   };
 
   const handleLandmarkClick = (l: any) => {
+    // Fly gently — don't deselect the active project or close the sidebar
     setSelectedLandmarkId(l.id);
-    setSelectedProjectId(null);
     setSelectedLandmarkForSearch(l as Landmark);
     if (l.latitude && l.longitude && !isNaN(l.latitude) && !isNaN(l.longitude)) {
-      handleFlyTo(l.longitude, l.latitude, 14);
+      handleFlyTo(l.longitude, l.latitude, 15);
     }
+  };
+
+  // Separate handler for the ⓘ badge — only opens modal, never moves the map
+  const handleLandmarkInfoClick = (l: Landmark) => {
+    setInfoLandmark(l);
   };
 
   const handleMapClick = (e: any) => {
@@ -444,7 +449,7 @@ const AppInner: React.FC = () => {
           isLassoMode={isLassoMode}
           drawnCoordinates={drawnCoordinates}
           setDrawnCoordinates={setDrawnCoordinates}
-          onLandmarkInfo={(landmark) => setInfoLandmark(landmark)}
+          onLandmarkInfo={handleLandmarkInfoClick}
         />
       </ErrorBoundary>
       {/* Reverse Search: floating nearby projects panel */}
