@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Native app feel: no pull-to-refresh bounce, no tap flash ── */
+html,
+body {
+    overscroll-behavior-y: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
 /* ── Mapbox Navigation Controls — larger, compass-free ── */
 .mapboxgl-ctrl-group button {
     width: 40px !important;

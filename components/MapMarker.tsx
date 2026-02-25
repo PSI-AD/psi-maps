@@ -44,13 +44,13 @@ const MapMarker: React.FC<MapMarkerProps> = ({
       latitude={project.latitude}
       anchor="bottom"
     >
-      <div
+      <button
+        type="button"
         onClick={handleClick}
-        onTouchStart={(e) => { e.stopPropagation(); }}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
         className={`
-          relative flex flex-col items-center cursor-pointer pointer-events-auto touch-action-manipulation transition-all duration-500
+          relative flex flex-col items-center cursor-pointer pointer-events-auto touch-action-manipulation transition-all duration-500 border-none bg-transparent p-0 m-0 outline-none
           ${isDimmed ? 'opacity-40 scale-95' : 'opacity-100 scale-100'}
           ${selected ? 'z-[100] scale-125' : 'z-10'}
         `}
@@ -82,7 +82,7 @@ const MapMarker: React.FC<MapMarkerProps> = ({
         {selected && (
           <div className="absolute -inset-2 bg-blue-600/20 blur-xl rounded-full animate-pulse -z-10"></div>
         )}
-      </div>
+      </button>
     </Marker>
   );
 };

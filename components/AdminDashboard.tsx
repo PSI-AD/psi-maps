@@ -769,6 +769,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                       </div>
                     </div>
 
+                    {/* ── Mobile Footer Theme ─────────────────────── */}
+                    <div className="mt-4 pt-4 border-t border-slate-100">
+                      <p className="font-bold text-sm text-slate-800 mb-2">Mobile Footer Theme</p>
+                      <select
+                        value={(props as any).globalSettings?.mobileFooterTheme || 'glass'}
+                        onChange={(e) => setDoc(doc(db, 'settings', 'global'), { mobileFooterTheme: e.target.value }, { merge: true })}
+                        className="w-full md:w-64 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-blue-500 transition-colors"
+                      >
+                        <option value="glass">Glass (Transparent / Gray)</option>
+                        <option value="brand">Brand (Solid Blue)</option>
+                        <option value="orange">Vibrant (Solid Orange)</option>
+                        <option value="dark">Dark (Slate 900)</option>
+                      </select>
+                    </div>
+
                   </div>
                 </div>
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">

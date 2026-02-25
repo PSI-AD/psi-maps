@@ -37,6 +37,7 @@ interface BottomControlBarProps {
     mapRef?: React.MutableRefObject<any>;
     mapStyle?: string;
     setMapStyle?: (style: string) => void;
+    footerTheme?: string;
 }
 
 const uaeEmirates = ['abu dhabi', 'dubai', 'sharjah', 'ajman', 'umm al quwain', 'ras al khaimah', 'fujairah'];
@@ -74,7 +75,19 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
     mapRef,
     mapStyle = '',
     setMapStyle,
+    footerTheme = 'glass',
 }) => {
+    // ── Theme map ──────────────────────────────────────────────────────────
+    const THEMES: Record<string, string> = {
+        glass: 'bg-white/95 backdrop-blur-xl border-slate-200 text-slate-500',
+        brand: 'bg-blue-600 border-blue-700 text-blue-100',
+        orange: 'bg-orange-500 border-orange-600 text-orange-50',
+        dark: 'bg-slate-900 border-slate-800 text-slate-400',
+    };
+    const activeThemeClass = THEMES[footerTheme] ?? THEMES.glass;
+    const activeIconColor = footerTheme === 'glass' ? 'text-blue-600' : 'text-white';
+    const inactiveIconColor = footerTheme === 'glass' ? 'text-slate-400' : 'text-white/60';
+
     // ── Mobile modals ───────────────────────────────────────────────────
     const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
     const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
@@ -413,26 +426,29 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
             </div>
 
             {/* ─────────────────── MOBILE TAB BAR ─────────────────── */}
-            <div className="md:hidden fixed bottom-0 left-0 w-full bg-white/97 backdrop-blur-xl border-t border-slate-200 z-[6000] pb-safe">
+            <div
+                className={`md:hidden fixed bottom-0 left-0 w-full border-t z-[6000] transition-colors duration-300 ${activeThemeClass}`}
+                style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+            >
                 <div className="flex justify-between items-center px-1 py-2">
-                    <button onClick={onGlobalReset} aria-label="Reset map to full UAE view" className="flex flex-col items-center gap-1 flex-1 py-1 text-slate-400 hover:text-blue-600 active:text-blue-700 transition-colors">
+                    <button onClick={onGlobalReset} aria-label="Reset map to full UAE view" className={`flex flex-col items-center gap-1 flex-1 py-1 ${inactiveIconColor} transition-colors`}>
                         <svg viewBox="0 0 100 120" className="w-6 h-6" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                             <path d="M50 115C50 115 92 72 92 46C92 22.804 73.196 4 50 4C26.804 4 8 22.804 8 46C8 72 50 115 50 115Z" />
                         </svg>
                         <span className="text-[9px] font-black uppercase tracking-widest">Home</span>
                     </button>
 
-                    <button onClick={() => setIsMobileSearchOpen(true)} aria-label="Open property search" className="flex flex-col items-center gap-1 flex-1 py-1 text-slate-400 hover:text-blue-600 active:text-blue-700 transition-colors">
+                    <button onClick={() => setIsMobileSearchOpen(true)} aria-label="Open property search" className={`flex flex-col items-center gap-1 flex-1 py-1 ${inactiveIconColor} transition-colors`}>
                         <Search className="w-6 h-6" />
                         <span className="text-[9px] font-black uppercase tracking-widest">Search</span>
                     </button>
 
-                    <button onClick={() => setIsMobileFilterOpen(true)} aria-label="Open property filters" className={`flex flex-col items-center gap-1 flex-1 py-1 transition-colors ${isAnyFilterActive ? 'text-blue-600' : 'text-slate-400 hover:text-blue-600'}`}>
+                    <button onClick={() => setIsMobileFilterOpen(true)} aria-label="Open property filters" className={`flex flex-col items-center gap-1 flex-1 py-1 transition-colors ${isAnyFilterActive ? activeIconColor : inactiveIconColor}`}>
                         <FilterIcon className="w-6 h-6" />
                         <span className="text-[9px] font-black uppercase tracking-widest">Filters</span>
                     </button>
 
-                    <button onClick={onAdminClick} aria-label="Open admin dashboard" className="flex flex-col items-center gap-1 flex-1 py-1 text-slate-400 hover:text-blue-600 active:text-blue-700 transition-colors">
+                    <button onClick={onAdminClick} aria-label="Open admin dashboard" className={`flex flex-col items-center gap-1 flex-1 py-1 ${inactiveIconColor} transition-colors`}>
                         <Settings className="w-6 h-6" />
                         <span className="text-[9px] font-black uppercase tracking-widest">Admin</span>
                     </button>

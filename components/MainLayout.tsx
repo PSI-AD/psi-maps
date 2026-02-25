@@ -78,6 +78,7 @@ interface MainLayoutProps {
   setEnableIsochrone?: (v: boolean) => void;
   enableLasso?: boolean;
   setEnableLasso?: (v: boolean) => void;
+  mobileFooterTheme?: string;
 }
 
 const MainLayout: React.FC<MainLayoutProps> = (props) => {
@@ -174,6 +175,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
             setEnableIsochrone={props.setEnableIsochrone ?? (() => { })}
             enableLasso={props.enableLasso ?? false}
             setEnableLasso={props.setEnableLasso ?? (() => { })}
+            {...({ globalSettings: { mobileFooterTheme: props.mobileFooterTheme } } as any)}
           />
         </Suspense>
       )}
@@ -399,6 +401,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
         mapRef={props.mapRef}
         mapStyle={mapStyle}
         setMapStyle={setMapStyle}
+        footerTheme={props.mobileFooterTheme || 'glass'}
       />
 
       {/* Fullscreen Image Lightbox — rendered at MainLayout level to cover full viewport */}

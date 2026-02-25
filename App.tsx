@@ -91,7 +91,7 @@ const AppInner: React.FC = () => {
   });
 
   // Banner appearance settings synced from Firestore (duration in seconds, position in %)
-  const [bannerSettings, setBannerSettings] = useState({ duration: 5, position: { top: 30, left: 12 }, positionMobile: { top: 15, left: 50 } });
+  const [bannerSettings, setBannerSettings] = useState({ duration: 5, position: { top: 30, left: 12 }, positionMobile: { top: 15, left: 50 }, mobileFooterTheme: 'glass' });
 
   // Landmark 3D info modal state
   const [infoLandmark, setInfoLandmark] = useState<Landmark | null>(null);
@@ -111,6 +111,7 @@ const AppInner: React.FC = () => {
         if (data.bannerDuration !== undefined) setBannerSettings(prev => ({ ...prev, duration: data.bannerDuration }));
         if (data.bannerPosition !== undefined) setBannerSettings(prev => ({ ...prev, position: data.bannerPosition }));
         if (data.bannerPositionMobile !== undefined) setBannerSettings(prev => ({ ...prev, positionMobile: data.bannerPositionMobile }));
+        if (data.mobileFooterTheme !== undefined) setBannerSettings(prev => ({ ...prev, mobileFooterTheme: data.mobileFooterTheme }));
       }
     });
     return () => unsub();
@@ -431,6 +432,7 @@ const AppInner: React.FC = () => {
       enableSunlight={enableSunlight} setEnableSunlight={setEnableSunlight}
       enableIsochrone={enableIsochrone} setEnableIsochrone={setEnableIsochrone}
       enableLasso={enableLasso} setEnableLasso={setEnableLasso}
+      mobileFooterTheme={bannerSettings.mobileFooterTheme}
     >
       <WelcomeBanner show={showWelcomeBanner} isAppLoading={isRefreshing} duration={bannerSettings.duration} position={bannerSettings.position} positionMobile={bannerSettings.positionMobile} />
 

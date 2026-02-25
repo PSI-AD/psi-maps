@@ -45,12 +45,12 @@ const AmenityMarker: React.FC<AmenityMarkerProps> = ({
       latitude={Number(amenity.latitude)}
       anchor="bottom"
     >
-      <div
+      <button
+        type="button"
         onClick={(e) => { e.stopPropagation(); onClick?.(); }}
-        onTouchStart={(e) => { e.stopPropagation(); }}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
-        className={`group relative flex flex-col items-center cursor-pointer pointer-events-auto touch-action-manipulation transition-all duration-300 ${isSelected ? 'z-[100] scale-110' : 'z-20'}`}
+        className={`group relative flex flex-col items-center cursor-pointer pointer-events-auto touch-action-manipulation transition-all duration-300 border-none bg-transparent p-0 m-0 outline-none ${isSelected ? 'z-[100] scale-110' : 'z-20'}`}
       >
         {/* Selected highlight ring */}
         {isSelected && (
@@ -62,14 +62,14 @@ const AmenityMarker: React.FC<AmenityMarkerProps> = ({
 
         {/* ⓘ info badge — always visible on mobile, hover-only on desktop */}
         {onInfo && (
-          <div
+          <button
+            type="button"
             onClick={(e) => { e.stopPropagation(); onInfo(amenity); }}
-            onTouchStart={(e) => { e.stopPropagation(); }}
             title={`Learn more about ${amenity.name}`}
-            className="absolute -top-2 -right-2 w-5 h-5 bg-blue-500 hover:bg-blue-600 text-white rounded-full border-2 border-white shadow-md flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-200 z-30 hover:scale-110 cursor-pointer pointer-events-auto touch-action-manipulation"
+            className="absolute -top-2 -right-2 w-5 h-5 bg-blue-500 hover:bg-blue-600 text-white rounded-full border-2 border-white shadow-md flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-200 z-30 hover:scale-110 cursor-pointer pointer-events-auto touch-action-manipulation border-solid outline-none"
           >
             <span className="text-[9px] font-black font-serif leading-none select-none">i</span>
-          </div>
+          </button>
         )}
 
         {/* Icon circle */}
@@ -92,7 +92,7 @@ const AmenityMarker: React.FC<AmenityMarkerProps> = ({
         <div className={`relative z-10 mt-1 px-3 py-1 bg-white text-black text-[11px] font-black rounded-lg shadow-md whitespace-nowrap border-2 transition-all max-w-[160px] truncate ${isSelected ? 'border-orange-500 scale-105' : `${config.border} opacity-90 group-hover:opacity-100`}`}>
           {amenity.name}
         </div>
-      </div>
+      </button>
     </Marker>
   );
 };
