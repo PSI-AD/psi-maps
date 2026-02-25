@@ -223,7 +223,6 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   const fetchDestSuggestions = (query: string) => {
     setCustomDestQuery(query);
     if (destSearchRef.current) clearTimeout(destSearchRef.current);
-    // Clear route when user clears the input
     if (!query.trim()) {
       setDestSuggestions([]);
       setCustomDestResult(null);
@@ -233,19 +232,23 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
     }
     if (!project.latitude || !project.longitude) return;
     setIsSearchingDest(true);
-    destSearchRef.current = setTimeout(async () => {
-      try {
-        const res = await fetch(
-          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json` +
-          `?access_token=${PUBLIC_MAPBOX_TOKEN}&proximity=${project.longitude},${project.latitude}` +
-          `&country=ae&types=poi,address,neighborhood,locality,place&limit=5`
+    destSearchRef.current = setTimeout(() => {
+      if ((window as any).google) {
+        const service = new (window as any).google.maps.places.AutocompleteService();
+        service.getPlacePredictions(
+          { input: query, componentRestrictions: { country: 'ae' } },
+          (predictions: any, status: any) => {
+            if (status === (window as any).google.maps.places.PlacesServiceStatus.OK && predictions) {
+              setDestSuggestions(predictions);
+            } else {
+              setDestSuggestions([]);
+            }
+            setIsSearchingDest(false);
+          }
         );
-        const data = await res.json();
-        setDestSuggestions(data.features || []);
-      } catch (err) {
-        console.error('Geocoding autocomplete error:', err);
+      } else {
+        setIsSearchingDest(false);
       }
-      setIsSearchingDest(false);
     }, 300);
   };
 
@@ -276,15 +279,20 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
     setIsFetchingRoute(false);
   };
 
-  const handleSelectDest = async (feature: any) => {
-    const destLng = feature.center[0];
-    const destLat = feature.center[1];
-    const label = feature.text || feature.place_name.split(',')[0];
-    // Optimistic UI: set name immediately, route stats arrive via fetchRealRoute
-    setCustomDestResult({ name: feature.place_name, roadKm: 0, driveMinutes: 0 });
+  const handleSelectDest = (prediction: any) => {
+    const label = prediction.description;
+    setCustomDestResult({ name: label, roadKm: 0, driveMinutes: 0 });
     setCustomDestQuery(label);
     setDestSuggestions([]);
-    await fetchRealRoute(destLng, destLat);
+    if ((window as any).google) {
+      const geocoder = new (window as any).google.maps.Geocoder();
+      geocoder.geocode({ placeId: prediction.place_id }, async (results: any, status: any) => {
+        if (status === 'OK' && results && results[0]) {
+          const loc = results[0].geometry.location;
+          await fetchRealRoute(loc.lng(), loc.lat());
+        }
+      });
+    }
   };
 
   // ── Build a unified gallery: prefer optimizedGallery, fall back to images[]
@@ -905,12 +913,12 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                   <div className="absolute top-full left-0 w-full mt-2 bg-white border border-slate-100 rounded-xl shadow-2xl overflow-hidden max-h-56 overflow-y-auto custom-scrollbar z-50">
                     {destSuggestions.map((s: any) => (
                       <button
-                        key={s.id}
+                        key={s.place_id}
                         onClick={() => handleSelectDest(s)}
                         className="w-full text-left px-4 py-3 hover:bg-blue-50 border-b border-slate-50 last:border-0 transition-colors"
                       >
-                        <p className="text-xs font-bold text-slate-800 truncate">{s.text}</p>
-                        <p className="text-[10px] text-slate-400 truncate mt-0.5">{s.place_name}</p>
+                        <p className="text-xs font-bold text-slate-800 truncate">{s.structured_formatting?.main_text || s.description.split(',')[0]}</p>
+                        <p className="text-[10px] text-slate-400 truncate mt-0.5">{s.description}</p>
                       </button>
                     ))}
                   </div>

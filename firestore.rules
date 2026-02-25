@@ -5,6 +5,10 @@ service cloud.firestore {
     match /projects/{project} {
       allow read: if request.auth != null;
     }
+    // Presentations — public read/write so the manager works without auth
+    match /presentations/{document} {
+      allow read, write: if true;
+    }
     // General rule for all other collections
     match /{document=**} {
       allow read, write: if request.auth != null;
