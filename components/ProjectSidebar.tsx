@@ -183,7 +183,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
     );
   }, [localAmenities, amenitySearch]);
 
-  // ── Cinematic tour timer — dispatches CustomEvent every 5 s ─────────────
+  // ── Cinematic tour timer — dispatches CustomEvent every 8 s ─────────────
   useEffect(() => {
     if (!isTouringNeighborhood || searchedAmenities.length === 0) return;
     const timer = setInterval(() => {
@@ -201,9 +201,17 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
         }
         return nextIdx;
       });
-    }, 5000);
+    }, 8000);
     return () => clearInterval(timer);
   }, [isTouringNeighborhood, searchedAmenities, project]);
+
+  // ── Auto-scroll tour list to keep active item centred in view ────────────
+  useEffect(() => {
+    if (isTouringNeighborhood) {
+      const activeEl = document.getElementById(`tour-amenity-${activeTourAmenityIdx}`);
+      if (activeEl) activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [activeTourAmenityIdx, isTouringNeighborhood]);
 
   // ── Sync active tour amenity → global map highlight ──────────────────────
   useEffect(() => {
@@ -484,6 +492,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                 return (
                   <div
                     key={amenity.id}
+                    id={`tour-amenity-${idx}`}
                     onClick={() => {
                       setActiveTourAmenityIdx(idx);
                       if (project) {

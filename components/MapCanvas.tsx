@@ -275,7 +275,12 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
             const south = Math.min(Number(pLat), Number(aLat));
             const north = Math.max(Number(pLat), Number(aLat));
             map.fitBounds([west, south, east, north], {
-                padding: 150, pitch: 45, duration: 2500, maxZoom: 15,
+                padding: { top: 150, bottom: 150, left: 150, right: 150 },
+                maxZoom: 15,
+                speed: 0.6,
+                curve: 1.8,
+                essential: true,
+                easing: (t: number) => t * (2 - t),
             });
         };
         window.addEventListener('tour-fly-bounds', handleTourFly);
