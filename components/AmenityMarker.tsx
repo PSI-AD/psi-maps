@@ -9,6 +9,8 @@ interface AmenityMarkerProps {
   onClick?: () => void;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
+  /** Called when the ⓘ badge is clicked — opens the LandmarkInfoModal */
+  onInfo?: (landmark: Landmark) => void;
 }
 
 const categoryConfig: Record<string, { bg: string; border: string; icon: React.ReactNode }> = {
@@ -27,7 +29,14 @@ const categoryConfig: Record<string, { bg: string; border: string; icon: React.R
 
 const defaultConfig = { bg: 'bg-slate-600', border: 'border-slate-600', icon: <CultureIcon className="w-5 h-5 text-white" /> };
 
-const AmenityMarker: React.FC<AmenityMarkerProps> = ({ amenity, isSelected = false, onClick, onMouseEnter, onMouseLeave }) => {
+const AmenityMarker: React.FC<AmenityMarkerProps> = ({
+  amenity,
+  isSelected = false,
+  onClick,
+  onMouseEnter,
+  onMouseLeave,
+  onInfo,
+}) => {
   const config = categoryConfig[amenity.category?.toLowerCase()] ?? defaultConfig;
 
   return (
@@ -42,7 +51,7 @@ const AmenityMarker: React.FC<AmenityMarkerProps> = ({ amenity, isSelected = fal
         onMouseLeave={onMouseLeave}
         className={`group relative flex flex-col items-center cursor-pointer transition-all duration-300 ${isSelected ? 'z-[100] scale-110' : 'z-20'}`}
       >
-        {/* Detached highlight ring — sits behind pin, creates a clean visual gap via the bg-transparent gap between ring and circle */}
+        {/* Selected highlight ring */}
         {isSelected && (
           <div
             className="absolute rounded-full border-[3px] border-orange-500 bg-orange-500/10 pointer-events-none"
@@ -50,7 +59,18 @@ const AmenityMarker: React.FC<AmenityMarkerProps> = ({ amenity, isSelected = fal
           />
         )}
 
-        {/* Icon circle — always keeps white border for clean gap against the ring */}
+        {/* ⓘ info badge — appears on group hover */}
+        {onInfo && (
+          <div
+            onClick={(e) => { e.stopPropagation(); onInfo(amenity); }}
+            title={`Learn more about ${amenity.name}`}
+            className="absolute -top-2 -right-2 w-5 h-5 bg-blue-500 hover:bg-blue-600 text-white rounded-full border-2 border-white shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-30 hover:scale-110 cursor-pointer"
+          >
+            <span className="text-[9px] font-black font-serif leading-none select-none">i</span>
+          </div>
+        )}
+
+        {/* Icon circle */}
         <div className={`relative z-10 w-10 h-10 rounded-full shadow-lg flex items-center justify-center overflow-hidden transition-transform ${config.bg} border-2 border-white ${!isSelected ? 'group-hover:scale-110' : ''}`}>
           {config.icon}
           {amenity.domain && (

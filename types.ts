@@ -38,10 +38,12 @@ export interface Landmark {
   longitude: number;
   category: LandmarkCategory;
   community: string;
+  city?: string;       // Optional city label (e.g. "Abu Dhabi", "Dubai")
   isHidden?: boolean;
   thumbnailUrl?: string;
-  modelUrl?: string; // URL to a .glb / .gltf 3D model file
-  domain?: string;   // Brand domain for Clearbit logo (e.g. hilton.com)
+  modelUrl?: string;   // URL to a .glb / .gltf 3D model file
+  domain?: string;     // Brand domain for Clearbit logo (e.g. hilton.com)
+  facts?: string[];    // Animated bullet-facts shown in the LandmarkInfoModal
 }
 
 export interface MapViewState {

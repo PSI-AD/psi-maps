@@ -13,6 +13,7 @@ import { Project, Landmark, ClientPresentation } from './types';
 import WelcomeBanner from './components/WelcomeBanner';
 import PropertyResultsList from './components/PropertyResultsList';
 import PresentationShowcase from './components/PresentationShowcase';
+import LandmarkInfoModal from './components/LandmarkInfoModal';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -88,6 +89,9 @@ const AppInner: React.FC = () => {
     const saved = localStorage.getItem('psi_banner_enabled');
     return saved !== null ? saved === 'true' : true;
   });
+
+  // Landmark 3D info modal state
+  const [infoLandmark, setInfoLandmark] = useState<Landmark | null>(null);
 
   const setShowWelcomeBanner = (newValue: boolean) => {
     _setShowWelcomeBanner(newValue);
@@ -440,6 +444,7 @@ const AppInner: React.FC = () => {
           isLassoMode={isLassoMode}
           drawnCoordinates={drawnCoordinates}
           setDrawnCoordinates={setDrawnCoordinates}
+          onLandmarkInfo={(landmark) => setInfoLandmark(landmark)}
         />
       </ErrorBoundary>
       {/* Reverse Search: floating nearby projects panel */}
@@ -450,6 +455,13 @@ const AppInner: React.FC = () => {
           onClose={() => setSelectedLandmarkForSearch(null)}
           onHoverProject={setHoveredProjectId}
           onSelectProject={handleFocusProjectFromReverseSearch}
+        />
+      )}
+      {/* Landmark 3D Info Modal */}
+      {infoLandmark && (
+        <LandmarkInfoModal
+          landmark={infoLandmark}
+          onClose={() => setInfoLandmark(null)}
         />
       )}
     </MainLayout>

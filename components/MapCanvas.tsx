@@ -43,6 +43,8 @@ interface MapCanvasProps {
     setDrawnCoordinates?: React.Dispatch<React.SetStateAction<[number, number][]>>;
     clusters?: any[];
     supercluster?: any;
+    /** Called when the ⓘ badge on an AmenityMarker is clicked */
+    onLandmarkInfo?: (landmark: Landmark) => void;
 }
 
 // 🚨 PERMANENT FIX: Base64 decoded token. Passed only via component prop.
@@ -127,6 +129,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
     activeBoundary, activeIsochrone, selectedLandmarkForSearch, hoveredProjectId, onBoundsChange,
     activeRouteGeometry, enableHeatmap = false, enableSunlight = false,
     isLassoMode = false, drawnCoordinates = [], setDrawnCoordinates,
+    onLandmarkInfo,
 }) => {
 
     // Safety check for valid GPS coordinates
@@ -531,6 +534,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                         onClick={() => onLandmarkClick(amenity)}
                         onMouseEnter={() => setHoveredLandmarkId(amenity.id)}
                         onMouseLeave={() => setHoveredLandmarkId(null)}
+                        onInfo={onLandmarkInfo}
                     />
                 );
             })}
