@@ -63,10 +63,10 @@ const AnimatedMetricPill = ({ distance, driveTime, walkTime }: { distance: numbe
   const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
-    if (isHovered) return; // Pause auto-rotation on hover
+    if (isHovered) return;
     const interval = setInterval(() => {
       setActiveIndex((prev) => (prev + 1) % 3);
-    }, 4000);
+    }, 6000);
     return () => clearInterval(interval);
   }, [isHovered]);
 
@@ -81,22 +81,31 @@ const AnimatedMetricPill = ({ distance, driveTime, walkTime }: { distance: numbe
     { label: 'Walk', value: `${walkTime} min`, icon: <Footprints className="w-3 h-3" />, color: 'text-amber-600' },
   ];
 
-  const current = metrics[activeIndex];
-
   return (
     <div
       onClick={handleClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="relative h-10 min-w-[100px] bg-slate-50 hover:bg-white border border-slate-100 hover:border-blue-200 rounded-lg px-3 flex items-center justify-between gap-3 cursor-pointer transition-all group overflow-hidden select-none"
+      className="relative h-10 w-[110px] bg-slate-50 hover:bg-white border border-slate-100 hover:border-blue-200 rounded-lg cursor-pointer transition-all group overflow-hidden select-none shrink-0"
     >
-      <span className={`${current.color} bg-white p-1 rounded-md shadow-sm border border-slate-100 group-hover:scale-110 transition-transform`}>
-        {current.icon}
-      </span>
-      <div className="flex flex-col items-end leading-none animate-in slide-in-from-bottom-2 fade-in duration-300 key={activeIndex}">
-        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{current.label}</span>
-        <span className={`text-xs font-bold ${current.color}`}>{current.value}</span>
-      </div>
+      {metrics.map((metric, idx) => {
+        const isActive = activeIndex === idx;
+        return (
+          <div
+            key={idx}
+            className={`absolute inset-0 px-3 flex items-center justify-between gap-2 transition-opacity duration-700 ease-in-out ${isActive ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
+              }`}
+          >
+            <span className={`${metric.color} bg-white p-1 rounded-md shadow-sm border border-slate-100 group-hover:scale-110 transition-transform shrink-0`}>
+              {metric.icon}
+            </span>
+            <div className="flex flex-col items-end leading-none min-w-0 flex-1">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest truncate w-full text-right">{metric.label}</span>
+              <span className={`text-xs font-bold ${metric.color} truncate w-full text-right`}>{metric.value}</span>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 };

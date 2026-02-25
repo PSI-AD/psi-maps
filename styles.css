@@ -20,7 +20,7 @@
 
 /* ── Mapbox logo — pushed up above the bottom tab bar ── */
 .mapboxgl-ctrl-bottom-left {
-    bottom: 40px !important;
+    bottom: 100px !important;
     left: 20px !important;
     z-index: 50 !important;
 }
