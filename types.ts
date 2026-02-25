@@ -60,3 +60,24 @@ export interface ClientPresentation {
   intervalSeconds: number;
   createdAt: string;
 }
+
+export interface Developer {
+  id: string;
+  name: string;
+  logoUrl?: string;
+  description?: string;
+  website?: string;
+  tags?: string[];
+}
+
+export interface Community {
+  id: string;
+  name: string;
+  city: string;
+  description?: string;
+  images?: string[];
+  latitude?: number;
+  longitude?: number;
+  tags?: string[];
+  placeId?: string;
+}

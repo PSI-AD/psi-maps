@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Project, Landmark, LandmarkCategory, ClientPresentation } from '../types';
 import { db } from '../utils/firebase';
-import { doc, setDoc, addDoc, collection, deleteDoc, writeBatch, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, addDoc, collection, deleteDoc, writeBatch, updateDoc, getDocs } from 'firebase/firestore';
 import { generateCleanId } from '../utils/helpers';
 import { fetchAndSaveBoundary } from '../utils/boundaryService';
 import { Database, RefreshCw, Plus, Edit2, Trash2, MapPin, Search, Eye, EyeOff, ImageIcon, Zap, Check, Sliders, MonitorPlay } from 'lucide-react';
@@ -86,6 +86,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
   });
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  // ── Developers & Communities collections ──────────────────────────────
+  const [developers, setDevelopers] = useState<any[]>([]);
+  const [communities, setCommunities] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchCollections = async () => {
+      try {
+        const devSnap = await getDocs(collection(db, 'developers'));
+        setDevelopers(devSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        const commSnap = await getDocs(collection(db, 'communities'));
+        setCommunities(commSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      } catch (e) {
+        console.warn('developers/communities collections not yet created:', e);
+      }
+    };
+    fetchCollections();
+  }, []);
 
   const toggleDefaultAmenity = (category: string) => {
     const updated = defaultAmenities.includes(category)
@@ -867,24 +884,93 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
 
             {activeTab === 'developers' && (
               <section className="animate-in fade-in duration-300">
-                <div className="text-center py-20 bg-white rounded-2xl border border-slate-100 shadow-sm">
-                  <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Database className="w-8 h-8 text-blue-500" />
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                  <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                    <div>
+                      <h2 className="text-xl font-black text-slate-800">Developer CMS</h2>
+                      <p className="text-sm text-slate-500 mt-0.5">{developers.length} developer{developers.length !== 1 ? 's' : ''} in database</p>
+                    </div>
+                    <button
+                      onClick={() => alert('Add Developer: implement modal or inline form')}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-colors"
+                    >
+                      <Plus className="w-4 h-4" /> Add Developer
+                    </button>
                   </div>
-                  <h2 className="text-xl font-black text-slate-800 mb-2">Developer CMS</h2>
-                  <p className="text-slate-500 text-sm max-w-sm mx-auto">Database collection setup required. Ready to implement rich developer profiles — logos, bio, project count, gallery, and contact info.</p>
+                  <div className="divide-y divide-slate-100">
+                    {developers.length === 0 ? (
+                      <div className="p-10 text-center">
+                        <Database className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                        <p className="text-slate-500 font-medium text-sm">No developers in database.</p>
+                        <p className="text-slate-400 text-xs mt-1">Run <code className="bg-slate-100 px-1 rounded">node scripts/enrich-data.cjs</code> to populate.</p>
+                      </div>
+                    ) : developers.map(dev => (
+                      <div key={dev.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors gap-4">
+                        <div className="flex items-center gap-4 min-w-0">
+                          <img
+                            src={dev.logoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(dev.name)}&background=EFF6FF&color=1D4ED8&bold=true`}
+                            alt={dev.name}
+                            className="w-10 h-10 rounded-lg object-contain bg-slate-100 shrink-0 border border-slate-200"
+                            onError={(e) => { e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(dev.name)}&background=EFF6FF&color=1D4ED8&bold=true`; }}
+                          />
+                          <div className="min-w-0">
+                            <p className="font-bold text-slate-800 text-sm">{dev.name}</p>
+                            <p className="text-xs text-slate-500 truncate max-w-md">{dev.description || dev.website || 'No description available.'}</p>
+                          </div>
+                        </div>
+                        <button className="shrink-0 text-blue-600 font-bold text-xs uppercase tracking-widest hover:underline">
+                          Edit
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </section>
             )}
 
             {activeTab === 'communities' && (
               <section className="animate-in fade-in duration-300">
-                <div className="text-center py-20 bg-white rounded-2xl border border-slate-100 shadow-sm">
-                  <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <MapPin className="w-8 h-8 text-emerald-500" />
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                  <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                    <div>
+                      <h2 className="text-xl font-black text-slate-800">Community CMS</h2>
+                      <p className="text-sm text-slate-500 mt-0.5">{communities.length} communit{communities.length !== 1 ? 'ies' : 'y'} in database</p>
+                    </div>
+                    <button
+                      onClick={() => alert('Add Community: implement modal or inline form')}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-colors"
+                    >
+                      <Plus className="w-4 h-4" /> Add Community
+                    </button>
                   </div>
-                  <h2 className="text-xl font-black text-slate-800 mb-2">Community CMS</h2>
-                  <p className="text-slate-500 text-sm max-w-sm mx-auto">Database collection setup required. Ready to implement rich community profiles — images, tags, location data, and boundary polygons.</p>
+                  <div className="divide-y divide-slate-100">
+                    {communities.length === 0 ? (
+                      <div className="p-10 text-center">
+                        <MapPin className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                        <p className="text-slate-500 font-medium text-sm">No communities in database.</p>
+                        <p className="text-slate-400 text-xs mt-1">Run <code className="bg-slate-100 px-1 rounded">node scripts/enrich-data.cjs</code> to populate.</p>
+                      </div>
+                    ) : communities.map(comm => (
+                      <div key={comm.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors gap-4">
+                        <div className="flex items-center gap-4 min-w-0">
+                          {comm.images?.[0] ? (
+                            <img src={comm.images[0]} alt={comm.name} className="w-16 h-10 rounded-lg object-cover bg-slate-100 shrink-0 border border-slate-200" />
+                          ) : (
+                            <div className="w-16 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
+                              <span className="text-[10px] font-bold text-slate-400">No Img</span>
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <p className="font-bold text-slate-800 text-sm">{comm.name}</p>
+                            <p className="text-xs text-slate-500">{comm.city}{comm.description ? ` · ${comm.description.slice(0, 60)}…` : ''}</p>
+                          </div>
+                        </div>
+                        <button className="shrink-0 text-blue-600 font-bold text-xs uppercase tracking-widest hover:underline">
+                          Edit
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </section>
             )}
