@@ -597,21 +597,21 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                       : 'border-slate-100 bg-white hover:border-slate-300 hover:shadow-sm'
                       }`}
                   >
-                    <div className="flex justify-between items-start gap-3">
+                    <div className="flex justify-between items-center gap-3 w-full">
                       <div className="flex-1 min-w-0">
                         <h4 className="font-bold text-slate-800 text-sm leading-snug truncate">{amenity.name}</h4>
                         <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide ${style.bg} ${style.text}`}>
                           {style.label}
                         </span>
                       </div>
-                      <div className="shrink-0 flex flex-col items-end gap-1">
+                      <div className="flex-shrink-0">
                         <AnimatedMetricPill
                           distance={amenity.distance}
                           driveTime={Math.ceil((amenity.distance / 40) * 60) + 2}
                           walkTime={Math.ceil((amenity.distance / 5) * 60)}
                         />
                         {isActive && (
-                          <span className="text-[9px] font-black text-blue-500 uppercase tracking-widest">● Live</span>
+                          <span className="block text-center text-[9px] font-black text-blue-500 uppercase tracking-widest mt-1">● Live</span>
                         )}
                       </div>
                     </div>
@@ -995,8 +995,8 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                   {nearbyAmenities.map((amenity) => {
                     const style = categoryStyle[amenity.category.toLowerCase()] || defaultStyle;
                     return (
-                      <div key={amenity.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-white border border-slate-100 rounded-xl shadow-sm gap-2">
-                        <div className="flex flex-1 min-w-0 items-center gap-3">
+                      <div key={amenity.id} className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-xl shadow-sm gap-2">
+                        <div className="flex flex-1 min-w-0 items-center gap-3 pr-2">
                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${style.bg} ${style.text}`}>
                             <div className={`w-2.5 h-2.5 rounded-full ${style.dot}`} />
                           </div>
@@ -1005,7 +1005,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{style.label}</p>
                           </div>
                         </div>
-                        <div className="sm:text-right shrink-0">
+                        <div className="flex-shrink-0">
                           <AnimatedMetricPill
                             distance={amenity.distance}
                             driveTime={amenity.driveTime}
