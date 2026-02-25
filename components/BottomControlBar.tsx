@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import SearchBar from './SearchBar';
 import { Project, Landmark } from '../types';
 import { Settings, Filter as FilterIcon, Navigation, X, Pencil, Search, Map } from 'lucide-react';
@@ -78,6 +78,28 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
     const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
     const [showCommandCenter, setShowCommandCenter] = useState(false);
+
+    const mapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const filterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const handleMapMouseEnter = () => {
+        if (typeof window !== 'undefined' && window.innerWidth < 768) return;
+        if (mapTimerRef.current) clearTimeout(mapTimerRef.current);
+        setShowCommandCenter(true);
+    };
+    const handleMapMouseLeave = () => {
+        if (typeof window !== 'undefined' && window.innerWidth < 768) return;
+        mapTimerRef.current = setTimeout(() => setShowCommandCenter(false), 1000);
+    };
+    const handleFilterMouseEnter = () => {
+        if (typeof window !== 'undefined' && window.innerWidth < 768) return;
+        if (filterTimerRef.current) clearTimeout(filterTimerRef.current);
+        setIsFilterModalOpen(true);
+    };
+    const handleFilterMouseLeave = () => {
+        if (typeof window !== 'undefined' && window.innerWidth < 768) return;
+        filterTimerRef.current = setTimeout(() => setIsFilterModalOpen(false), 1000);
+    };
 
     const propertyTypeOptions = useMemo(() => {
         // Count from filteredProjects so badges reflect current filter context
@@ -237,7 +259,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                 {/* Right: Tools */}
                 <div className="flex items-center gap-2 shrink-0">
                     {/* Map Command Center trigger */}
-                    <div className="relative">
+                    <div className="relative" onMouseEnter={handleMapMouseEnter} onMouseLeave={handleMapMouseLeave}>
                         <button
                             onClick={() => setShowCommandCenter(v => !v)}
                             aria-label="Open Map Command Center"
@@ -256,10 +278,12 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                             />
                         )}
                     </div>
-                    <button onClick={() => setIsFilterModalOpen(true)} aria-label="Open property filters" className={`p-2.5 rounded-xl border transition-all group flex items-center gap-2 px-4 ${isAnyFilterActive ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-slate-50 border-slate-200 text-slate-600'}`} title="Filters">
-                        <FilterIcon className={`w-5 h-5 ${isAnyFilterActive ? 'text-blue-600' : 'group-hover:text-blue-600'}`} />
-                        <span className="text-[10px] font-black uppercase tracking-widest hidden lg:block">Filters</span>
-                    </button>
+                    <div className="relative" onMouseEnter={handleFilterMouseEnter} onMouseLeave={handleFilterMouseLeave}>
+                        <button onClick={() => setIsFilterModalOpen(true)} aria-label="Open property filters" className={`p-2.5 rounded-xl border transition-all group flex items-center gap-2 px-4 ${isAnyFilterActive ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-slate-50 border-slate-200 text-slate-600'}`} title="Filters">
+                            <FilterIcon className={`w-5 h-5 ${isAnyFilterActive ? 'text-blue-600' : 'group-hover:text-blue-600'}`} />
+                            <span className="text-[10px] font-black uppercase tracking-widest hidden lg:block">Filters</span>
+                        </button>
+                    </div>
                     <div className="w-px h-6 bg-slate-200 mx-2 hidden sm:block" />
                     <button onClick={onAdminClick} aria-label="Open admin dashboard" className="p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-900 rounded-xl border border-slate-200 transition-all" title="Admin CMS">
                         <Settings className="w-5 h-5" />
@@ -367,7 +391,11 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                 <div className="fixed inset-0 z-[7000] bg-slate-900/60 backdrop-blur-sm flex justify-end animate-in fade-in duration-300">
                     <div className="absolute inset-0" onClick={() => setIsFilterModalOpen(false)} />
                     {/* Full-width on mobile, max-sm on desktop */}
-                    <div className="relative h-full w-full max-w-full md:max-w-sm bg-white shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-right duration-300">
+                    <div
+                        className="relative h-full w-full max-w-full md:max-w-sm bg-white shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-right duration-300"
+                        onMouseEnter={handleFilterMouseEnter}
+                        onMouseLeave={handleFilterMouseLeave}
+                    >
                         <div className="p-8 pb-4 overflow-y-auto flex-1">
                             {/* Header — no X (close via View Map button) */}
                             <div className="mb-8">

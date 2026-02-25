@@ -84,19 +84,19 @@ const AnimatedMetricPill = ({ distance, driveTime, walkTime }: { distance: numbe
   const current = metrics[activeIndex];
 
   return (
-    <div 
+    <div
       onClick={handleClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       className="relative h-10 min-w-[100px] bg-slate-50 hover:bg-white border border-slate-100 hover:border-blue-200 rounded-lg px-3 flex items-center justify-between gap-3 cursor-pointer transition-all group overflow-hidden select-none"
     >
-        <span className={`${current.color} bg-white p-1 rounded-md shadow-sm border border-slate-100 group-hover:scale-110 transition-transform`}>
-            {current.icon}
-        </span>
-        <div className="flex flex-col items-end leading-none animate-in slide-in-from-bottom-2 fade-in duration-300 key={activeIndex}">
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{current.label}</span>
-            <span className={`text-xs font-bold ${current.color}`}>{current.value}</span>
-        </div>
+      <span className={`${current.color} bg-white p-1 rounded-md shadow-sm border border-slate-100 group-hover:scale-110 transition-transform`}>
+        {current.icon}
+      </span>
+      <div className="flex flex-col items-end leading-none animate-in slide-in-from-bottom-2 fade-in duration-300 key={activeIndex}">
+        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{current.label}</span>
+        <span className={`text-xs font-bold ${current.color}`}>{current.value}</span>
+      </div>
     </div>
   );
 };
@@ -136,6 +136,14 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   const [isTouringNeighborhood, setIsTouringNeighborhood] = useState(false);
   const [activeTourAmenityIdx, setActiveTourAmenityIdx] = useState<number | null>(null);
   const [amenitySearch, setAmenitySearch] = useState('');
+  const [visibleAmenitiesCount, setVisibleAmenitiesCount] = useState(15);
+
+  // Auto-expand visible window if tour advances past the current limit
+  useEffect(() => {
+    if (activeTourAmenityIdx !== null && activeTourAmenityIdx >= visibleAmenitiesCount) {
+      setVisibleAmenitiesCount(activeTourAmenityIdx + 5);
+    }
+  }, [activeTourAmenityIdx, visibleAmenitiesCount]);
 
   // ── Sort nearbyLandmarks by distance for the tour ───────────────────────
   const localAmenities = useMemo(() => {
@@ -383,12 +391,15 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
             <span className="font-bold text-sm">Back to Project</span>
           </button>
           <button
-            onClick={() => {
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
               if (isTouringNeighborhood) {
-                stopTour();
+                setIsTouringNeighborhood(false);
+                setActiveTourAmenityIdx(null);
+                setVisibleAmenitiesCount(15);
               } else {
                 setIsTouringNeighborhood(true);
-                // Kick off immediately with first amenity via CustomEvent
                 const first = searchedAmenities[0];
                 if (first && project) {
                   setActiveTourAmenityIdx(0);
@@ -448,7 +459,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {searchedAmenities.map((amenity, idx) => {
+              {searchedAmenities.slice(0, visibleAmenitiesCount).map((amenity, idx) => {
                 const isActive = activeTourAmenityIdx === idx;
                 const style = categoryStyle[amenity.category?.toLowerCase?.()] ?? defaultStyle;
                 return (
@@ -479,9 +490,11 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                         </span>
                       </div>
                       <div className="shrink-0 flex flex-col items-end gap-1">
-                        <span className="bg-slate-100 px-2.5 py-1 rounded-lg text-xs font-bold text-slate-600 whitespace-nowrap">
-                          {amenity.distance.toFixed(1)} km
-                        </span>
+                        <AnimatedMetricPill
+                          distance={amenity.distance}
+                          driveTime={Math.ceil((amenity.distance / 40) * 60) + 2}
+                          walkTime={Math.ceil((amenity.distance / 5) * 60)}
+                        />
                         {isActive && (
                           <span className="text-[9px] font-black text-blue-500 uppercase tracking-widest">● Live</span>
                         )}
@@ -490,6 +503,18 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                   </div>
                 );
               })}
+
+              {/* View More button */}
+              {visibleAmenitiesCount < searchedAmenities.length && (
+                <div className="pt-4 pb-8 flex justify-center">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setVisibleAmenitiesCount(prev => prev + 15); }}
+                    className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-black uppercase tracking-widest rounded-full transition-colors border border-slate-200 shadow-sm"
+                  >
+                    View More ({searchedAmenities.length - visibleAmenitiesCount} remaining)
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -796,8 +821,8 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
               <button
                 onClick={() => setActiveIsochrone({ mode: 'driving', minutes: 15 })}
                 className={`mt-3 w-full py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all border ${activeIsochrone?.mode === 'driving' && activeIsochrone?.minutes === 15
-                    ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                    : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-600 hover:text-white hover:border-blue-600'
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                  : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-600 hover:text-white hover:border-blue-600'
                   }`}
               >
                 <Clock className="w-3.5 h-3.5" />
@@ -826,11 +851,11 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                           </div>
                         </div>
                         <div className="sm:text-right shrink-0">
-                            <AnimatedMetricPill 
-                                distance={amenity.distance} 
-                                driveTime={amenity.driveTime} 
-                                walkTime={amenity.walkTime} 
-                            />
+                          <AnimatedMetricPill
+                            distance={amenity.distance}
+                            driveTime={amenity.driveTime}
+                            walkTime={amenity.walkTime}
+                          />
                         </div>
                       </div>
                     );
