@@ -178,7 +178,7 @@ const PresentationShowcase: React.FC = () => {
         .revealed { opacity: 1 !important; transform: translateY(0) !important; }
       `}</style>
 
-            <div className="min-h-screen bg-slate-50 font-sans text-slate-800 overflow-x-hidden selection:bg-blue-500 selection:text-white">
+            <div className="h-screen w-full overflow-y-auto overflow-x-hidden bg-slate-50 font-sans text-slate-800 selection:bg-blue-500 selection:text-white">
 
                 {/* HERO */}
                 <div className="relative h-screen flex items-center justify-center overflow-hidden bg-slate-900">
