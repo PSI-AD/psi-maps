@@ -203,7 +203,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
         points: amenityPoints,
         bounds: clusterBounds,
         zoom: clusterZoom,
-        options: { radius: 75, maxZoom: 14 },
+        options: { radius: 100, maxZoom: 13 },
     });
 
     useEffect(() => {

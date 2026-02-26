@@ -91,6 +91,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
     // ── Mobile modals ───────────────────────────────────────────────────
     const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
     const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+    const [isMobileMapOpen, setIsMobileMapOpen] = useState(false);
 
     // ── Desktop Map Command Center — hover + click to pin ───────────────
     const [isMapClicked, setIsMapClicked] = useState(false);
@@ -448,9 +449,9 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                         <span className="text-[11px] font-bold tracking-wide mt-1">Filters</span>
                     </button>
 
-                    <button onClick={onAdminClick} aria-label="Open admin dashboard" className={`flex flex-col items-center gap-1 flex-1 py-1 ${inactiveIconColor} transition-colors`}>
-                        <Settings size={26} strokeWidth={2.5} />
-                        <span className="text-[11px] font-bold tracking-wide mt-1">Admin</span>
+                    <button onClick={() => setIsMobileMapOpen(true)} aria-label="Open map controls" className={`flex flex-col items-center gap-1 flex-1 py-1 ${inactiveIconColor} transition-colors`}>
+                        <Map size={26} strokeWidth={2.5} />
+                        <span className="text-[11px] font-bold tracking-wide mt-1">Map</span>
                     </button>
                 </div>
             </div>
@@ -517,53 +518,51 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
 
             {/* ─────────────────── MOBILE FILTER MODAL ─────────────────── */}
             {isMobileFilterOpen && (
-                <div className="fixed inset-0 z-[7000] pointer-events-none flex justify-center items-end p-4 pb-[90px] md:hidden">
-                    <div className="absolute inset-0 pointer-events-auto bg-slate-900/20 backdrop-blur-sm" onClick={() => setIsMobileFilterOpen(false)} />
-                    <div className="relative w-full bg-white shadow-2xl rounded-3xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-8 duration-300 pointer-events-auto border border-slate-100 max-h-[75vh]">
-                        {/* Header */}
-                        <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
-                            <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest">Map Filters</h3>
-                            <button onClick={() => setIsMobileFilterOpen(false)} className="p-1.5 bg-white rounded-full text-slate-500 hover:text-slate-900 transition-colors shadow-sm border border-slate-200">
-                                <X className="w-4 h-4" />
+                <div className="fixed inset-0 z-[7000] bg-slate-900/60 backdrop-blur-sm flex items-end md:hidden">
+                    <div className="bg-white w-full rounded-t-3xl p-6 space-y-5 animate-in slide-in-from-bottom-full duration-300 shadow-2xl pb-10">
+                        <div className="flex justify-between items-center">
+                            <h3 className="text-base font-black text-slate-900 uppercase tracking-widest">Map Filters</h3>
+                            <button onClick={() => setIsMobileFilterOpen(false)} aria-label="Close filters" className="p-2 bg-slate-100 rounded-full text-slate-500 hover:bg-slate-200 transition-all">
+                                <X className="w-5 h-5" />
                             </button>
                         </div>
                         {/* Scrollable body */}
-                        <div className="p-5 overflow-y-auto flex-1 custom-scrollbar space-y-4">
+                        <div className="w-full max-h-[60vh] overflow-y-auto hide-scrollbar space-y-5">
                             <div className="flex gap-1.5">
                                 {['All', 'Off-Plan', 'Completed'].map((status) => (
                                     <button key={status} onClick={() => setStatusFilter(status)}
-                                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${statusFilter === status ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
+                                        className={`flex-1 py-3 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all ${statusFilter === status ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
                                         {status}
                                     </button>
                                 ))}
                             </div>
                             <div className="flex flex-col gap-2">
-                                <select value={selectedCity} onChange={handleCityChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 outline-none">
+                                <select value={selectedCity} onChange={handleCityChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-sm font-bold text-slate-700 outline-none">
                                     <option value="">All Emirates</option>
                                     {cityOptions.map(city => <option key={city.id} value={city.id}>{city.label}</option>)}
                                 </select>
-                                <select value={selectedCommunity} onChange={handleCommunityChange} disabled={!selectedCity} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 outline-none disabled:opacity-50">
+                                <select value={selectedCommunity} onChange={handleCommunityChange} disabled={!selectedCity} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-sm font-bold text-slate-700 outline-none disabled:opacity-50">
                                     <option value="">All Communities</option>
                                     {availableCommunities.map(([name, count]) => <option key={name} value={name}>{name} ({count})</option>)}
                                 </select>
                             </div>
-                            <select value={developerFilter} onChange={(e) => setDeveloperFilter(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 outline-none">
+                            <select value={developerFilter} onChange={(e) => setDeveloperFilter(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-sm font-bold text-slate-700 outline-none">
                                 <option value="All">All Developers</option>
                                 {developerOptions.filter(d => d.name !== 'All').map(dev => (
                                     <option key={dev.name} value={dev.name}>{dev.name} ({dev.count})</option>
                                 ))}
                             </select>
                             <div>
-                                <div className="flex justify-between items-center mb-2">
-                                    <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Amenities</h4>
+                                <div className="flex justify-between items-center mb-3">
+                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Amenities</h4>
                                     <button onClick={() => {
                                         const allCats = ['school', 'hospital', 'retail', 'leisure', 'hotel', 'culture', 'airport', 'port', 'park', 'beach', 'hypermarket'];
                                         activeAmenities.length > 0 ? activeAmenities.forEach(cat => onToggleAmenity?.(cat)) : allCats.forEach(cat => onToggleAmenity?.(cat));
-                                    }} className="text-[9px] font-bold text-blue-600 hover:text-blue-800 transition-colors">
+                                    }} className="text-[10px] font-bold text-blue-600 hover:text-blue-800 transition-colors">
                                         {activeAmenities.length > 0 ? 'Clear All' : 'Select All'}
                                     </button>
                                 </div>
-                                <div className="flex flex-wrap gap-1.5">
+                                <div className="flex flex-wrap gap-2">
                                     {[
                                         { label: 'Schools', cat: 'school' },
                                         { label: 'Hospitals', cat: 'hospital' },
@@ -578,31 +577,53 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                                         { label: 'Hypermarkets', cat: 'hypermarket' },
                                     ].map(({ label, cat }) => (
                                         <button key={cat} onClick={() => onToggleAmenity?.(cat)}
-                                            className={`px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider border transition-all ${activeAmenities.includes(cat) ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300'}`}>
+                                            className={`px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider border transition-all ${activeAmenities.includes(cat) ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300'}`}>
                                             {label}
                                         </button>
                                     ))}
                                 </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-2">
-                                <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 flex justify-between items-center">
-                                    <span className="text-[10px] font-bold text-slate-700">3D Buildings</span>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex justify-between items-center">
+                                    <span className="text-[11px] font-bold text-slate-700">3D Buildings</span>
                                     <button onClick={() => setMapFeatures(prev => ({ ...prev, show3D: !prev.show3D }))} className={`relative w-8 h-4 rounded-full transition-colors ${mapFeatures.show3D ? 'bg-blue-600' : 'bg-slate-300'}`}>
                                         <span className={`absolute top-0.5 left-0.5 bg-white w-3 h-3 rounded-full transition-transform ${mapFeatures.show3D ? 'translate-x-4' : 'translate-x-0'}`} />
                                     </button>
                                 </div>
-                                <button onClick={() => { onToggleDraw(); setIsMobileFilterOpen(false); }} className={`p-2.5 rounded-xl border flex items-center justify-center gap-1.5 text-[10px] font-bold transition-all ${isDrawing ? 'bg-violet-600 text-white border-violet-600' : 'bg-violet-50 text-violet-700 border-violet-100 hover:bg-violet-100'}`}>
-                                    <Pencil className="w-3.5 h-3.5" />
+                                <button onClick={() => { onToggleDraw(); setIsMobileFilterOpen(false); }} className={`p-3 rounded-xl border flex items-center justify-center gap-1.5 text-[11px] font-bold transition-all ${isDrawing ? 'bg-violet-600 text-white border-violet-600' : 'bg-violet-50 text-violet-700 border-violet-100 hover:bg-violet-100'}`}>
+                                    <Pencil className="w-4 h-4" />
                                     {isDrawing ? 'Cancel Area' : 'Draw Area'}
                                 </button>
                             </div>
                         </div>
-                        {/* Footer */}
-                        <div className="p-3 bg-white border-t border-slate-100 shrink-0">
-                            <button onClick={() => setIsMobileFilterOpen(false)} className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-md transition-colors">
-                                View {filteredCount} Results
+                        <button onClick={() => setIsMobileFilterOpen(false)} className="w-full py-5 bg-blue-600 text-white hover:bg-blue-700 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] shadow-xl transition-all">
+                            Apply Filters
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* ─────────────────── MOBILE MAP MODAL ─────────────────── */}
+            {isMobileMapOpen && (
+                <div className="fixed inset-0 z-[7000] bg-slate-900/60 backdrop-blur-sm flex items-end md:hidden">
+                    <div className="bg-white w-full rounded-t-3xl p-6 space-y-5 animate-in slide-in-from-bottom-full duration-300 shadow-2xl pb-10">
+                        <div className="flex justify-between items-center">
+                            <h3 className="text-base font-black text-slate-900 uppercase tracking-widest">Map Controls</h3>
+                            <button onClick={() => setIsMobileMapOpen(false)} aria-label="Close map controls" className="p-2 bg-slate-100 rounded-full text-slate-500 hover:bg-slate-200 transition-all">
+                                <X className="w-5 h-5" />
                             </button>
                         </div>
+                        <div className="w-full max-h-[60vh] overflow-y-auto hide-scrollbar">
+                            <MapCommandCenter
+                                mapRef={mapRef}
+                                mapStyle={mapStyle}
+                                setMapStyle={setMapStyle || (() => { })}
+                                onClose={() => setIsMobileMapOpen(false)}
+                            />
+                        </div>
+                        <button onClick={() => setIsMobileMapOpen(false)} className="w-full py-5 bg-blue-600 text-white hover:bg-blue-700 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] shadow-xl transition-all">
+                            Apply Changes
+                        </button>
                     </div>
                 </div>
             )}
