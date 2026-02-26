@@ -10,6 +10,14 @@ import { optimizeAndUploadImage } from '../utils/imageOptimizer';
 import Map, { Marker, NavigationControl } from 'react-map-gl';
 import PresentationManager from './PresentationManager';
 
+const DEV_DOMAINS: Record<string, string> = {
+  'emaar': 'emaar.com', 'aldar': 'aldar.com', 'damac': 'damacproperties.com',
+  'nakheel': 'nakheel.com', 'sobha': 'sobharealty.com', 'meraas': 'meraas.com',
+  'tiger': 'tigergroup.net', 'binghatti': 'binghatti.com', 'danube': 'danubeproperties.ae',
+  'imkan': 'imkan.ae', 'reportage': 'reportageuae.com', 'ellington': 'ellingtonproperties.ae',
+  'bloom': 'bloomholding.com', 'azizi': 'azizidevelopments.com'
+};
+
 const PUBLIC_MAPBOX_TOKEN = typeof window !== 'undefined'
   ? atob('cGsuZXlKMUlqb2ljSE5wYm5ZaUxDSmhJam9pWTIxc2NqQnpNMjF4TURacU56Tm1jMlZtZEd0NU1XMDVaQ0o5LlZ4SUVuMWpMVHpNd0xBTjhtNEIxNWc=')
   : '';
@@ -884,43 +892,25 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
 
             {activeTab === 'developers' && (
               <section className="animate-in fade-in duration-300">
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                  <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-                    <div>
-                      <h2 className="text-xl font-black text-slate-800">Developer CMS</h2>
-                      <p className="text-sm text-slate-500 mt-0.5">{developers.length} developer{developers.length !== 1 ? 's' : ''} in database</p>
-                    </div>
-                    <button
-                      onClick={() => alert('Add Developer: implement modal or inline form')}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-colors"
-                    >
-                      <Plus className="w-4 h-4" /> Add Developer
-                    </button>
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden p-6">
+                  <div className="mb-6 pb-6 border-b border-slate-100">
+                    <h2 className="text-xl font-black text-slate-800 mb-2">Developer Logo Verification Engine</h2>
+                    <p className="text-slate-500 text-sm">This grid tests the Clearbit API against our known developer domains. If you see "Blocked" images here, your browser's Ad-Blocker or Privacy Shield is blocking the logo.clearbit.com domain.</p>
                   </div>
-                  <div className="divide-y divide-slate-100">
-                    {developers.length === 0 ? (
-                      <div className="p-10 text-center">
-                        <Database className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                        <p className="text-slate-500 font-medium text-sm">No developers in database.</p>
-                        <p className="text-slate-400 text-xs mt-1">Run <code className="bg-slate-100 px-1 rounded">node scripts/enrich-data.cjs</code> to populate.</p>
-                      </div>
-                    ) : developers.map(dev => (
-                      <div key={dev.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors gap-4">
-                        <div className="flex items-center gap-4 min-w-0">
-                          <img
-                            src={dev.logoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(dev.name)}&background=EFF6FF&color=1D4ED8&bold=true`}
-                            alt={dev.name}
-                            className="w-10 h-10 rounded-lg object-contain bg-slate-100 shrink-0 border border-slate-200"
-                            onError={(e) => { e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(dev.name)}&background=EFF6FF&color=1D4ED8&bold=true`; }}
-                          />
-                          <div className="min-w-0">
-                            <p className="font-bold text-slate-800 text-sm">{dev.name}</p>
-                            <p className="text-xs text-slate-500 truncate max-w-md">{dev.description || dev.website || 'No description available.'}</p>
-                          </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {Object.entries(DEV_DOMAINS).map(([name, domain]) => (
+                      <div key={name} className="p-4 border border-slate-100 rounded-xl flex flex-col items-center justify-center gap-3 bg-slate-50">
+                        <img
+                          src={`https://logo.clearbit.com/${domain}`}
+                          alt={name}
+                          className="w-16 h-16 object-contain bg-white rounded-lg shadow-sm p-1"
+                          onError={(e) => { e.currentTarget.src = 'https://placehold.co/100x100?text=Blocked'; }}
+                        />
+                        <div className="text-center">
+                          <p className="text-sm font-bold text-slate-800 capitalize">{name}</p>
+                          <p className="text-[10px] text-slate-500">{domain}</p>
                         </div>
-                        <button className="shrink-0 text-blue-600 font-bold text-xs uppercase tracking-widest hover:underline">
-                          Edit
-                        </button>
                       </div>
                     ))}
                   </div>

@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Landmark } from '../types';
 import { X, ChevronRight, ChevronLeft, Info, Image as ImageIcon } from 'lucide-react';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Autoplay, Pagination, EffectFade } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/pagination';
+import 'swiper/css/effect-fade';
 
 interface Props {
     landmark: Landmark;
@@ -99,6 +104,8 @@ const LandmarkInfoModal: React.FC<Props> = ({ landmark, onClose }) => {
     const next = () => setActiveIdx((p) => (p + 1) % facts.length);
     const prev = () => setActiveIdx((p) => (p - 1 + facts.length) % facts.length);
 
+    const images = landmark.images && landmark.images.length > 0 ? landmark.images : (landmark.imageUrl ? [landmark.imageUrl] : ['https://placehold.co/800x600?text=No+Image']);
+
     return (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6">
             {/* Blurred dark backdrop */}
@@ -119,22 +126,23 @@ const LandmarkInfoModal: React.FC<Props> = ({ landmark, onClose }) => {
 
                 {/* ── Left: Media ────────────────────────────────────────────────────── */}
                 <div className="w-full md:w-1/2 bg-slate-950 relative overflow-hidden group flex-shrink-0">
-                    {landmark.imageUrl ? (
-                        <img
-                            src={landmark.imageUrl}
-                            alt={landmark.name}
-                            className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-[2s] ease-out"
-                        />
-                    ) : (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-700 select-none">
-                            <ImageIcon className="w-16 h-16 mb-4 opacity-40" />
-                            <p className="font-mono text-xs uppercase tracking-widest text-slate-600">Awaiting Image</p>
-                        </div>
-                    )}
-
-                    {/* Gradient vignette */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent pointer-events-none" />
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent to-slate-950/30 pointer-events-none hidden md:block" />
+                    <div className="absolute inset-0 w-full h-full">
+                        <Swiper
+                            modules={[Autoplay, Pagination, EffectFade]}
+                            effect="fade"
+                            autoplay={{ delay: 3500, disableOnInteraction: false }}
+                            pagination={{ clickable: true, dynamicBullets: true }}
+                            loop={images.length > 1}
+                            className="w-full h-full"
+                        >
+                            {images.map((img, idx) => (
+                                <SwiperSlide key={idx}>
+                                    <img src={img} alt={`${landmark.name} view ${idx + 1}`} className="w-full h-full object-cover" />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/95 via-slate-900/60 to-transparent" />
+                                </SwiperSlide>
+                            ))}
+                        </Swiper>
+                    </div>
 
                     {/* Verified badge */}
                     <div className="absolute bottom-5 left-5 flex items-center gap-2 bg-blue-600/20 backdrop-blur-md border border-blue-500/30 px-4 py-2 rounded-full shadow-lg">
@@ -176,8 +184,8 @@ const LandmarkInfoModal: React.FC<Props> = ({ landmark, onClose }) => {
                             <div
                                 key={idx}
                                 className={`absolute inset-0 flex items-center transition-all duration-700 ease-in-out ${activeIdx === idx
-                                        ? 'opacity-100 translate-x-0'
-                                        : 'opacity-0 translate-x-8 pointer-events-none'
+                                    ? 'opacity-100 translate-x-0'
+                                    : 'opacity-0 translate-x-8 pointer-events-none'
                                     }`}
                             >
                                 <p className="text-lg md:text-xl text-slate-200 font-medium leading-relaxed pl-5 border-l-2 border-blue-500 relative z-10">

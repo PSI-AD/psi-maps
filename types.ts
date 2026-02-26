@@ -42,6 +42,7 @@ export interface Landmark {
   isHidden?: boolean;
   thumbnailUrl?: string;
   imageUrl?: string;   // Hero image URL for the LandmarkInfoModal
+  images?: string[]; // Array for multiple slideshow images
   modelUrl?: string;   // URL to a .glb / .gltf 3D model file
   domain?: string;     // Brand domain for Clearbit logo (e.g. hilton.com)
   facts?: string[];    // Animated slide-facts shown in the LandmarkInfoModal
