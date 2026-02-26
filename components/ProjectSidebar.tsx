@@ -726,15 +726,16 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
 
           {/* Hero image — strictly uses optimized thumb (correct size for 380px panel) */}
           <img
-            key={currentImage.thumb}
-            src={currentImage.thumb}
+            key={currentImage?.thumb || 'fallback'}
+            src={currentImage?.thumb || '/placeholder-image.png'}
             alt={project.name}
             loading="eager"
             fetchpriority="high"
             decoding="async"
             onLoad={() => setIsMainImageLoaded(true)}
-            onClick={() => setLightboxIndex(activeIdx)}
+            onClick={() => setFullscreenImage(currentImage?.large || null)}
             className="absolute inset-0 w-full h-full object-cover cursor-zoom-in transition-opacity duration-300"
+            onError={(e) => { e.currentTarget.src = '/placeholder-image.png'; }}
           />
 
           {/* Play/Pause button with circular SVG progress ring */}
@@ -838,7 +839,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
           {/* 2. Name → Location → Developer */}
           <div className="sticky top-0 z-20 bg-white px-6 pt-6 pb-5 border-b border-slate-100 shadow-sm" style={{ paddingTop: 'max(env(safe-area-inset-top), 24px)' }}>
             <h1 className="text-2xl font-black text-slate-900 leading-tight tracking-tight mb-2">{project.name}</h1>
-            <div className="flex items-center text-slate-500 text-xs font-bold uppercase tracking-widest mb-3">
+            <div className="flex items-center text-slate-500 text-sm font-medium mb-3">
               <MapPin className="w-4 h-4 mr-1.5 text-blue-600 shrink-0" />
               <button onClick={() => onQuickFilter && project.community ? onQuickFilter('community', project.community) : undefined} className="hover:text-blue-800 hover:underline transition-all text-left truncate">
                 {project.community}
@@ -850,7 +851,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                   </button></>
               )}
             </div>
-            <p className="text-sm font-black text-blue-600 uppercase tracking-widest">
+            <p className="text-base font-bold text-blue-600">
               <button onClick={() => onQuickFilter && project.developerName ? onQuickFilter('developer', project.developerName) : undefined} className="hover:text-blue-800 hover:underline transition-all text-left">
                 {project.developerName || 'Exclusive Developer'}
               </button>
