@@ -14,6 +14,7 @@ const REASONS = [
     'Incorrect Location / Map Pin',
     'Wrong Developer or Status',
     'Outdated Images',
+    'Suggestions',
     'Other',
 ];
 
@@ -73,7 +74,7 @@ const ReportModal: React.FC<Props> = ({ project, onClose }) => {
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                     <h3 className="font-black text-slate-800 uppercase tracking-widest text-sm flex items-center gap-2">
-                        <Flag className="w-4 h-4 text-red-500" />
+                        <Flag className="w-4 h-4 text-orange-500" />
                         Report Issue
                     </h3>
                     <button
@@ -115,7 +116,7 @@ const ReportModal: React.FC<Props> = ({ project, onClose }) => {
                     <button
                         onClick={handleSubmit}
                         disabled={isSubmitting}
-                        className="w-full py-3.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-black uppercase text-sm tracking-widest shadow-md transition-colors disabled:opacity-50"
+                        className="w-full py-3.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-black uppercase text-sm tracking-widest shadow-md transition-colors disabled:opacity-50"
                     >
                         {isSubmitting ? 'Sending…' : 'Submit Report'}
                     </button>

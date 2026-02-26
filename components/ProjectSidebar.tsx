@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Project, Landmark } from '../types';
 import { X, MapPin, BedDouble, Bath, Square as SquareIcon, Calendar, ArrowRight, Activity, Building, LayoutTemplate, Car, Footprints, Clock, MessageSquare, Compass, ChevronLeft, ChevronRight, Play, Pause, Square, StopCircle, Share2, Heart, GitCompare, Loader2, Flag, Download } from 'lucide-react';
 import { calculateDistance } from '../utils/geo';
@@ -82,57 +83,24 @@ const formatCompletionDate = (dateStr?: string): string => {
   } catch { return dateStr; }
 };
 
-const AnimatedMetricPill = ({ distance, driveTime, walkTime }: { distance: number, driveTime: number, walkTime: number }) => {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [isHovered, setIsHovered] = useState(false);
-
-  useEffect(() => {
-    if (isHovered) return;
-    const interval = setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % 3);
-    }, 6000);
-    return () => clearInterval(interval);
-  }, [isHovered]);
-
-  const handleClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setActiveIndex((prev) => (prev + 1) % 3);
-  };
-
+const RotatingMetric = ({ distance, walk, drive }: { distance: string, walk: string, drive: string }) => {
+  const [idx, setIdx] = useState(0);
+  useEffect(() => { const int = setInterval(() => setIdx(i => (i + 1) % 3), 3000); return () => clearInterval(int); }, []);
   const metrics = [
-    { label: 'Distance', value: `${distance.toFixed(1)} km`, icon: <MapPin className="w-3 h-3" />, color: 'text-slate-500' },
-    { label: 'Drive', value: `${driveTime} min`, icon: <Car className="w-3 h-3" />, color: 'text-blue-600' },
-    { label: 'Walk', value: `${walkTime} min`, icon: <Footprints className="w-3 h-3" />, color: 'text-amber-600' },
+    { label: 'DISTANCE', val: distance, icon: <MapPin className="w-3 h-3" />, color: 'text-blue-600' },
+    { label: 'DRIVE', val: drive, icon: <Car className="w-3 h-3" />, color: 'text-emerald-600' },
+    { label: 'WALK', val: walk, icon: <Footprints className="w-3 h-3" />, color: 'text-amber-600' }
   ];
-
+  const m = metrics[idx];
   return (
-    <div
-      onClick={handleClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      className="relative h-10 w-[110px] bg-slate-50 hover:bg-white border border-slate-100 hover:border-blue-200 rounded-lg cursor-pointer transition-all group overflow-hidden select-none shrink-0"
-    >
-      {metrics.map((metric, idx) => {
-        const isActive = activeIndex === idx;
-        return (
-          <div
-            key={idx}
-            className={`absolute inset-0 px-3 flex items-center justify-between gap-2 transition-opacity duration-700 ease-in-out ${isActive ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
-              }`}
-          >
-            <span className={`${metric.color} bg-white p-1 rounded-md shadow-sm border border-slate-100 group-hover:scale-110 transition-transform shrink-0`}>
-              {metric.icon}
-            </span>
-            <div className="flex flex-col items-end leading-none min-w-0 flex-1">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest truncate w-full text-right">{metric.label}</span>
-              <span className={`text-xs font-bold ${metric.color} truncate w-full text-right`}>{metric.value}</span>
-            </div>
-          </div>
-        );
-      })}
+    <div key={idx} className={`flex flex-col items-center justify-center w-16 h-12 bg-slate-50 rounded-lg animate-in fade-in slide-in-from-bottom-2 duration-300 ${m.color} shrink-0`}>
+      <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{m.label}</span>
+      <div className="flex items-center gap-1 font-bold text-xs">
+        {m.icon} <span>{m.val}</span>
+      </div>
     </div>
   );
-};
+}
 
 
 
@@ -176,13 +144,9 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   const handleSaveLocal = (type: 'favorite' | 'compare') => {
     if (!project) return;
     const key = type === 'favorite' ? 'psi_favorites' : 'psi_compare';
-    const label = type === 'favorite' ? 'Favorites' : 'Comparison List';
     const existing: string[] = JSON.parse(localStorage.getItem(key) || '[]');
     if (!existing.includes(project.id)) {
       localStorage.setItem(key, JSON.stringify([...existing, project.id]));
-      alert(`Added to ${label}!`);
-    } else {
-      alert(`Already in ${label}.`);
     }
   };
 
@@ -637,10 +601,10 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                         </div>
                       </div>
                       <div className="flex-shrink-0">
-                        <AnimatedMetricPill
-                          distance={amenity.distance}
-                          driveTime={Math.ceil((amenity.distance / 40) * 60) + 2}
-                          walkTime={Math.ceil((amenity.distance / 5) * 60)}
+                        <RotatingMetric
+                          distance={`${amenity.distance.toFixed(1)} km`}
+                          drive={`${Math.ceil((amenity.distance / 40) * 60) + 2} m`}
+                          walk={`${Math.ceil((amenity.distance / 5) * 60)} m`}
                         />
                         {isActive && (
                           <span className="block text-center text-[9px] font-black text-blue-500 uppercase tracking-widest mt-1">● Live</span>
@@ -656,9 +620,9 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                 <div className="pt-4 pb-8 flex justify-center">
                   <button
                     onClick={(e) => { e.stopPropagation(); setVisibleAmenitiesCount(prev => prev + 15); }}
-                    className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-black uppercase tracking-widest rounded-full transition-colors border border-slate-200 shadow-sm"
+                    className="w-full py-3 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-sm rounded-xl border border-slate-200 transition-colors flex items-center justify-center gap-2"
                   >
-                    View More ({searchedAmenities.length - visibleAmenitiesCount} remaining)
+                    View all amenities ({searchedAmenities.length - visibleAmenitiesCount} remaining)
                   </button>
                 </div>
               )}
@@ -842,12 +806,12 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
           <div className="sticky top-0 z-20 bg-white px-6 pt-6 pb-5 border-b border-slate-100 shadow-sm" style={{ paddingTop: 'max(env(safe-area-inset-top), 24px)' }}>
 
             {/* 1. Project Name */}
-            <h1 className="text-3xl font-black text-slate-900 leading-tight tracking-tight mb-2 truncate">
+            <h1 className="text-[26px] font-black text-slate-900 leading-tight mb-1.5 truncate">
               {project.name}
             </h1>
 
             {/* 2. Location */}
-            <div className="flex items-center text-slate-500 text-sm font-bold mb-3 truncate">
+            <div className="flex items-center text-slate-500 text-sm font-semibold mb-2 truncate">
               <MapPin className="w-4 h-4 mr-1.5 text-blue-600 shrink-0" />
               <button onClick={() => onQuickFilter && project.community ? onQuickFilter('community', project.community) : undefined} className="hover:text-blue-800 hover:underline transition-all text-left truncate">
                 {project.community}
@@ -863,7 +827,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
             </div>
 
             {/* 3. Developer */}
-            <p className="text-base font-black text-blue-600 tracking-wide truncate">
+            <p className="text-base font-extrabold text-blue-600 truncate">
               <button onClick={() => onQuickFilter && project.developerName ? onQuickFilter('developer', project.developerName) : undefined} className="hover:text-blue-800 hover:underline transition-all text-left truncate">
                 {project.developerName || 'Exclusive Developer'}
               </button>
@@ -1041,10 +1005,10 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                           </div>
                         </div>
                         <div className="flex-shrink-0">
-                          <AnimatedMetricPill
-                            distance={amenity.distance}
-                            driveTime={amenity.driveTime}
-                            walkTime={amenity.walkTime}
+                          <RotatingMetric
+                            distance={`${amenity.distance.toFixed(1)} km`}
+                            drive={`${amenity.driveTime} m`}
+                            walk={`${amenity.walkTime} m`}
                           />
                         </div>
                       </div>
@@ -1165,9 +1129,9 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
 
 
       {/* Fullscreen Interactive Gallery Overlay */}
-      {galleryIndex !== null && (
+      {galleryIndex !== null && typeof document !== 'undefined' && createPortal(
         <div
-          className="fixed inset-0 z-[99999] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center animate-in fade-in duration-200"
+          className="fixed inset-0 z-[999999] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center animate-in fade-in duration-200"
           onClick={() => setGalleryIndex(null)}
         >
           {/* Top Toolbar */}
@@ -1221,7 +1185,8 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
           <div className="absolute bottom-8 left-0 w-full text-center text-white/50 text-xs md:hidden pointer-events-none">
             Swipe left or right to view more
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

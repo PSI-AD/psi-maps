@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Project, Landmark } from '../types';
 import * as turf from '@turf/turf';
 import { X, Car, MapPin, Footprints } from 'lucide-react';
@@ -7,6 +7,25 @@ interface NearbyPanelProps {
     project: Project;
     landmarks: Landmark[];
     onClose: () => void;
+}
+
+const RotatingMetric = ({ distance, walk, drive }: { distance: string, walk: string, drive: string }) => {
+    const [idx, setIdx] = useState(0);
+    useEffect(() => { const int = setInterval(() => setIdx(i => (i + 1) % 3), 3000); return () => clearInterval(int); }, []);
+    const metrics = [
+        { label: 'DISTANCE', val: distance, icon: <MapPin className="w-3 h-3" />, color: 'text-blue-600' },
+        { label: 'DRIVE', val: drive, icon: <Car className="w-3 h-3" />, color: 'text-emerald-600' },
+        { label: 'WALK', val: walk, icon: <Footprints className="w-3 h-3" />, color: 'text-amber-600' }
+    ];
+    const m = metrics[idx];
+    return (
+        <div key={idx} className={`flex flex-col items-center justify-center w-16 h-12 bg-slate-50 rounded-lg animate-in fade-in slide-in-from-bottom-2 duration-300 ${m.color} shrink-0`}>
+            <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{m.label}</span>
+            <div className="flex items-center gap-1 font-bold text-xs">
+                {m.icon} <span>{m.val}</span>
+            </div>
+        </div>
+    );
 }
 
 const categoryGroups: { label: string; cats: string[] }[] = [
@@ -114,36 +133,11 @@ const NearbyPanel: React.FC<NearbyPanelProps> = ({ project, landmarks, onClose }
                                             </span>
 
                                             {/* Metrics */}
-                                            <div className="flex items-center gap-3 shrink-0">
-
-                                                {/* Distance — neutral blue */}
-                                                <div className="flex flex-col items-end">
-                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Distance</span>
-                                                    <span className="text-xs font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">
-                                                        {item.distance.toFixed(1)} km
-                                                    </span>
-                                                </div>
-
-                                                <div className="w-px h-8 bg-slate-100" />
-
-                                                {/* Driving — emerald green */}
-                                                <div className="flex flex-col items-end">
-                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Drive</span>
-                                                    <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md flex items-center gap-1">
-                                                        <Car className="w-3 h-3" /> {item.drivingTime} min
-                                                    </span>
-                                                </div>
-
-                                                <div className="w-px h-8 bg-slate-100" />
-
-                                                {/* Walking — amber orange */}
-                                                <div className="flex flex-col items-end">
-                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Walk</span>
-                                                    <span className="text-xs font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md flex items-center gap-1">
-                                                        <Footprints className="w-3 h-3" /> {item.walkingTime} min
-                                                    </span>
-                                                </div>
-                                            </div>
+                                            <RotatingMetric
+                                                distance={`${item.distance.toFixed(1)} km`}
+                                                drive={`${item.drivingTime} m`}
+                                                walk={`${item.walkingTime} m`}
+                                            />
                                         </div>
                                     );
                                 })}
