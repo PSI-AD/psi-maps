@@ -139,6 +139,43 @@ const AnimatedMetricPill = ({ distance, driveTime, walkTime }: { distance: numbe
   );
 };
 
+const CompactMortgageCalculator = ({ priceRaw }: { priceRaw: string }) => {
+  const [downPaymentPct, setDownPaymentPct] = useState(25);
+  const [interestRate, setInterestRate] = useState(3.0);
+  const years = 25;
+
+  const price = Number(priceRaw.split('-')[0].trim().replace(/[^0-9.]/g, ''));
+  if (!price || isNaN(price)) return null;
+
+  const loanAmount = price * (1 - downPaymentPct / 100);
+  const monthlyRate = interestRate / 100 / 12;
+  const numberOfPayments = years * 12;
+  const monthlyPayment = (loanAmount * monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) / (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
+
+  return (
+    <div className="mt-4 pt-4 border-t border-slate-200 w-full">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">Est. Mortgage (25 Yrs)</span>
+        <span className="text-sm font-black text-blue-600">AED {Math.round(monthlyPayment).toLocaleString()}<span className="text-[10px] text-slate-400 font-medium"> / mo</span></span>
+      </div>
+      <div className="flex gap-5">
+        <div className="flex-1">
+          <div className="flex justify-between text-[9px] font-bold text-slate-500 uppercase mb-2">
+            <span>Down ({downPaymentPct}%)</span>
+          </div>
+          <input type="range" min="10" max="80" step="5" value={downPaymentPct} onChange={(e) => setDownPaymentPct(Number(e.target.value))} className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600" />
+        </div>
+        <div className="flex-1">
+          <div className="flex justify-between text-[9px] font-bold text-slate-500 uppercase mb-2">
+            <span>Interest ({interestRate.toFixed(1)}%)</span>
+          </div>
+          <input type="range" min="1" max="8" step="0.1" value={interestRate} onChange={(e) => setInterestRate(Number(e.target.value))} className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   project,
   allProjects,
@@ -676,51 +713,36 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
           {/* 2. Name → Location → Developer — sticky while scrolling */}
           <div className="sticky top-0 z-20 bg-white px-6 pt-6 pb-5 border-b border-slate-100 shadow-sm flex items-start justify-between gap-4" style={{ paddingTop: 'max(env(safe-area-inset-top), 24px)' }}>
             <div className="flex-1 min-w-0">
-              <h1 className="text-2xl font-black text-slate-900 leading-tight tracking-tight mb-2 truncate">{project.name}</h1>
-              <div className="flex items-center text-slate-500 text-xs font-bold uppercase tracking-widest mb-3">
-                <MapPin className="w-4 h-4 mr-1.5 text-blue-600 shrink-0" />
+              <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1 truncate">
                 <button
-                  onClick={() => onQuickFilter && project.community ? onQuickFilter('community', project.community) : undefined}
-                  className="hover:text-blue-800 hover:underline transition-all text-left truncate"
+                  onClick={() => onQuickFilter && project.developerName ? onQuickFilter('developer', project.developerName) : undefined}
+                  className="hover:text-blue-800 hover:underline transition-all text-left"
                 >
-                  {project.community}
+                  {project.developerName || 'Exclusive Developer'}
                 </button>
-                {project.city && (
-                  <><span className="mx-2 text-slate-300">/</span>
-                    <button
-                      onClick={() => setSelectedCity?.(project.city || '')}
-                      className="text-slate-600 hover:text-blue-800 hover:underline transition-all text-left"
-                    >
-                      {project.city}
-                    </button></>
-                )}
-              </div>
-              <div className="flex items-center gap-2 mt-1">
-                {(() => {
-                  const devLower = (project.developerName || '').toLowerCase();
-                  const key = Object.keys(DEV_DOMAINS).find(k => devLower.includes(k));
-                  const url = key ? `https://logo.clearbit.com/${DEV_DOMAINS[key]}` : null;
-                  return url ? (
-                    <img
-                      src={url}
-                      alt={project.developerName}
-                      className="w-5 h-5 object-contain rounded-sm shrink-0 bg-white"
-                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                    />
-                  ) : (
-                    <div className="w-5 h-5 bg-blue-100 rounded-sm flex items-center justify-center shrink-0">
-                      <span className="text-[10px] font-black text-blue-600">{project.developerName?.charAt(0) || 'D'}</span>
-                    </div>
-                  );
-                })()}
-                <p className="text-sm font-black text-blue-600 uppercase tracking-widest truncate">
+              </p>
+              <h1 className="text-2xl font-black text-slate-900 leading-tight tracking-tight mb-2 truncate">{project.name}</h1>
+              <div className="flex items-start text-slate-500 text-xs font-bold uppercase tracking-widest">
+                <MapPin className="w-4 h-4 mr-1.5 text-blue-600 shrink-0 mt-0.5" />
+                <div className="flex flex-wrap gap-1 leading-relaxed">
                   <button
-                    onClick={() => onQuickFilter && project.developerName ? onQuickFilter('developer', project.developerName) : undefined}
-                    className="hover:text-blue-800 hover:underline transition-all text-left"
+                    onClick={() => onQuickFilter && project.community ? onQuickFilter('community', project.community) : undefined}
+                    className="hover:text-blue-800 hover:underline transition-all text-left whitespace-normal"
                   >
-                    {project.developerName || 'Exclusive Developer'}
+                    {project.community}
                   </button>
-                </p>
+                  {project.city && (
+                    <>
+                      <span className="text-slate-300 mx-1">/</span>
+                      <button
+                        onClick={() => setSelectedCity?.(project.city || '')}
+                        className="text-slate-600 hover:text-blue-800 hover:underline transition-all text-left whitespace-normal"
+                      >
+                        {project.city}
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
             <div className="flex flex-col gap-2 shrink-0 pt-0.5">
@@ -749,14 +771,17 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
             <div className="grid grid-cols-2 gap-3">
               {/* Strict NaN guard — only render if number is valid and > 0 */}
               {isValidPrice(project.priceRange) && (
-                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3 col-span-2">
-                  <Building className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Starting Price</p>
-                    <p className="font-bold text-slate-900 text-lg">
-                      AED {Number(project.priceRange!.split('-')[0].trim().replace(/[^0-9.]/g, '')).toLocaleString()}
-                    </p>
+                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex flex-col items-start gap-3 col-span-2">
+                  <div className="flex items-start gap-3 w-full">
+                    <Building className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Starting Price</p>
+                      <p className="font-bold text-slate-900 text-lg">
+                        AED {Number(project.priceRange!.split('-')[0].trim().replace(/[^0-9.]/g, '')).toLocaleString()}
+                      </p>
+                    </div>
                   </div>
+                  <CompactMortgageCalculator priceRaw={project.priceRange!} />
                 </div>
               )}
               {project.type && project.type.toLowerCase() !== 'apartment' && project.type !== 'N/A' && (
