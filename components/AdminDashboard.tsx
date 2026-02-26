@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Project, Landmark, LandmarkCategory, ClientPresentation } from '../types';
 import { db } from '../utils/firebase';
-import { doc, setDoc, addDoc, collection, deleteDoc, writeBatch, updateDoc, getDocs } from 'firebase/firestore';
+import { doc, setDoc, addDoc, collection, deleteDoc, writeBatch, updateDoc, getDocs, onSnapshot } from 'firebase/firestore';
 import { generateCleanId } from '../utils/helpers';
 import { fetchAndSaveBoundary } from '../utils/boundaryService';
 import { Database, RefreshCw, Plus, Edit2, Trash2, MapPin, Search, Eye, EyeOff, ImageIcon, Zap, Check, Sliders, MonitorPlay } from 'lucide-react';
@@ -97,21 +97,36 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   // ── Developers & Communities collections ──────────────────────────────
-  const [developers, setDevelopers] = useState<any[]>([]);
-  const [communities, setCommunities] = useState<any[]>([]);
+  const [liveDevelopers, setLiveDevelopers] = useState<any[]>([]);
+  const [liveCommunities, setLiveCommunities] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchCollections = async () => {
-      try {
-        const devSnap = await getDocs(collection(db, 'developers'));
-        setDevelopers(devSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-        const commSnap = await getDocs(collection(db, 'communities'));
-        setCommunities(commSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-      } catch (e) {
-        console.warn('developers/communities collections not yet created:', e);
-      }
+    if (!db) {
+      console.error("Firebase db is not initialized.");
+      return;
+    }
+
+    // Real-time listener for Developers
+    const unsubDevelopers = onSnapshot(collection(db, 'developers'), (snapshot) => {
+      const devs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setLiveDevelopers(devs);
+    }, (error) => {
+      console.error("Error fetching developers:", error);
+    });
+
+    // Real-time listener for Communities
+    const unsubCommunities = onSnapshot(collection(db, 'communities'), (snapshot) => {
+      const comms = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setLiveCommunities(comms);
+    }, (error) => {
+      console.error("Error fetching communities:", error);
+    });
+
+    // Cleanup listeners on unmount
+    return () => {
+      unsubDevelopers();
+      unsubCommunities();
     };
-    fetchCollections();
   }, []);
 
   const toggleDefaultAmenity = (category: string) => {
@@ -148,7 +163,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
       const unique = Array.from(new Set(liveProjects.map(p => p.developerName).filter(Boolean)));
       let added = 0;
       for (const name of unique) {
-        if (!developers.find(d => d.name === name)) {
+        if (!liveDevelopers.find(d => d.name === name)) {
           const ref = doc(collection(db, 'developers'));
           await setDoc(ref, { name, logoUrl: `https://www.google.com/s2/favicons?domain=${String(name).toLowerCase().replace(/\s+/g, '')}.com&sz=128` });
           added++;
@@ -165,7 +180,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
       const unique = Array.from(new Set(liveProjects.map(p => p.community).filter(Boolean)));
       let added = 0;
       for (const name of unique) {
-        if (!communities.find(c => c.name === name)) {
+        if (!liveCommunities.find(c => c.name === name)) {
           const project = liveProjects.find(p => p.community === name);
           const ref = doc(collection(db, 'communities'));
           await setDoc(ref, { name, city: project?.city || 'Abu Dhabi', imageUrl: '' });
@@ -958,7 +973,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                     <table className="w-full text-left min-w-[500px]">
                       <thead className="bg-slate-50 border-b border-slate-100"><tr><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Logo</th><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Name</th><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right">Actions</th></tr></thead>
                       <tbody className="divide-y divide-slate-50">
-                        {developers.map(dev => (
+                        {liveDevelopers.map(dev => (
                           <tr key={dev.id} className="hover:bg-slate-50">
                             <td className="p-4"><img src={dev.logoUrl} alt="" className="w-10 h-10 object-contain rounded bg-white border border-slate-100" onError={e => e.currentTarget.src = '/placeholder-image.png'} /></td>
                             <td className="p-4 font-bold text-slate-800">{dev.name}</td>
@@ -1007,7 +1022,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                     <table className="w-full text-left min-w-[600px]">
                       <thead className="bg-slate-50 border-b border-slate-100"><tr><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Image</th><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Name</th><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">City</th><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right">Actions</th></tr></thead>
                       <tbody className="divide-y divide-slate-50">
-                        {communities.map(comm => (
+                        {liveCommunities.map(comm => (
                           <tr key={comm.id} className="hover:bg-slate-50">
                             <td className="p-4"><img src={comm.imageUrl} alt="" className="w-16 h-10 object-cover rounded bg-slate-200 border border-slate-100" onError={e => e.currentTarget.src = '/placeholder-image.png'} /></td>
                             <td className="p-4 font-bold text-slate-800">{comm.name}</td>
