@@ -469,7 +469,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`flex-1 py-3 px-4 text-[11px] font-black uppercase tracking-[0.2em] transition-all rounded-xl flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === tab
+                className={`shrink-0 md:flex-1 py-3 px-4 text-[11px] font-black uppercase tracking-[0.2em] transition-all rounded-xl flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === tab
                   ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
                   : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
                   }`}
@@ -492,15 +492,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
             {activeTab === 'nearbys' && (
               <section className="animate-in fade-in duration-300">
                 {/* Header Row */}
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 w-full">
                   <div>
                     <h2 className="text-2xl font-black text-slate-900 tracking-tight">Landmarks & Amenities</h2>
                     <p className="text-slate-500 font-medium text-sm">Manage educational, retail, cultural, and medical points of interest</p>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 w-full md:w-auto">
                     <button
                       onClick={() => setStagedLandmark({ name: '', category: 'School', community: '', latitude: 24.4, longitude: 54.4 })}
-                      className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-blue-100"
+                      className="w-full md:w-auto justify-center px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-blue-100"
                     >
                       <Plus className="w-4 h-4" />
                       Add Landmark
@@ -929,11 +929,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
 
             {activeTab === 'developers' && (
               <section className="animate-in fade-in duration-300">
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 w-full">
                   <h2 className="text-2xl font-black text-slate-900 tracking-tight">Developers CMS</h2>
-                  <div className="flex gap-3">
-                    <button onClick={handleSyncDevelopers} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-sm transition-all flex items-center gap-2"><RefreshCw className="w-4 h-4" /> Auto-Import</button>
-                    <button onClick={() => setStagedDeveloper({ name: '', logoUrl: '', description: '' })} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition-all flex items-center gap-2"><Plus className="w-4 h-4" /> Add Developer</button>
+                  <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+                    <button onClick={handleSyncDevelopers} className="w-full md:w-auto justify-center px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-sm transition-all flex items-center gap-2"><RefreshCw className="w-4 h-4" /> Auto-Import</button>
+                    <button onClick={() => setStagedDeveloper({ name: '', logoUrl: '', description: '' })} className="w-full md:w-auto justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition-all flex items-center gap-2"><Plus className="w-4 h-4" /> Add Developer</button>
                   </div>
                 </div>
                 {stagedDeveloper && (
@@ -954,32 +954,34 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                   </div>
                 )}
                 <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                  <table className="w-full text-left">
-                    <thead className="bg-slate-50 border-b border-slate-100"><tr><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Logo</th><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Name</th><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right">Actions</th></tr></thead>
-                    <tbody className="divide-y divide-slate-50">
-                      {developers.map(dev => (
-                        <tr key={dev.id} className="hover:bg-slate-50">
-                          <td className="p-4"><img src={dev.logoUrl} alt="" className="w-10 h-10 object-contain rounded bg-white border border-slate-100" onError={e => e.currentTarget.src = '/placeholder-image.png'} /></td>
-                          <td className="p-4 font-bold text-slate-800">{dev.name}</td>
-                          <td className="p-4 text-right">
-                            <button onClick={() => setStagedDeveloper(dev)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg mr-2"><Edit2 className="w-4 h-4" /></button>
-                            <button onClick={async () => { if (window.confirm('Delete?')) await deleteDoc(doc(db, 'developers', dev.id)); }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <div className="w-full overflow-x-auto hide-scrollbar">
+                    <table className="w-full text-left min-w-[500px]">
+                      <thead className="bg-slate-50 border-b border-slate-100"><tr><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Logo</th><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Name</th><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right">Actions</th></tr></thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {developers.map(dev => (
+                          <tr key={dev.id} className="hover:bg-slate-50">
+                            <td className="p-4"><img src={dev.logoUrl} alt="" className="w-10 h-10 object-contain rounded bg-white border border-slate-100" onError={e => e.currentTarget.src = '/placeholder-image.png'} /></td>
+                            <td className="p-4 font-bold text-slate-800">{dev.name}</td>
+                            <td className="p-4 text-right whitespace-nowrap">
+                              <button onClick={() => setStagedDeveloper(dev)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg mr-2"><Edit2 className="w-4 h-4" /></button>
+                              <button onClick={async () => { if (window.confirm('Delete?')) await deleteDoc(doc(db, 'developers', dev.id)); }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </section>
             )}
 
             {activeTab === 'communities' && (
               <section className="animate-in fade-in duration-300">
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 w-full">
                   <h2 className="text-2xl font-black text-slate-900 tracking-tight">Communities CMS</h2>
-                  <div className="flex gap-3">
-                    <button onClick={handleSyncCommunities} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-sm transition-all flex items-center gap-2"><RefreshCw className="w-4 h-4" /> Auto-Import</button>
-                    <button onClick={() => setStagedCommunity({ name: '', city: '', imageUrl: '', description: '' })} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition-all flex items-center gap-2"><Plus className="w-4 h-4" /> Add Community</button>
+                  <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+                    <button onClick={handleSyncCommunities} className="w-full md:w-auto justify-center px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-sm transition-all flex items-center gap-2"><RefreshCw className="w-4 h-4" /> Auto-Import</button>
+                    <button onClick={() => setStagedCommunity({ name: '', city: '', imageUrl: '', description: '' })} className="w-full md:w-auto justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition-all flex items-center gap-2"><Plus className="w-4 h-4" /> Add Community</button>
                   </div>
                 </div>
                 {stagedCommunity && (
@@ -1001,22 +1003,24 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                   </div>
                 )}
                 <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                  <table className="w-full text-left">
-                    <thead className="bg-slate-50 border-b border-slate-100"><tr><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Image</th><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Name</th><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">City</th><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right">Actions</th></tr></thead>
-                    <tbody className="divide-y divide-slate-50">
-                      {communities.map(comm => (
-                        <tr key={comm.id} className="hover:bg-slate-50">
-                          <td className="p-4"><img src={comm.imageUrl} alt="" className="w-16 h-10 object-cover rounded bg-slate-200 border border-slate-100" onError={e => e.currentTarget.src = '/placeholder-image.png'} /></td>
-                          <td className="p-4 font-bold text-slate-800">{comm.name}</td>
-                          <td className="p-4 text-slate-500 text-sm">{comm.city}</td>
-                          <td className="p-4 text-right">
-                            <button onClick={() => setStagedCommunity(comm)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg mr-2"><Edit2 className="w-4 h-4" /></button>
-                            <button onClick={async () => { if (window.confirm('Delete?')) await deleteDoc(doc(db, 'communities', comm.id)); }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <div className="w-full overflow-x-auto hide-scrollbar">
+                    <table className="w-full text-left min-w-[600px]">
+                      <thead className="bg-slate-50 border-b border-slate-100"><tr><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Image</th><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Name</th><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">City</th><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right">Actions</th></tr></thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {communities.map(comm => (
+                          <tr key={comm.id} className="hover:bg-slate-50">
+                            <td className="p-4"><img src={comm.imageUrl} alt="" className="w-16 h-10 object-cover rounded bg-slate-200 border border-slate-100" onError={e => e.currentTarget.src = '/placeholder-image.png'} /></td>
+                            <td className="p-4 font-bold text-slate-800">{comm.name}</td>
+                            <td className="p-4 text-slate-500 text-sm">{comm.city}</td>
+                            <td className="p-4 text-right whitespace-nowrap">
+                              <button onClick={() => setStagedCommunity(comm)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg mr-2"><Edit2 className="w-4 h-4" /></button>
+                              <button onClick={async () => { if (window.confirm('Delete?')) await deleteDoc(doc(db, 'communities', comm.id)); }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </section>
             )}
@@ -1380,7 +1384,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
               </div>
 
               {/* Modal Footer */}
-              <div className="px-6 py-5 border-t border-slate-100 bg-slate-50 shrink-0 flex items-center justify-between gap-4">
+              <div className="px-6 py-5 border-t border-slate-100 bg-slate-50 shrink-0 flex flex-col md:flex-row items-center justify-between gap-4">
                 {stagedProject?.latitude && stagedProject?.longitude ? (
                   <p className="text-xs font-bold text-slate-500">
                     Pin: <span className="text-blue-600 font-black">{Number(stagedProject.latitude).toFixed(6)}, {Number(stagedProject.longitude).toFixed(6)}</span>
@@ -1388,7 +1392,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                 ) : <span />}
                 <button
                   onClick={() => setIsMapModalOpen(false)}
-                  className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-md"
+                  className="w-full md:w-auto px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-md"
                 >
                   Confirm Coordinates
                 </button>
