@@ -134,63 +134,6 @@ const AnimatedMetricPill = ({ distance, driveTime, walkTime }: { distance: numbe
   );
 };
 
-const DedicatedMortgageCalculator = ({ priceRaw }: { priceRaw: string }) => {
-  const [downPaymentPct, setDownPaymentPct] = useState(25);
-  const [interestRate, setInterestRate] = useState(3.0);
-  const [years, setYears] = useState(25);
-
-  const price = Number(priceRaw.split('-')[0].trim().replace(/[^0-9.]/g, ''));
-  if (!price || isNaN(price)) return null;
-
-  const downPaymentAmt = price * (downPaymentPct / 100);
-  const loanAmount = price - downPaymentAmt;
-  const monthlyRate = interestRate / 100 / 12;
-  const numberOfPayments = years * 12;
-  const monthlyPayment = monthlyRate === 0 ? loanAmount / numberOfPayments : (loanAmount * monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) / (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
-
-  return (
-    <div className="mt-8 pt-6 border-t border-slate-100">
-      <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
-        <Building className="w-4 h-4 mr-2 text-blue-600" /> Mortgage Calculator
-      </h3>
-      <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-5">
-        <div className="flex justify-between items-center pb-4 border-b border-slate-200">
-          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Property Price</span>
-          <span className="text-base font-black text-slate-900">AED {price.toLocaleString()}</span>
-        </div>
-
-        <div>
-          <div className="flex justify-between text-[10px] font-bold text-slate-600 uppercase mb-2">
-            <span>Down Payment ({downPaymentPct}%)</span>
-            <span className="text-blue-600 font-black">AED {Math.round(downPaymentAmt).toLocaleString()}</span>
-          </div>
-          <input type="range" min="10" max="80" step="5" value={downPaymentPct} onChange={(e) => setDownPaymentPct(Number(e.target.value))} className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600" />
-        </div>
-
-        <div>
-          <div className="flex justify-between text-[10px] font-bold text-slate-600 uppercase mb-2">
-            <span>Loan Period</span>
-            <span className="text-blue-600 font-black">{years} Years</span>
-          </div>
-          <input type="range" min="5" max="35" step="1" value={years} onChange={(e) => setYears(Number(e.target.value))} className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600" />
-        </div>
-
-        <div>
-          <div className="flex justify-between text-[10px] font-bold text-slate-600 uppercase mb-2">
-            <span>Interest Rate</span>
-            <span className="text-blue-600 font-black">{interestRate.toFixed(1)}%</span>
-          </div>
-          <input type="range" min="1" max="8" step="0.1" value={interestRate} onChange={(e) => setInterestRate(Number(e.target.value))} className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600" />
-        </div>
-
-        <div className="pt-4 mt-2 border-t border-slate-200 flex justify-between items-center bg-blue-50 -mx-5 -mb-5 p-5 rounded-b-xl border-x-0 border-b-0">
-          <span className="text-[11px] font-black text-blue-800 uppercase tracking-widest">Monthly Installment</span>
-          <span className="text-xl font-black text-blue-600">AED {Math.round(monthlyPayment).toLocaleString()}</span>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 
 const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
@@ -728,27 +671,59 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
     <>
       <div className="h-full flex flex-col bg-white text-slate-800 font-sans shadow-2xl relative border-l border-slate-200">
 
-        {/* Header action bar (Preserved at top) */}
-        <div className="relative flex items-center justify-end px-4 py-3 bg-white z-[60] shrink-0 gap-2 border-b border-slate-100">
-          <button onClick={() => handleSaveLocal('compare')} className="p-2 rounded-full text-slate-500 hover:bg-slate-100 transition-all font-bold" title="Compare"><GitCompare className="w-4 h-4" /></button>
-          <button onClick={() => handleSaveLocal('favorite')} className="p-2 rounded-full text-slate-500 hover:bg-rose-50 hover:text-rose-500 transition-all font-bold" title="Favorite"><Heart className="w-4 h-4" /></button>
-          <button onClick={() => setIsReportModalOpen(true)} className="p-2 rounded-full text-slate-500 hover:bg-orange-50 hover:text-orange-500 transition-all font-bold" title="Report"><Flag className="w-4 h-4" /></button>
-          <button onClick={handleNativeShare} className="p-2 rounded-full text-slate-500 hover:bg-slate-100 transition-all font-bold" title="Share"><Share2 className="w-4 h-4" /></button>
-          <button onClick={handleExportPdf} disabled={isGeneratingPdf} className="p-2 rounded-full text-blue-600 hover:bg-blue-50 transition-all font-bold" title="PDF Brochure">
-            {isGeneratingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-          </button>
-          <div className="w-px h-6 bg-slate-200 mx-1" />
-          <button onClick={onClose} className="p-2 rounded-full text-slate-500 hover:bg-slate-100 transition-all font-bold" title="Close">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
         {/* 1. Hero Gallery — single optimized thumb + tick-based slideshow engine */}
         <div
           className="relative h-64 w-full shrink-0 bg-slate-100 overflow-hidden group"
           onMouseEnter={() => setIsPlaying(false)}
           onMouseLeave={() => { /* only resume if already playing via user action */ }}
         >
+          {/* Header action bar: Compare · Favourite · Flag · Share · PDF · Close */}
+          <div className="absolute top-3 right-3 flex items-center gap-1 z-10">
+            <button
+              onClick={() => handleSaveLocal('compare')}
+              className="p-2 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md text-white border border-white/20 transition-all"
+              title="Add to Comparison" aria-label="Add to comparison"
+            >
+              <GitCompare className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => handleSaveLocal('favorite')}
+              className="p-2 rounded-full bg-black/40 hover:bg-rose-600/80 backdrop-blur-md text-white border border-white/20 transition-all"
+              title="Add to Favourites" aria-label="Add to favourites"
+            >
+              <Heart className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setIsReportModalOpen(true)}
+              className="p-2 rounded-full bg-black/40 hover:bg-orange-600/80 backdrop-blur-md text-white border border-white/20 transition-all"
+              title="Report Issue" aria-label="Report an issue with this listing"
+            >
+              <Flag className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleNativeShare}
+              className="p-2 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md text-white border border-white/20 transition-all"
+              title="Share" aria-label="Share listing"
+            >
+              <Share2 className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleExportPdf}
+              disabled={isGeneratingPdf}
+              className="p-2 rounded-full bg-blue-600/80 hover:bg-blue-600 backdrop-blur-md text-white border border-blue-500/50 transition-all"
+              title="Download PDF Brochure" aria-label="Download PDF Brochure"
+            >
+              {isGeneratingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            </button>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md text-white border border-white/20 transition-all ml-1"
+              title="Close" aria-label="Close panel"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
           {/* Hero image — strictly uses optimized thumb (correct size for 380px panel) */}
           <img
             key={currentImage.thumb}
@@ -860,36 +835,32 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto custom-scrollbar bg-white">
 
-          {/* 2. Name → Location → Developer — sticky while scrolling */}
-          <div className="sticky top-0 z-20 bg-white px-6 pt-6 pb-5 border-b border-slate-100 shadow-sm flex items-start justify-between gap-4" style={{ paddingTop: 'max(env(safe-area-inset-top), 24px)' }}>
-            <div className="w-[70%] min-w-0 flex flex-col">
-              <h1 className="text-2xl font-black text-slate-900 leading-tight tracking-tight mb-1.5 truncate">
-                {project.name}
-              </h1>
-              <div className="flex items-center text-slate-500 text-xs font-bold uppercase tracking-widest mb-1.5 truncate">
-                <MapPin className="w-3.5 h-3.5 mr-1.5 text-blue-600 shrink-0" />
-                <span className="truncate">{project.community}{project.city && ` / ${project.city}`}</span>
-              </div>
-              <p className="text-sm font-black text-blue-600 uppercase tracking-widest truncate">
+          {/* 2. Name → Location → Developer */}
+          <div className="sticky top-0 z-20 bg-white px-6 pt-6 pb-5 border-b border-slate-100 shadow-sm" style={{ paddingTop: 'max(env(safe-area-inset-top), 24px)' }}>
+            <h1 className="text-2xl font-black text-slate-900 leading-tight tracking-tight mb-2">{project.name}</h1>
+            <div className="flex items-center text-slate-500 text-xs font-bold uppercase tracking-widest mb-3">
+              <MapPin className="w-4 h-4 mr-1.5 text-blue-600 shrink-0" />
+              <button onClick={() => onQuickFilter && project.community ? onQuickFilter('community', project.community) : undefined} className="hover:text-blue-800 hover:underline transition-all text-left truncate">
+                {project.community}
+              </button>
+              {project.city && (
+                <><span className="mx-2 text-slate-300">/</span>
+                  <button onClick={() => setSelectedCity?.(project.city || '')} className="text-slate-600 hover:text-blue-800 hover:underline transition-all text-left">
+                    {project.city}
+                  </button></>
+              )}
+            </div>
+            <p className="text-sm font-black text-blue-600 uppercase tracking-widest">
+              <button onClick={() => onQuickFilter && project.developerName ? onQuickFilter('developer', project.developerName) : undefined} className="hover:text-blue-800 hover:underline transition-all text-left">
                 {project.developerName || 'Exclusive Developer'}
-              </p>
-            </div>
-
-            <div className="w-[30%] shrink-0 flex flex-col gap-2 pt-1">
-              <button onClick={() => setIsInquireModalOpen(true)} className="flex items-center justify-center gap-1.5 w-full py-2.5 bg-blue-600 text-white rounded-lg text-[11px] font-black uppercase tracking-widest transition-all shadow-sm hover:bg-blue-700">
-                <MessageSquare className="w-3.5 h-3.5" /> Enquire
               </button>
-              <button onClick={() => setShowNeighborhoodList(true)} className="flex items-center justify-center gap-1.5 w-full py-2.5 bg-slate-100 text-slate-800 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all shadow-sm hover:bg-slate-200 border border-slate-200">
-                <MapPin className="w-3.5 h-3.5" /> Explore
-              </button>
-            </div>
+            </p>
           </div>
 
           <div className="px-6 py-6 space-y-8">
 
             {/* 3. Data Grid */}
             <div className="grid grid-cols-2 gap-3">
-              {/* Strict NaN guard — only render if number is valid and > 0 */}
               {isValidPrice(project.priceRange) && (
                 <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3 col-span-2">
                   <Building className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
@@ -1080,8 +1051,6 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
 
             <div id="sidebar-map-section" />
 
-            {isValidPrice(project.priceRange) && <DedicatedMortgageCalculator priceRaw={project.priceRange!} />}
-
             {/* 8. Custom Distance Calculator — live autocomplete + real Mapbox Directions route */}
             <div className="relative mt-8 pt-6 border-t border-slate-100 pb-4">
               <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
@@ -1150,23 +1119,12 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
             </div>
           </div>
 
-          {/* Footer Actions */}
           <div className="px-6 pb-8 pt-4 space-y-3">
-            {/* Explore Neighborhood — zooms out to 14.5 so amenity markers become visible */}
-            <button
-              onClick={() => setShowNeighborhoodList(true)}
-              disabled={isDiscovering}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest transition-all hover:shadow-xl hover:shadow-blue-200 active:scale-[0.99] disabled:opacity-70 flex items-center justify-center gap-3"
-            >
+            <button onClick={() => setShowNeighborhoodList(true)} disabled={isDiscovering} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest transition-all hover:shadow-xl hover:shadow-blue-200 active:scale-[0.99] disabled:opacity-70 flex items-center justify-center gap-3">
               <MapPin className="w-4 h-4" />
               <span>Explore Neighborhood</span>
             </button>
-
-            {/* Inquire Now — replaces "Request Floor Plans" */}
-            <button
-              onClick={() => setIsInquireModalOpen(true)}
-              className="flex items-center justify-center w-full py-4 border border-blue-200 hover:border-blue-600 text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all gap-2 group"
-            >
+            <button onClick={() => setIsInquireModalOpen(true)} className="flex items-center justify-center w-full py-4 border border-blue-200 hover:border-blue-600 text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all gap-2 group">
               <MessageSquare className="w-4 h-4" />
               <span>Inquire Now</span>
               <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
