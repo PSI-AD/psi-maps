@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Landmark } from '../types';
-import { X, ChevronRight, ChevronLeft, Info, Image as ImageIcon } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, ChevronUp, ChevronDown, Info, Image as ImageIcon } from 'lucide-react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Pagination, EffectFade } from 'swiper/modules';
 import 'swiper/css';
@@ -80,6 +80,7 @@ const getFacts = (landmark: Landmark): string[] => {
 const LandmarkInfoModal: React.FC<Props> = ({ landmark, onClose }) => {
     const [activeIdx, setActiveIdx] = useState(0);
     const [isHovered, setIsHovered] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(false);
 
     const facts = getFacts(landmark);
 
@@ -114,7 +115,7 @@ const LandmarkInfoModal: React.FC<Props> = ({ landmark, onClose }) => {
                 onClick={onClose}
             />
 
-            <div className="bg-slate-900 border border-slate-700/60 rounded-[2rem] w-full max-w-5xl overflow-hidden shadow-2xl shadow-black/60 relative z-10 flex flex-col md:flex-row" style={{ height: 'min(85vh, 600px)' }}>
+            <div className="bg-slate-900 border border-slate-700/60 rounded-[2rem] w-full max-w-5xl overflow-hidden shadow-2xl shadow-black/60 relative z-10 flex flex-col md:flex-row" style={{ maxHeight: isCollapsed ? 'auto' : 'min(85vh, 600px)', height: isCollapsed ? 'auto' : 'min(85vh, 600px)' }}>
 
                 {/* ── Close ──────────────────────────────────────────────────────────── */}
                 <button
@@ -124,8 +125,8 @@ const LandmarkInfoModal: React.FC<Props> = ({ landmark, onClose }) => {
                     <X className="w-5 h-5" />
                 </button>
 
-                {/* ── Left: Media ────────────────────────────────────────────────────── */}
-                <div className="w-full md:w-1/2 bg-slate-950 relative overflow-hidden group flex-shrink-0">
+                {/* ── Left: Media — hidden on mobile when collapsed ─────────────────── */}
+                <div className={`w-full md:w-1/2 bg-slate-950 relative overflow-hidden group flex-shrink-0 ${isCollapsed ? 'hidden md:block' : 'block'}`}>
                     <div className="absolute inset-0 w-full h-full">
                         <Swiper
                             modules={[Autoplay, Pagination, EffectFade]}
@@ -158,76 +159,98 @@ const LandmarkInfoModal: React.FC<Props> = ({ landmark, onClose }) => {
 
                 {/* ── Right: Facts ───────────────────────────────────────────────────── */}
                 <div
-                    className="w-full md:w-1/2 p-8 md:p-10 flex flex-col justify-between bg-gradient-to-br from-slate-900 to-slate-800 overflow-y-auto"
+                    className="w-full md:w-1/2 flex flex-col bg-gradient-to-br from-slate-900 to-slate-800"
                     onMouseEnter={() => setIsHovered(true)}
                     onMouseLeave={() => setIsHovered(false)}
                 >
-                    {/* Header */}
-                    <div>
-                        <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-600/20 border border-blue-500/30 text-blue-400 rounded-2xl mb-6">
-                            <Info className="w-6 h-6" />
+                    {/* Mobile drag handle + collapse toggle */}
+                    <div className="flex items-center justify-between px-5 pt-4 pb-2 md:hidden shrink-0">
+                        <div
+                            className="flex-1 flex flex-col items-center cursor-pointer"
+                            onClick={() => setIsCollapsed(!isCollapsed)}
+                        >
+                            <div className="w-10 h-1 bg-slate-600 rounded-full mb-2" />
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">{landmark.name}</p>
                         </div>
-                        <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight leading-none mb-3">
-                            {landmark.name}
-                        </h2>
-                        <p className="text-xs font-black text-blue-400 uppercase tracking-[0.2em]">
-                            {landmark.community}{landmark.city ? `, ${landmark.city}` : ''}
-                        </p>
+                        <button
+                            onClick={() => setIsCollapsed(!isCollapsed)}
+                            className="ml-3 p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-full transition-colors border border-slate-600/60"
+                            aria-label={isCollapsed ? 'Expand details' : 'Collapse details'}
+                        >
+                            {isCollapsed ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                        </button>
                     </div>
 
-                    {/* Fact carousel */}
-                    <div className="relative flex-1 flex items-center my-8" style={{ minHeight: '160px' }}>
-                        {/* Decorative open-quote */}
-                        <span className="text-[120px] font-serif leading-none text-slate-700/40 absolute -top-6 -left-3 select-none pointer-events-none">&ldquo;</span>
-
-                        {facts.map((fact, idx) => (
-                            <div
-                                key={idx}
-                                className={`absolute inset-0 flex items-center transition-all duration-700 ease-in-out ${activeIdx === idx
-                                    ? 'opacity-100 translate-x-0'
-                                    : 'opacity-0 translate-x-8 pointer-events-none'
-                                    }`}
-                            >
-                                <p className="text-lg md:text-xl text-slate-200 font-medium leading-relaxed pl-5 border-l-2 border-blue-500 relative z-10">
-                                    {fact}
-                                </p>
+                    {/* Collapsible content */}
+                    <div className={`transition-all duration-300 ease-in-out overflow-hidden flex flex-col ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[70vh] md:max-h-none opacity-100 flex-1 overflow-y-auto'
+                        } p-5 md:p-10 md:flex md:flex-col md:justify-between`}>
+                        {/* Header */}
+                        <div>
+                            <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-600/20 border border-blue-500/30 text-blue-400 rounded-2xl mb-6">
+                                <Info className="w-6 h-6" />
                             </div>
-                        ))}
-                    </div>
+                            <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight leading-none mb-3">
+                                {landmark.name}
+                            </h2>
+                            <p className="text-xs font-black text-blue-400 uppercase tracking-[0.2em]">
+                                {landmark.community}{landmark.city ? `, ${landmark.city}` : ''}
+                            </p>
+                        </div>
 
-                    {/* Navigation */}
-                    <div className="flex items-center justify-between border-t border-slate-700/60 pt-6">
-                        {/* Dot indicators */}
-                        <div className="flex items-center gap-2">
-                            {facts.map((_, idx) => (
-                                <button
+                        {/* Fact carousel */}
+                        <div className="relative flex-1 flex items-center my-8" style={{ minHeight: '160px' }}>
+                            {/* Decorative open-quote */}
+                            <span className="text-[120px] font-serif leading-none text-slate-700/40 absolute -top-6 -left-3 select-none pointer-events-none">&ldquo;</span>
+
+                            {facts.map((fact, idx) => (
+                                <div
                                     key={idx}
-                                    onClick={() => setActiveIdx(idx)}
-                                    className={`h-1.5 rounded-full transition-all duration-300 ${activeIdx === idx ? 'w-8 bg-blue-500' : 'w-2 bg-slate-600 hover:bg-slate-500'
+                                    className={`absolute inset-0 flex items-center transition-all duration-700 ease-in-out ${activeIdx === idx
+                                        ? 'opacity-100 translate-x-0'
+                                        : 'opacity-0 translate-x-8 pointer-events-none'
                                         }`}
-                                />
+                                >
+                                    <p className="text-lg md:text-xl text-slate-200 font-medium leading-relaxed pl-5 border-l-2 border-blue-500 relative z-10">
+                                        {fact}
+                                    </p>
+                                </div>
                             ))}
                         </div>
 
-                        {/* Prev / Next */}
-                        <div className="flex gap-2">
-                            <button
-                                onClick={prev}
-                                className="w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-600/60 flex items-center justify-center text-white transition-colors"
-                            >
-                                <ChevronLeft className="w-5 h-5" />
-                            </button>
-                            <button
-                                onClick={next}
-                                className="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-500 border border-blue-500 flex items-center justify-center text-white transition-colors shadow-lg shadow-blue-900/50"
-                            >
-                                <ChevronRight className="w-5 h-5" />
-                            </button>
+                        {/* Navigation */}
+                        <div className="flex items-center justify-between border-t border-slate-700/60 pt-6">
+                            {/* Dot indicators */}
+                            <div className="flex items-center gap-2">
+                                {facts.map((_, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => setActiveIdx(idx)}
+                                        className={`h-1.5 rounded-full transition-all duration-300 ${activeIdx === idx ? 'w-8 bg-blue-500' : 'w-2 bg-slate-600 hover:bg-slate-500'
+                                            }`}
+                                    />
+                                ))}
+                            </div>
+
+                            {/* Prev / Next */}
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={prev}
+                                    className="w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-600/60 flex items-center justify-center text-white transition-colors"
+                                >
+                                    <ChevronLeft className="w-5 h-5" />
+                                </button>
+                                <button
+                                    onClick={next}
+                                    className="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-500 border border-blue-500 flex items-center justify-center text-white transition-colors shadow-lg shadow-blue-900/50"
+                                >
+                                    <ChevronRight className="w-5 h-5" />
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+                    </div>{/* end collapsible content */}
+                </div>{/* end right panel */}
+            </div>{/* end modal card */}
+        </div>{/* end fixed overlay */ }
     );
 };
 
