@@ -306,6 +306,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
         <Map
             {...viewState}
             ref={mapRef}
+            clickTolerance={15}
             doubleClickZoom={false}
             onMove={evt => {
                 setViewState(evt.viewState);
@@ -499,6 +500,13 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                             <div
                                 className="w-10 h-10 bg-slate-900/90 backdrop-blur border-2 border-white rounded-full flex items-center justify-center text-white font-bold shadow-xl cursor-pointer hover:scale-110 transition-transform"
                                 onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (!supercluster) return;
+                                    const expansionZoom = Math.min(supercluster.getClusterExpansionZoom(cluster.id as number), 20);
+                                    mapRef.current?.flyTo({ center: [longitude, latitude], zoom: expansionZoom, duration: 500 });
+                                }}
+                                onTouchEnd={(e) => {
+                                    e.preventDefault();
                                     e.stopPropagation();
                                     if (!supercluster) return;
                                     const expansionZoom = Math.min(supercluster.getClusterExpansionZoom(cluster.id as number), 20);

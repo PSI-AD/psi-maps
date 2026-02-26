@@ -52,6 +52,7 @@ const AmenityMarker: React.FC<AmenityMarkerProps> = ({
         type="button"
         className={`group relative flex flex-col items-center cursor-pointer pointer-events-auto touch-action-manipulation transition-all duration-300 border-none bg-transparent p-0 m-0 outline-none ${isSelected ? 'z-[100] scale-110' : 'z-20 hover:scale-105'}`}
         onClick={(e) => { e.stopPropagation(); onClick?.(); }}
+        onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); onClick?.(); }}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
         style={{ transform: `translate(-50%, -50%) scale(${isSelected ? 1.1 : 1})` }}
@@ -69,6 +70,7 @@ const AmenityMarker: React.FC<AmenityMarkerProps> = ({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onInfo(amenity); }}
+            onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); onInfo(amenity); }}
             title={`Learn more about ${amenity.name}`}
             className="absolute -top-2 -right-2 w-5 h-5 bg-blue-500 hover:bg-blue-600 text-white rounded-full border-2 border-white shadow-md flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-200 z-30 hover:scale-110 cursor-pointer pointer-events-auto touch-action-manipulation border-solid outline-none"
           >
@@ -81,6 +83,7 @@ const AmenityMarker: React.FC<AmenityMarkerProps> = ({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onInfoClick(amenity); }}
+            onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); onInfoClick(amenity); }}
             title="View Info & Facts"
             className="absolute -top-2 -right-2 w-5 h-5 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-serif font-black rounded-full border-2 border-white shadow-sm flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-200 z-50 hover:scale-110 pointer-events-auto touch-action-manipulation outline-none border-solid"
           >
