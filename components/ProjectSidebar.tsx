@@ -713,17 +713,43 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
           {/* 2. Name → Location → Developer — sticky while scrolling */}
           <div className="sticky top-0 z-20 bg-white px-6 pt-6 pb-5 border-b border-slate-100 shadow-sm flex items-start justify-between gap-4" style={{ paddingTop: 'max(env(safe-area-inset-top), 24px)' }}>
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1 truncate">
-                <button
-                  onClick={() => onQuickFilter && project.developerName ? onQuickFilter('developer', project.developerName) : undefined}
-                  className="hover:text-blue-800 hover:underline transition-all text-left"
-                >
-                  {project.developerName || 'Exclusive Developer'}
-                </button>
-              </p>
-              <h1 className="text-2xl font-black text-slate-900 leading-tight tracking-tight mb-2 truncate">{project.name}</h1>
+              {/* 1. Project Name (Top) */}
+              <h1 className="text-2xl font-black text-slate-900 leading-tight tracking-tight mb-2 truncate">
+                {project.name}
+              </h1>
+
+              {/* 2. Developer Name & Logo (Middle) */}
+              <div className="flex items-center gap-2 mb-2 min-w-0">
+                {(() => {
+                  const devLower = (project.developerName || '').toLowerCase();
+                  const key = Object.keys(DEV_DOMAINS).find(k => devLower.includes(k));
+                  const url = key ? `https://logo.clearbit.com/${DEV_DOMAINS[key]}` : null;
+                  return url ? (
+                    <img
+                      src={url}
+                      alt={project.developerName}
+                      className="w-4 h-4 object-contain rounded-sm shrink-0 bg-white"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
+                  ) : (
+                    <div className="w-4 h-4 bg-blue-100 rounded-sm flex items-center justify-center shrink-0">
+                      <span className="text-[8px] font-black text-blue-600">{project.developerName?.charAt(0) || 'D'}</span>
+                    </div>
+                  );
+                })()}
+                <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest truncate">
+                  <button
+                    onClick={() => onQuickFilter && project.developerName ? onQuickFilter('developer', project.developerName) : undefined}
+                    className="hover:text-blue-800 hover:underline transition-all text-left"
+                  >
+                    {project.developerName || 'Exclusive Developer'}
+                  </button>
+                </p>
+              </div>
+
+              {/* 3. Location (Bottom) */}
               <div className="flex items-start text-slate-500 text-xs font-bold uppercase tracking-widest">
-                <MapPin className="w-4 h-4 mr-1.5 text-blue-600 shrink-0 mt-0.5" />
+                <MapPin className="w-3.5 h-3.5 mr-1.5 text-blue-600 shrink-0 mt-0.5" />
                 <div className="flex flex-wrap gap-1 leading-relaxed">
                   <button
                     onClick={() => onQuickFilter && project.community ? onQuickFilter('community', project.community) : undefined}
