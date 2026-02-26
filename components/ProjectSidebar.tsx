@@ -8,6 +8,13 @@ import ReportModal from './ReportModal';
 import { pdf } from '@react-pdf/renderer';
 import ProjectPdfDocument from './pdf/ProjectPdfDocument';
 import { getRelatedProjects, getClosestCategorizedAmenities } from '../utils/projectHelpers';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Navigation, Pagination, A11y, FreeMode } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/navigation';
+import 'swiper/css/pagination';
+import 'swiper/css/free-mode';
+import LightboxGallery from './LightboxGallery';
 
 const DEV_DOMAINS: Record<string, string> = {
   'emaar': 'emaar.com',
@@ -149,10 +156,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   mapRef,
   onSelectLandmark,
 }) => {
-  const [activeIdx, setActiveIdx] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false); // start paused — user opts in
-  const [tick, setTick] = useState(0);
-  const [isMainImageLoaded, setIsMainImageLoaded] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [isTextModalOpen, setIsTextModalOpen] = useState(false);
   const [isInquireModalOpen, setIsInquireModalOpen] = useState(false);
@@ -410,60 +414,15 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   };
 
   // ── Build a unified gallery: prefer optimizedGallery, fall back to images[]
-  const gallery = useMemo(() => {
+  const displayImages = useMemo(() => {
     if (project.optimizedGallery && project.optimizedGallery.length > 0) {
-      return project.optimizedGallery;
+      return project.optimizedGallery.map(g => g.large);
     }
     const rawUrls = (project.images && project.images.length > 0)
       ? project.images
       : [project.thumbnailUrl || ''];
-    return rawUrls.filter(Boolean).map(url => ({ thumb: url, large: url }));
+    return rawUrls.filter(Boolean);
   }, [project.optimizedGallery, project.images, project.thumbnailUrl]);
-
-  const hasMultipleImages = gallery.length > 1;
-  const currentImage = gallery[activeIdx] ?? gallery[0];
-
-  // Reset synchronously on project change — clears stale state before paint
-  useLayoutEffect(() => {
-    setActiveIdx(0);
-    setIsPlaying(false);    // each new project starts paused
-    setTick(0);
-    setIsMainImageLoaded(false); // block thumbnails until new hero loads
-  }, [project.id]);
-
-  // Tick-based slideshow engine — 50ms interval drives SVG progress ring
-  const MAX_TICKS = 120; // 6 seconds at 50ms per tick
-  useEffect(() => {
-    if (!isPlaying || !hasMultipleImages) {
-      setTick(0);
-      return;
-    }
-    const timer = setInterval(() => {
-      setTick(prev => {
-        if (prev >= MAX_TICKS) {
-          setActiveIdx(curr => (curr + 1) % gallery.length);
-          return 0;
-        }
-        return prev + 1;
-      });
-    }, 50);
-    return () => clearInterval(timer);
-  }, [isPlaying, gallery.length, hasMultipleImages]);
-
-  const handleNextImage = () => {
-    setActiveIdx(prev => (prev + 1) % gallery.length);
-    setTick(0);
-  };
-
-  const handlePrevImage = () => {
-    setActiveIdx(prev => (prev - 1 + gallery.length) % gallery.length);
-    setTick(0);
-  };
-
-  const handleThumbClick = (idx: number) => {
-    setActiveIdx(idx);
-    setTick(0);
-  };
 
   const DESCRIPTION_LIMIT = 250;
   const rawDescription = project.description || '';
@@ -666,167 +625,49 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
     <>
       <div className="h-full flex flex-col bg-white text-slate-800 font-sans shadow-2xl relative border-l border-slate-200">
 
-        {/* 1. Hero Gallery — single optimized thumb + tick-based slideshow engine */}
-        <div
-          className="relative h-64 w-full shrink-0 bg-slate-100 overflow-hidden group"
-          onMouseEnter={() => setIsPlaying(false)}
-          onMouseLeave={() => { /* only resume if already playing via user action */ }}
-        >
-          {/* Hero image — strictly uses optimized thumb (correct size for 380px panel) */}
-          <img
-            key={currentImage.thumb}
-            src={currentImage.thumb}
-            alt={project.name}
-            loading="eager"
-            fetchpriority="high"
-            decoding="async"
-            onLoad={() => setIsMainImageLoaded(true)}
-            onClick={() => setFullscreenImage(currentImage.large)}
-            className="absolute inset-0 w-full h-full object-cover cursor-zoom-in transition-opacity duration-300"
-          />
+        {/* Header action bar (Preserved at top) */}
+        <div className="relative flex items-center justify-end px-4 py-3 bg-white z-[60] shrink-0 gap-2 border-b border-slate-100">
+          <button onClick={() => handleSaveLocal('compare')} className="p-2 rounded-full text-slate-500 hover:bg-slate-100 transition-all font-bold" title="Compare"><GitCompare className="w-4 h-4" /></button>
+          <button onClick={() => handleSaveLocal('favorite')} className="p-2 rounded-full text-slate-500 hover:bg-rose-50 hover:text-rose-500 transition-all font-bold" title="Favorite"><Heart className="w-4 h-4" /></button>
+          <button onClick={() => setIsReportModalOpen(true)} className="p-2 rounded-full text-slate-500 hover:bg-orange-50 hover:text-orange-500 transition-all font-bold" title="Report"><Flag className="w-4 h-4" /></button>
+          <button onClick={handleNativeShare} className="p-2 rounded-full text-slate-500 hover:bg-slate-100 transition-all font-bold" title="Share"><Share2 className="w-4 h-4" /></button>
+          <button onClick={handleExportPdf} disabled={isGeneratingPdf} className="p-2 rounded-full text-blue-600 hover:bg-blue-50 transition-all font-bold" title="PDF Brochure">
+            {isGeneratingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+          </button>
+          <div className="w-px h-6 bg-slate-200 mx-1" />
+          <button onClick={onClose} className="p-2 rounded-full text-slate-500 hover:bg-slate-100 transition-all font-bold" title="Close">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-          {/* Play/Pause button with circular SVG progress ring */}
-          {hasMultipleImages && (
-            <button
-              onClick={(e) => { e.stopPropagation(); setIsPlaying(p => !p); }}
-              aria-label={isPlaying ? 'Pause slideshow' : 'Play slideshow'}
-              className="absolute top-4 left-4 bg-black/40 hover:bg-black/70 backdrop-blur-md text-white rounded-full transition-all border border-white/20 z-10 flex items-center justify-center w-9 h-9"
-            >
-              {isPlaying ? (
-                <div className="relative w-full h-full flex items-center justify-center">
-                  <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 36 36">
-                    <circle cx="18" cy="18" r="14" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="2.5" />
-                    <circle
-                      cx="18" cy="18" r="14"
-                      fill="none" stroke="white" strokeWidth="2.5"
-                      strokeDasharray="88"
-                      strokeDashoffset={88 - (88 * tick) / MAX_TICKS}
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <Pause className="w-3.5 h-3.5 fill-current relative z-10" />
-                </div>
-              ) : (
-                <Play className="w-4 h-4 fill-current ml-0.5" />
-              )}
-            </button>
-          )}
-
-          {/* Header action bar: Compare · Favourite · Flag · Share · PDF · Close */}
-          <div className="absolute top-3 right-3 flex items-center gap-1 z-10">
-            <button
-              onClick={() => handleSaveLocal('compare')}
-              className="p-2 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md text-white border border-white/20 transition-all"
-              title="Add to Comparison" aria-label="Add to comparison"
-            >
-              <GitCompare className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => handleSaveLocal('favorite')}
-              className="p-2 rounded-full bg-black/40 hover:bg-rose-600/80 backdrop-blur-md text-white border border-white/20 transition-all"
-              title="Add to Favourites" aria-label="Add to favourites"
-            >
-              <Heart className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setIsReportModalOpen(true)}
-              className="p-2 rounded-full bg-black/40 hover:bg-orange-600/80 backdrop-blur-md text-white border border-white/20 transition-all"
-              title="Report Issue" aria-label="Report an issue with this listing"
-            >
-              <Flag className="w-4 h-4" />
-            </button>
-            <button
-              onClick={handleNativeShare}
-              className="p-2 rounded-full bg-black/40 hover:bg-indigo-600/80 backdrop-blur-md text-white border border-white/20 transition-all"
-              title="Share Project" aria-label="Share this project"
-            >
-              <Share2 className="w-4 h-4" />
-            </button>
-            <button
-              onClick={handleExportPdf}
-              disabled={isGeneratingPdf}
-              aria-label="Download PDF brochure"
-              title="Download Brochure PDF"
-              className={`p-2 rounded-full backdrop-blur-md border border-white/20 transition-all text-white ${isGeneratingPdf ? 'bg-blue-600/80 cursor-wait' : 'bg-blue-600/80 hover:bg-blue-700/90'}`}
-            >
-              {isGeneratingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            </button>
-            <div className="w-px h-4 bg-white/20 mx-0.5" />
-            <button
-              onClick={onClose}
-              aria-label="Close property details"
-              className="p-2 rounded-full bg-black/40 hover:bg-black/70 backdrop-blur-md text-white border border-white/20 transition-all"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Prev / Next arrows — visible on hover */}
-          {hasMultipleImages && (
-            <>
-              <button
-                onClick={handlePrevImage}
-                aria-label="Previous image"
-                className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2 bg-black/40 hover:bg-black/70 backdrop-blur-md text-white rounded-full border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <button
-                onClick={handleNextImage}
-                aria-label="Next image"
-                className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2 bg-black/40 hover:bg-black/70 backdrop-blur-md text-white rounded-full border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </>
-          )}
-
-          {/* Thumbnail strip — gated on isMainImageLoaded to enforce waterfall loading */}
-          {hasMultipleImages && (
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent pt-6 pb-2 px-2 flex gap-2 overflow-x-auto hide-scrollbar">
-              {isMainImageLoaded
-                ? gallery.map((img, idx) => (
-                  <button
-                    key={idx}
-                    onClick={(e) => { e.stopPropagation(); handleThumbClick(idx); }}
-                    aria-label={`View image ${idx + 1}`}
-                    className={`shrink-0 w-14 h-10 rounded-lg overflow-hidden border-2 transition-all ${activeIdx === idx ? 'border-white scale-105 shadow-lg' : 'border-white/40 opacity-70 hover:opacity-100 hover:border-white'
-                      }`}
-                  >
-                    <img src={img.thumb} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
-                  </button>
-                ))
-                : Array(Math.min(gallery.length, 6)).fill(0).map((_, i) => (
-                  // Skeleton placeholders — zero network requests, correct layout dimensions
-                  <div key={i} aria-hidden="true" className="shrink-0 w-14 h-10 rounded-lg bg-white/10 animate-pulse" />
-                ))
-              }
-            </div>
-          )}
-
-          {/* Dot indicator + expand hint row */}
-          <div className="absolute bottom-2 right-2 flex items-center gap-2 z-10">
-            {hasMultipleImages && (
-              <div className="flex gap-1">
-                {gallery.map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleThumbClick(idx)}
-                    aria-label={`Go to image ${idx + 1}`}
-                    className={`rounded-full transition-all ${activeIdx === idx ? 'w-4 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/50 hover:bg-white/80'
-                      }`}
+        {/* Inline Swipeable Gallery */}
+        <div className="relative group shrink-0 bg-slate-50 border-b border-slate-200">
+          <Swiper
+            modules={[Navigation, Pagination, A11y, FreeMode]}
+            spaceBetween={12}
+            slidesPerView={'auto'}
+            freeMode={true}
+            grabCursor={true}
+            pagination={{ clickable: true, dynamicBullets: true }}
+            className="w-full px-6 !pb-8 pt-6"
+          >
+            {displayImages.map((img, index) => (
+              <SwiperSlide key={index} className="!w-[280px] md:!w-[340px] first:ml-0">
+                <div
+                  onClick={() => setLightboxIndex(index)}
+                  className="aspect-[4/3] rounded-xl overflow-hidden bg-slate-200 border border-slate-200 shadow-md relative cursor-zoom-in group/img"
+                >
+                  <img
+                    src={img}
+                    alt={`${project.name} image ${index + 1}`}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-105"
+                    onError={(e) => e.currentTarget.src = 'https://placehold.co/600x400?text=No+Image'}
                   />
-                ))}
-              </div>
-            )}
-            <button
-              onClick={() => setFullscreenImage(currentImage.large)}
-              aria-label="View fullscreen"
-              className="bg-black/40 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-lg pointer-events-auto hover:bg-black/60 transition-all"
-            >
-              ⤢ Expand
-            </button>
-          </div>
+                  <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/10 transition-colors duration-300"></div>
+                </div>
+              </SwiperSlide>
+            ))}
+          </Swiper>
         </div>
 
         {/* Scrollable Content */}
@@ -882,19 +723,21 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                 </p>
               </div>
             </div>
-            <div className="flex flex-col gap-2 shrink-0 pt-1">
+            <div className="flex flex-col gap-2 shrink-0 pt-0.5">
+              {/* Enquire Button - Strong Primary Style */}
               <button
                 onClick={() => setIsInquireModalOpen(true)}
-                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors shadow-sm"
+                className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-full text-[11px] font-black uppercase tracking-widest transition-all shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95 border border-blue-700"
               >
-                <MessageSquare className="w-3.5 h-3.5" />
+                <MessageSquare className="w-3.5 h-3.5 fill-white/20" />
                 Enquire
               </button>
+              {/* Explore Button - Strong Secondary/Outline Style */}
               <button
                 onClick={() => setShowNeighborhoodList(true)}
-                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-50 text-slate-700 hover:bg-slate-200 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors shadow-sm border border-slate-100"
+                className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white text-slate-700 rounded-full text-[11px] font-black uppercase tracking-widest transition-all shadow-sm hover:shadow-md hover:bg-slate-50 hover:text-slate-900 active:scale-95 border-2 border-slate-200"
               >
-                <MapPin className="w-3.5 h-3.5" />
+                <MapPin className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600" />
                 Explore
               </button>
             </div>
@@ -1192,6 +1035,13 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
       {isTextModalOpen && (<TextModal text={rawDescription} onClose={() => setIsTextModalOpen(false)} />)}
       {isInquireModalOpen && (
         <InquireModal projectName={project.name} onClose={() => setIsInquireModalOpen(false)} />
+      )}
+      {lightboxIndex !== null && (
+        <LightboxGallery
+          images={displayImages}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+        />
       )}
       {isReportModalOpen && project && (
         <ReportModal project={project} onClose={() => setIsReportModalOpen(false)} />
