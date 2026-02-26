@@ -9,8 +9,6 @@ import { pdf } from '@react-pdf/renderer';
 import ProjectPdfDocument from './pdf/ProjectPdfDocument';
 import { getRelatedProjects, getClosestCategorizedAmenities } from '../utils/projectHelpers';
 
-import LightboxGallery from './LightboxGallery';
-
 const DEV_DOMAINS: Record<string, string> = {
   'emaar': 'emaar.com',
   'aldar': 'aldar.com',
@@ -134,65 +132,6 @@ const AnimatedMetricPill = ({ distance, driveTime, walkTime }: { distance: numbe
   );
 };
 
-const DedicatedMortgageCalculator = ({ priceRaw }: { priceRaw: string }) => {
-  const [downPaymentPct, setDownPaymentPct] = useState(25);
-  const [interestRate, setInterestRate] = useState(3.0);
-  const [years, setYears] = useState(25);
-
-  const price = Number(priceRaw.split('-')[0].trim().replace(/[^0-9.]/g, ''));
-  if (!price || isNaN(price)) return null;
-
-  const downPaymentAmt = price * (downPaymentPct / 100);
-  const loanAmount = price - downPaymentAmt;
-  const monthlyRate = interestRate / 100 / 12;
-  const numberOfPayments = years * 12;
-  const monthlyPayment = monthlyRate === 0 ? loanAmount / numberOfPayments : (loanAmount * monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) / (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
-
-  return (
-    <div className="mt-8 pt-6 border-t border-slate-100">
-      <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
-        <Building className="w-4 h-4 mr-2 text-blue-600" /> Mortgage Calculator
-      </h3>
-      <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-5">
-        <div className="flex justify-between items-center pb-4 border-b border-slate-200">
-          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Property Price</span>
-          <span className="text-base font-black text-slate-900">AED {price.toLocaleString()}</span>
-        </div>
-
-        <div>
-          <div className="flex justify-between text-[10px] font-bold text-slate-600 uppercase mb-2">
-            <span>Down Payment ({downPaymentPct}%)</span>
-            <span className="text-blue-600 font-black">AED {Math.round(downPaymentAmt).toLocaleString()}</span>
-          </div>
-          <input type="range" min="10" max="80" step="5" value={downPaymentPct} onChange={(e) => setDownPaymentPct(Number(e.target.value))} className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600" />
-        </div>
-
-        <div>
-          <div className="flex justify-between text-[10px] font-bold text-slate-600 uppercase mb-2">
-            <span>Loan Period</span>
-            <span className="text-blue-600 font-black">{years} Years</span>
-          </div>
-          <input type="range" min="5" max="35" step="1" value={years} onChange={(e) => setYears(Number(e.target.value))} className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600" />
-        </div>
-
-        <div>
-          <div className="flex justify-between text-[10px] font-bold text-slate-600 uppercase mb-2">
-            <span>Interest Rate</span>
-            <span className="text-blue-600 font-black">{interestRate.toFixed(1)}%</span>
-          </div>
-          <input type="range" min="1" max="8" step="0.1" value={interestRate} onChange={(e) => setInterestRate(Number(e.target.value))} className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600" />
-        </div>
-
-        <div className="pt-4 mt-2 border-t border-slate-200 flex justify-between items-center bg-blue-50 -mx-5 -mb-5 p-5 rounded-b-xl border-x-0 border-b-0">
-          <span className="text-[11px] font-black text-blue-800 uppercase tracking-widest">Monthly Installment</span>
-          <span className="text-xl font-black text-blue-600">AED {Math.round(monthlyPayment).toLocaleString()}</span>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-
 const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   project,
   allProjects,
@@ -210,9 +149,8 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   mapRef,
   onSelectLandmark,
 }) => {
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [activeIdx, setActiveIdx] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false); // start paused — user opts in
   const [tick, setTick] = useState(0);
   const [isMainImageLoaded, setIsMainImageLoaded] = useState(false);
   const [isDiscovering, setIsDiscovering] = useState(false);
@@ -728,21 +666,6 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
     <>
       <div className="h-full flex flex-col bg-white text-slate-800 font-sans shadow-2xl relative border-l border-slate-200">
 
-        {/* Header action bar (Preserved at top) */}
-        <div className="relative flex items-center justify-end px-4 py-3 bg-white z-[60] shrink-0 gap-2 border-b border-slate-100">
-          <button onClick={() => handleSaveLocal('compare')} className="p-2 rounded-full text-slate-500 hover:bg-slate-100 transition-all font-bold" title="Compare"><GitCompare className="w-4 h-4" /></button>
-          <button onClick={() => handleSaveLocal('favorite')} className="p-2 rounded-full text-slate-500 hover:bg-rose-50 hover:text-rose-500 transition-all font-bold" title="Favorite"><Heart className="w-4 h-4" /></button>
-          <button onClick={() => setIsReportModalOpen(true)} className="p-2 rounded-full text-slate-500 hover:bg-orange-50 hover:text-orange-500 transition-all font-bold" title="Report"><Flag className="w-4 h-4" /></button>
-          <button onClick={handleNativeShare} className="p-2 rounded-full text-slate-500 hover:bg-slate-100 transition-all font-bold" title="Share"><Share2 className="w-4 h-4" /></button>
-          <button onClick={handleExportPdf} disabled={isGeneratingPdf} className="p-2 rounded-full text-blue-600 hover:bg-blue-50 transition-all font-bold" title="PDF Brochure">
-            {isGeneratingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-          </button>
-          <div className="w-px h-6 bg-slate-200 mx-1" />
-          <button onClick={onClose} className="p-2 rounded-full text-slate-500 hover:bg-slate-100 transition-all font-bold" title="Close">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
         {/* 1. Hero Gallery — single optimized thumb + tick-based slideshow engine */}
         <div
           className="relative h-64 w-full shrink-0 bg-slate-100 overflow-hidden group"
@@ -758,7 +681,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
             fetchpriority="high"
             decoding="async"
             onLoad={() => setIsMainImageLoaded(true)}
-            onClick={() => setLightboxIndex(activeIdx)}
+            onClick={() => setFullscreenImage(currentImage.large)}
             className="absolute inset-0 w-full h-full object-cover cursor-zoom-in transition-opacity duration-300"
           />
 
@@ -788,6 +711,55 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
               )}
             </button>
           )}
+
+          {/* Header action bar: Compare · Favourite · Flag · Share · PDF · Close */}
+          <div className="absolute top-3 right-3 flex items-center gap-1 z-10">
+            <button
+              onClick={() => handleSaveLocal('compare')}
+              className="p-2 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md text-white border border-white/20 transition-all"
+              title="Add to Comparison" aria-label="Add to comparison"
+            >
+              <GitCompare className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => handleSaveLocal('favorite')}
+              className="p-2 rounded-full bg-black/40 hover:bg-rose-600/80 backdrop-blur-md text-white border border-white/20 transition-all"
+              title="Add to Favourites" aria-label="Add to favourites"
+            >
+              <Heart className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setIsReportModalOpen(true)}
+              className="p-2 rounded-full bg-black/40 hover:bg-orange-600/80 backdrop-blur-md text-white border border-white/20 transition-all"
+              title="Report Issue" aria-label="Report an issue with this listing"
+            >
+              <Flag className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleNativeShare}
+              className="p-2 rounded-full bg-black/40 hover:bg-indigo-600/80 backdrop-blur-md text-white border border-white/20 transition-all"
+              title="Share Project" aria-label="Share this project"
+            >
+              <Share2 className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleExportPdf}
+              disabled={isGeneratingPdf}
+              aria-label="Download PDF brochure"
+              title="Download Brochure PDF"
+              className={`p-2 rounded-full backdrop-blur-md border border-white/20 transition-all text-white ${isGeneratingPdf ? 'bg-blue-600/80 cursor-wait' : 'bg-blue-600/80 hover:bg-blue-700/90'}`}
+            >
+              {isGeneratingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            </button>
+            <div className="w-px h-4 bg-white/20 mx-0.5" />
+            <button
+              onClick={onClose}
+              aria-label="Close property details"
+              className="p-2 rounded-full bg-black/40 hover:bg-black/70 backdrop-blur-md text-white border border-white/20 transition-all"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
 
           {/* Prev / Next arrows — visible on hover */}
           {hasMultipleImages && (
@@ -848,7 +820,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
               </div>
             )}
             <button
-              onClick={() => setLightboxIndex(activeIdx)}
+              onClick={() => setFullscreenImage(currentImage.large)}
               aria-label="View fullscreen"
               className="bg-black/40 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-lg pointer-events-auto hover:bg-black/60 transition-all"
             >
@@ -862,25 +834,68 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
 
           {/* 2. Name → Location → Developer — sticky while scrolling */}
           <div className="sticky top-0 z-20 bg-white px-6 pt-6 pb-5 border-b border-slate-100 shadow-sm flex items-start justify-between gap-4" style={{ paddingTop: 'max(env(safe-area-inset-top), 24px)' }}>
-            <div className="w-[70%] min-w-0 flex flex-col">
-              <h1 className="text-2xl font-black text-slate-900 leading-tight tracking-tight mb-1.5 truncate">
-                {project.name}
-              </h1>
-              <div className="flex items-center text-slate-500 text-xs font-bold uppercase tracking-widest mb-1.5 truncate">
-                <MapPin className="w-3.5 h-3.5 mr-1.5 text-blue-600 shrink-0" />
-                <span className="truncate">{project.community}{project.city && ` / ${project.city}`}</span>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl font-black text-slate-900 leading-tight tracking-tight mb-2 truncate">{project.name}</h1>
+              <div className="flex items-center text-slate-500 text-xs font-bold uppercase tracking-widest mb-3">
+                <MapPin className="w-4 h-4 mr-1.5 text-blue-600 shrink-0" />
+                <button
+                  onClick={() => onQuickFilter && project.community ? onQuickFilter('community', project.community) : undefined}
+                  className="hover:text-blue-800 hover:underline transition-all text-left truncate"
+                >
+                  {project.community}
+                </button>
+                {project.city && (
+                  <><span className="mx-2 text-slate-300">/</span>
+                    <button
+                      onClick={() => setSelectedCity?.(project.city || '')}
+                      className="text-slate-600 hover:text-blue-800 hover:underline transition-all text-left"
+                    >
+                      {project.city}
+                    </button></>
+                )}
               </div>
-              <p className="text-sm font-black text-blue-600 uppercase tracking-widest truncate">
-                {project.developerName || 'Exclusive Developer'}
-              </p>
+              <div className="flex items-center gap-2 mt-1">
+                {(() => {
+                  const devLower = (project.developerName || '').toLowerCase();
+                  const key = Object.keys(DEV_DOMAINS).find(k => devLower.includes(k));
+                  const url = key ? `https://logo.clearbit.com/${DEV_DOMAINS[key]}` : null;
+                  return url ? (
+                    <img
+                      src={url}
+                      alt={project.developerName}
+                      className="w-5 h-5 object-contain rounded-sm shrink-0 bg-white"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
+                  ) : (
+                    <div className="w-5 h-5 bg-blue-100 rounded-sm flex items-center justify-center shrink-0">
+                      <span className="text-[10px] font-black text-blue-600">{project.developerName?.charAt(0) || 'D'}</span>
+                    </div>
+                  );
+                })()}
+                <p className="text-sm font-black text-blue-600 uppercase tracking-widest truncate">
+                  <button
+                    onClick={() => onQuickFilter && project.developerName ? onQuickFilter('developer', project.developerName) : undefined}
+                    className="hover:text-blue-800 hover:underline transition-all text-left"
+                  >
+                    {project.developerName || 'Exclusive Developer'}
+                  </button>
+                </p>
+              </div>
             </div>
-
-            <div className="w-[30%] shrink-0 flex flex-col gap-2 pt-1">
-              <button onClick={() => setIsInquireModalOpen(true)} className="flex items-center justify-center gap-1.5 w-full py-2.5 bg-blue-600 text-white rounded-lg text-[11px] font-black uppercase tracking-widest transition-all shadow-sm hover:bg-blue-700">
-                <MessageSquare className="w-3.5 h-3.5" /> Enquire
+            <div className="flex flex-col gap-2 shrink-0 pt-1">
+              <button
+                onClick={() => setIsInquireModalOpen(true)}
+                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors shadow-sm"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                Enquire
               </button>
-              <button onClick={() => setShowNeighborhoodList(true)} className="flex items-center justify-center gap-1.5 w-full py-2.5 bg-slate-100 text-slate-800 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all shadow-sm hover:bg-slate-200 border border-slate-200">
-                <MapPin className="w-3.5 h-3.5" /> Explore
+              <button
+                onClick={() => setShowNeighborhoodList(true)}
+                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-50 text-slate-700 hover:bg-slate-200 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors shadow-sm border border-slate-100"
+              >
+                <MapPin className="w-3.5 h-3.5" />
+                Explore
               </button>
             </div>
           </div>
@@ -1080,8 +1095,6 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
 
             <div id="sidebar-map-section" />
 
-            {isValidPrice(project.priceRange) && <DedicatedMortgageCalculator priceRaw={project.priceRange!} />}
-
             {/* 8. Custom Distance Calculator — live autocomplete + real Mapbox Directions route */}
             <div className="relative mt-8 pt-6 border-t border-slate-100 pb-4">
               <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
@@ -1179,13 +1192,6 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
       {isTextModalOpen && (<TextModal text={rawDescription} onClose={() => setIsTextModalOpen(false)} />)}
       {isInquireModalOpen && (
         <InquireModal projectName={project.name} onClose={() => setIsInquireModalOpen(false)} />
-      )}
-      {lightboxIndex !== null && (
-        <LightboxGallery
-          images={gallery.map((g: any) => g.large)}
-          initialIndex={lightboxIndex}
-          onClose={() => setLightboxIndex(null)}
-        />
       )}
       {isReportModalOpen && project && (
         <ReportModal project={project} onClose={() => setIsReportModalOpen(false)} />
