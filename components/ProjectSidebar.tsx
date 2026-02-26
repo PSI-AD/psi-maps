@@ -825,52 +825,70 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
         <div className="flex-1 overflow-y-auto custom-scrollbar bg-white">
 
           {/* 2. Name → Location → Developer — sticky while scrolling */}
-          <div className="sticky top-0 z-20 bg-white px-6 pt-6 pb-5 border-b border-slate-100 shadow-sm" style={{ paddingTop: 'max(env(safe-area-inset-top), 24px)' }}>
-            <h1 className="text-2xl font-black text-slate-900 leading-tight tracking-tight mb-2">{project.name}</h1>
-            <div className="flex items-center text-slate-500 text-xs font-bold uppercase tracking-widest mb-3">
-              <MapPin className="w-4 h-4 mr-1.5 text-blue-600 shrink-0" />
-              <button
-                onClick={() => onQuickFilter && project.community ? onQuickFilter('community', project.community) : undefined}
-                className="hover:text-blue-800 hover:underline transition-all text-left truncate"
-              >
-                {project.community}
-              </button>
-              {project.city && (
-                <><span className="mx-2 text-slate-300">/</span>
-                  <button
-                    onClick={() => setSelectedCity?.(project.city || '')}
-                    className="text-slate-600 hover:text-blue-800 hover:underline transition-all text-left"
-                  >
-                    {project.city}
-                  </button></>
-              )}
-            </div>
-            <div className="flex items-center gap-2 mt-1">
-              {(() => {
-                const devLower = (project.developerName || '').toLowerCase();
-                const key = Object.keys(DEV_DOMAINS).find(k => devLower.includes(k));
-                const url = key ? `https://logo.clearbit.com/${DEV_DOMAINS[key]}` : null;
-                return url ? (
-                  <img
-                    src={url}
-                    alt={project.developerName}
-                    className="w-5 h-5 object-contain rounded-sm shrink-0 bg-white"
-                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                  />
-                ) : (
-                  <div className="w-5 h-5 bg-blue-100 rounded-sm flex items-center justify-center shrink-0">
-                    <span className="text-[10px] font-black text-blue-600">{project.developerName?.charAt(0) || 'D'}</span>
-                  </div>
-                );
-              })()}
-              <p className="text-sm font-black text-blue-600 uppercase tracking-widest">
+          <div className="sticky top-0 z-20 bg-white px-6 pt-6 pb-5 border-b border-slate-100 shadow-sm flex items-start justify-between gap-4" style={{ paddingTop: 'max(env(safe-area-inset-top), 24px)' }}>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl font-black text-slate-900 leading-tight tracking-tight mb-2 truncate">{project.name}</h1>
+              <div className="flex items-center text-slate-500 text-xs font-bold uppercase tracking-widest mb-3">
+                <MapPin className="w-4 h-4 mr-1.5 text-blue-600 shrink-0" />
                 <button
-                  onClick={() => onQuickFilter && project.developerName ? onQuickFilter('developer', project.developerName) : undefined}
-                  className="hover:text-blue-800 hover:underline transition-all text-left"
+                  onClick={() => onQuickFilter && project.community ? onQuickFilter('community', project.community) : undefined}
+                  className="hover:text-blue-800 hover:underline transition-all text-left truncate"
                 >
-                  {project.developerName || 'Exclusive Developer'}
+                  {project.community}
                 </button>
-              </p>
+                {project.city && (
+                  <><span className="mx-2 text-slate-300">/</span>
+                    <button
+                      onClick={() => setSelectedCity?.(project.city || '')}
+                      className="text-slate-600 hover:text-blue-800 hover:underline transition-all text-left"
+                    >
+                      {project.city}
+                    </button></>
+                )}
+              </div>
+              <div className="flex items-center gap-2 mt-1">
+                {(() => {
+                  const devLower = (project.developerName || '').toLowerCase();
+                  const key = Object.keys(DEV_DOMAINS).find(k => devLower.includes(k));
+                  const url = key ? `https://logo.clearbit.com/${DEV_DOMAINS[key]}` : null;
+                  return url ? (
+                    <img
+                      src={url}
+                      alt={project.developerName}
+                      className="w-5 h-5 object-contain rounded-sm shrink-0 bg-white"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
+                  ) : (
+                    <div className="w-5 h-5 bg-blue-100 rounded-sm flex items-center justify-center shrink-0">
+                      <span className="text-[10px] font-black text-blue-600">{project.developerName?.charAt(0) || 'D'}</span>
+                    </div>
+                  );
+                })()}
+                <p className="text-sm font-black text-blue-600 uppercase tracking-widest truncate">
+                  <button
+                    onClick={() => onQuickFilter && project.developerName ? onQuickFilter('developer', project.developerName) : undefined}
+                    className="hover:text-blue-800 hover:underline transition-all text-left"
+                  >
+                    {project.developerName || 'Exclusive Developer'}
+                  </button>
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 shrink-0 pt-1">
+              <button
+                onClick={() => setIsInquireModalOpen(true)}
+                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors shadow-sm"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                Enquire
+              </button>
+              <button
+                onClick={() => setShowNeighborhoodList(true)}
+                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-50 text-slate-700 hover:bg-slate-200 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors shadow-sm border border-slate-100"
+              >
+                <MapPin className="w-3.5 h-3.5" />
+                Explore
+              </button>
             </div>
           </div>
 
@@ -1133,29 +1151,29 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
               )}
             </div>
           </div>
-        </div>
 
-        {/* Footer Actions */}
-        <div className="p-5 bg-white border-t border-slate-100 z-10 shrink-0 space-y-2.5 shadow-[0_-4px_20px_rgba(0,0,0,0.02)]">
-          {/* Explore Neighborhood — zooms out to 14.5 so amenity markers become visible */}
-          <button
-            onClick={() => setShowNeighborhoodList(true)}
-            disabled={isDiscovering}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest transition-all hover:shadow-xl hover:shadow-blue-200 active:scale-[0.99] disabled:opacity-70 flex items-center justify-center gap-3"
-          >
-            <MapPin className="w-4 h-4" />
-            <span>Explore Neighborhood</span>
-          </button>
+          {/* Footer Actions */}
+          <div className="px-6 pb-8 pt-4 space-y-3">
+            {/* Explore Neighborhood — zooms out to 14.5 so amenity markers become visible */}
+            <button
+              onClick={() => setShowNeighborhoodList(true)}
+              disabled={isDiscovering}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest transition-all hover:shadow-xl hover:shadow-blue-200 active:scale-[0.99] disabled:opacity-70 flex items-center justify-center gap-3"
+            >
+              <MapPin className="w-4 h-4" />
+              <span>Explore Neighborhood</span>
+            </button>
 
-          {/* Inquire Now — replaces "Request Floor Plans" */}
-          <button
-            onClick={() => setIsInquireModalOpen(true)}
-            className="flex items-center justify-center w-full py-4 border border-blue-200 hover:border-blue-600 text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all gap-2 group"
-          >
-            <MessageSquare className="w-4 h-4" />
-            <span>Inquire Now</span>
-            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-          </button>
+            {/* Inquire Now — replaces "Request Floor Plans" */}
+            <button
+              onClick={() => setIsInquireModalOpen(true)}
+              className="flex items-center justify-center w-full py-4 border border-blue-200 hover:border-blue-600 text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all gap-2 group"
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span>Inquire Now</span>
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+            </button>
+          </div>
         </div>
       </div>
 
