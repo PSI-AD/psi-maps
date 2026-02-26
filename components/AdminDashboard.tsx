@@ -64,6 +64,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
 
   const [stagedProject, setStagedProject] = useState<Project | null>(null);
   const [stagedLandmark, setStagedLandmark] = useState<Partial<Landmark> | null>(null);
+  const [stagedDeveloper, setStagedDeveloper] = useState<any | null>(null);
+  const [stagedCommunity, setStagedCommunity] = useState<any | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isHydrating, setIsHydrating] = useState(false);
   const [isOptimizing, setIsOptimizing] = useState(false);
@@ -139,6 +141,41 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
   const uniqueProjectDevelopers = useMemo(() => {
     return Array.from(new Set(liveProjects.map(p => p.developerName).filter(Boolean))).sort() as string[];
   }, [liveProjects]);
+
+  const handleSyncDevelopers = async () => {
+    setIsSaving(true);
+    try {
+      const unique = Array.from(new Set(liveProjects.map(p => p.developerName).filter(Boolean)));
+      let added = 0;
+      for (const name of unique) {
+        if (!developers.find(d => d.name === name)) {
+          const ref = doc(collection(db, 'developers'));
+          await setDoc(ref, { name, logoUrl: `https://www.google.com/s2/favicons?domain=${String(name).toLowerCase().replace(/\s+/g, '')}.com&sz=128` });
+          added++;
+        }
+      }
+      alert(`Imported ${added} new developers! Refresh to see them.`);
+    } catch (e) { console.error(e); }
+    setIsSaving(false);
+  };
+
+  const handleSyncCommunities = async () => {
+    setIsSaving(true);
+    try {
+      const unique = Array.from(new Set(liveProjects.map(p => p.community).filter(Boolean)));
+      let added = 0;
+      for (const name of unique) {
+        if (!communities.find(c => c.name === name)) {
+          const project = liveProjects.find(p => p.community === name);
+          const ref = doc(collection(db, 'communities'));
+          await setDoc(ref, { name, city: project?.city || 'Abu Dhabi', imageUrl: '' });
+          added++;
+        }
+      }
+      alert(`Imported ${added} new communities! Refresh to see them.`);
+    } catch (e) { console.error(e); }
+    setIsSaving(false);
+  };
 
   const filteredAdminProjects = useMemo(() => {
     return liveProjects.filter(p =>
@@ -892,74 +929,94 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
 
             {activeTab === 'developers' && (
               <section className="animate-in fade-in duration-300">
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden p-6">
-                  <div className="mb-6 pb-6 border-b border-slate-100">
-                    <h2 className="text-xl font-black text-slate-800 mb-2">Developer Logo Verification Engine</h2>
-                    <p className="text-slate-500 text-sm">This grid tests the Google Favicon API against our known developer domains. If you see globe icons here, it means the API is working but returned a generic fallback (200 OK) because a specific logo wasn't found.</p>
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-black text-slate-900 tracking-tight">Developers CMS</h2>
+                  <div className="flex gap-3">
+                    <button onClick={handleSyncDevelopers} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-sm transition-all flex items-center gap-2"><RefreshCw className="w-4 h-4" /> Auto-Import</button>
+                    <button onClick={() => setStagedDeveloper({ name: '', logoUrl: '', description: '' })} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition-all flex items-center gap-2"><Plus className="w-4 h-4" /> Add Developer</button>
                   </div>
-
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {Object.entries(DEV_DOMAINS).map(([name, domain]) => (
-                      <div key={name} className="p-4 border border-slate-100 rounded-xl flex flex-col items-center justify-center gap-3 bg-slate-50">
-                        <img
-                          src={`https://www.google.com/s2/favicons?domain=${domain}&sz=128`}
-                          alt={name}
-                          className="w-16 h-16 object-contain bg-white rounded-lg shadow-sm p-1"
-                        />
-                        <div className="text-center">
-                          <p className="text-sm font-bold text-slate-800 capitalize">{name}</p>
-                          <p className="text-[10px] text-slate-500">{domain}</p>
-                        </div>
-                      </div>
-                    ))}
+                </div>
+                {stagedDeveloper && (
+                  <div className="mb-8 p-6 bg-blue-50 border border-blue-100 rounded-2xl relative">
+                    <button onClick={() => setStagedDeveloper(null)} className="absolute top-4 right-4 p-2 bg-white rounded-full text-slate-500 hover:text-slate-800"><X className="w-4 h-4" /></button>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <input type="text" placeholder="Developer Name" value={stagedDeveloper.name} onChange={e => setStagedDeveloper({ ...stagedDeveloper, name: e.target.value })} className="h-12 px-4 rounded-xl border border-blue-200" />
+                      <input type="text" placeholder="Logo URL" value={stagedDeveloper.logoUrl || ''} onChange={e => setStagedDeveloper({ ...stagedDeveloper, logoUrl: e.target.value })} className="h-12 px-4 rounded-xl border border-blue-200" />
+                      <textarea placeholder="Description..." value={stagedDeveloper.description || ''} onChange={e => setStagedDeveloper({ ...stagedDeveloper, description: e.target.value })} className="h-24 px-4 py-3 rounded-xl border border-blue-200 md:col-span-2" />
+                      <button onClick={async () => {
+                        const payload = { ...stagedDeveloper };
+                        if (payload.id) await updateDoc(doc(db, 'developers', payload.id), payload);
+                        else await addDoc(collection(db, 'developers'), payload);
+                        setStagedDeveloper(null);
+                        alert('Saved!');
+                      }} className="h-12 bg-blue-600 text-white font-bold rounded-xl md:col-span-2">Save Developer</button>
+                    </div>
                   </div>
+                )}
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                  <table className="w-full text-left">
+                    <thead className="bg-slate-50 border-b border-slate-100"><tr><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Logo</th><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Name</th><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right">Actions</th></tr></thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {developers.map(dev => (
+                        <tr key={dev.id} className="hover:bg-slate-50">
+                          <td className="p-4"><img src={dev.logoUrl} alt="" className="w-10 h-10 object-contain rounded bg-white border border-slate-100" onError={e => e.currentTarget.src = '/placeholder-image.png'} /></td>
+                          <td className="p-4 font-bold text-slate-800">{dev.name}</td>
+                          <td className="p-4 text-right">
+                            <button onClick={() => setStagedDeveloper(dev)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg mr-2"><Edit2 className="w-4 h-4" /></button>
+                            <button onClick={async () => { if (window.confirm('Delete?')) await deleteDoc(doc(db, 'developers', dev.id)); }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </section>
             )}
 
             {activeTab === 'communities' && (
               <section className="animate-in fade-in duration-300">
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                  <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-                    <div>
-                      <h2 className="text-xl font-black text-slate-800">Community CMS</h2>
-                      <p className="text-sm text-slate-500 mt-0.5">{communities.length} communit{communities.length !== 1 ? 'ies' : 'y'} in database</p>
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-black text-slate-900 tracking-tight">Communities CMS</h2>
+                  <div className="flex gap-3">
+                    <button onClick={handleSyncCommunities} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-sm transition-all flex items-center gap-2"><RefreshCw className="w-4 h-4" /> Auto-Import</button>
+                    <button onClick={() => setStagedCommunity({ name: '', city: '', imageUrl: '', description: '' })} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition-all flex items-center gap-2"><Plus className="w-4 h-4" /> Add Community</button>
+                  </div>
+                </div>
+                {stagedCommunity && (
+                  <div className="mb-8 p-6 bg-blue-50 border border-blue-100 rounded-2xl relative">
+                    <button onClick={() => setStagedCommunity(null)} className="absolute top-4 right-4 p-2 bg-white rounded-full text-slate-500 hover:text-slate-800"><X className="w-4 h-4" /></button>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <input type="text" placeholder="Community Name" value={stagedCommunity.name} onChange={e => setStagedCommunity({ ...stagedCommunity, name: e.target.value })} className="h-12 px-4 rounded-xl border border-blue-200" />
+                      <input type="text" placeholder="City (e.g., Abu Dhabi)" value={stagedCommunity.city || ''} onChange={e => setStagedCommunity({ ...stagedCommunity, city: e.target.value })} className="h-12 px-4 rounded-xl border border-blue-200" />
+                      <input type="text" placeholder="Hero Image URL" value={stagedCommunity.imageUrl || ''} onChange={e => setStagedCommunity({ ...stagedCommunity, imageUrl: e.target.value })} className="h-12 px-4 rounded-xl border border-blue-200 md:col-span-2" />
+                      <textarea placeholder="Description..." value={stagedCommunity.description || ''} onChange={e => setStagedCommunity({ ...stagedCommunity, description: e.target.value })} className="h-24 px-4 py-3 rounded-xl border border-blue-200 md:col-span-2" />
+                      <button onClick={async () => {
+                        const payload = { ...stagedCommunity };
+                        if (payload.id) await updateDoc(doc(db, 'communities', payload.id), payload);
+                        else await addDoc(collection(db, 'communities'), payload);
+                        setStagedCommunity(null);
+                        alert('Saved!');
+                      }} className="h-12 bg-blue-600 text-white font-bold rounded-xl md:col-span-2">Save Community</button>
                     </div>
-                    <button
-                      onClick={() => alert('Add Community: implement modal or inline form')}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-colors"
-                    >
-                      <Plus className="w-4 h-4" /> Add Community
-                    </button>
                   </div>
-                  <div className="divide-y divide-slate-100">
-                    {communities.length === 0 ? (
-                      <div className="p-10 text-center">
-                        <MapPin className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                        <p className="text-slate-500 font-medium text-sm">No communities in database.</p>
-                        <p className="text-slate-400 text-xs mt-1">Run <code className="bg-slate-100 px-1 rounded">node scripts/enrich-data.cjs</code> to populate.</p>
-                      </div>
-                    ) : communities.map(comm => (
-                      <div key={comm.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors gap-4">
-                        <div className="flex items-center gap-4 min-w-0">
-                          {comm.images?.[0] ? (
-                            <img src={comm.images[0]} alt={comm.name} className="w-16 h-10 rounded-lg object-cover bg-slate-100 shrink-0 border border-slate-200" />
-                          ) : (
-                            <div className="w-16 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
-                              <span className="text-[10px] font-bold text-slate-400">No Img</span>
-                            </div>
-                          )}
-                          <div className="min-w-0">
-                            <p className="font-bold text-slate-800 text-sm">{comm.name}</p>
-                            <p className="text-xs text-slate-500">{comm.city}{comm.description ? ` · ${comm.description.slice(0, 60)}…` : ''}</p>
-                          </div>
-                        </div>
-                        <button className="shrink-0 text-blue-600 font-bold text-xs uppercase tracking-widest hover:underline">
-                          Edit
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+                )}
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                  <table className="w-full text-left">
+                    <thead className="bg-slate-50 border-b border-slate-100"><tr><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Image</th><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Name</th><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">City</th><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right">Actions</th></tr></thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {communities.map(comm => (
+                        <tr key={comm.id} className="hover:bg-slate-50">
+                          <td className="p-4"><img src={comm.imageUrl} alt="" className="w-16 h-10 object-cover rounded bg-slate-200 border border-slate-100" onError={e => e.currentTarget.src = '/placeholder-image.png'} /></td>
+                          <td className="p-4 font-bold text-slate-800">{comm.name}</td>
+                          <td className="p-4 text-slate-500 text-sm">{comm.city}</td>
+                          <td className="p-4 text-right">
+                            <button onClick={() => setStagedCommunity(comm)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg mr-2"><Edit2 className="w-4 h-4" /></button>
+                            <button onClick={async () => { if (window.confirm('Delete?')) await deleteDoc(doc(db, 'communities', comm.id)); }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </section>
             )}
