@@ -523,10 +523,10 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
         <div className="p-4 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-md z-20 shadow-sm" style={{ paddingTop: 'max(env(safe-area-inset-top), 16px)' }}>
           <button
             onClick={() => { setShowNeighborhoodList(false); stopTour(); }}
-            className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors"
+            className="flex items-center gap-1 md:gap-2 text-slate-500 hover:text-slate-800 transition-colors shrink min-w-0 pr-2"
           >
-            <ChevronLeft className="w-5 h-5" />
-            <span className="font-bold text-sm">Back to Project</span>
+            <ChevronLeft className="w-5 h-5 shrink-0" />
+            <span className="font-bold text-sm truncate">Back to Project</span>
           </button>
           <button
             onClick={(e) => {
@@ -551,14 +551,14 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                 }
               }
             }}
-            className={`px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all ${isTouringNeighborhood
+            className={`shrink-0 px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all ${isTouringNeighborhood
               ? 'bg-red-100 text-red-600 hover:bg-red-200'
               : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md'
               }`}
           >
             {isTouringNeighborhood
-              ? <><Square className="w-4 h-4 fill-current" /> Stop Tour</>
-              : <><Play className="w-4 h-4 fill-current" /> Start Tour</>
+              ? <><Square className="w-4 h-4 fill-current shrink-0" /> <span className="truncate">Stop Tour</span></>
+              : <><Play className="w-4 h-4 fill-current shrink-0" /> <span className="truncate">Start Tour</span></>
             }
           </button>
         </div>
@@ -680,7 +680,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
           onMouseLeave={() => { /* only resume if already playing via user action */ }}
         >
           {/* Header action bar: Compare · Favourite · Flag · Share · PDF · Close */}
-          <div className="absolute top-3 right-3 flex items-center gap-1 z-10">
+          <div className="absolute top-3 right-3 flex flex-wrap justify-end items-center gap-1 z-10 max-w-[70%] md:max-w-none">
             <button
               onClick={() => handleSaveLocal('compare')}
               className="p-2 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md text-white border border-white/20 transition-all"
