@@ -155,6 +155,8 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
 }) => {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [activeIdx, setActiveIdx] = useState(0);
+  const [galleryIndex, setGalleryIndex] = useState<number | null>(null);
+  const touchStartX = useRef(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [tick, setTick] = useState(0);
   const [isMainImageLoaded, setIsMainImageLoaded] = useState(false);
@@ -733,7 +735,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
             fetchpriority="high"
             decoding="async"
             onLoad={() => setIsMainImageLoaded(true)}
-            onClick={() => setFullscreenImage(currentImage?.large || null)}
+            onClick={(e) => { e.stopPropagation(); setGalleryIndex(activeIdx); }}
             className="absolute inset-0 w-full h-full object-cover cursor-zoom-in transition-opacity duration-300"
             onError={(e) => { e.currentTarget.src = '/placeholder-image.png'; }}
           />
@@ -824,7 +826,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
               </div>
             )}
             <button
-              onClick={() => setLightboxIndex(activeIdx)}
+              onClick={(e) => { e.stopPropagation(); setGalleryIndex(activeIdx); }}
               aria-label="View fullscreen"
               className="bg-black/40 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-lg pointer-events-auto hover:bg-black/60 transition-all"
             >
@@ -1148,6 +1150,67 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
       )}
       {isReportModalOpen && project && (
         <ReportModal project={project} onClose={() => setIsReportModalOpen(false)} />
+      )}
+
+
+      {/* Fullscreen Interactive Gallery Overlay */}
+      {galleryIndex !== null && (
+        <div
+          className="fixed inset-0 z-[99999] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center animate-in fade-in duration-200"
+          onClick={() => setGalleryIndex(null)}
+        >
+          {/* Top Toolbar */}
+          <div className="absolute top-6 right-6 z-50 flex items-center gap-4">
+            <span className="text-white text-sm font-bold bg-black/50 px-3 py-1 rounded-full">
+              {galleryIndex + 1} / {gallery.length}
+            </span>
+            <button onClick={() => setGalleryIndex(null)} className="p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors">
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* Main Image & Touch Swipe Area */}
+          <div
+            className="relative w-full h-full flex items-center justify-center p-4 md:p-12"
+            onClick={(e) => e.stopPropagation()}
+            onTouchStart={(e) => touchStartX.current = e.touches[0].clientX}
+            onTouchEnd={(e) => {
+              const touchEndX = e.changedTouches[0].clientX;
+              const diff = touchStartX.current - touchEndX;
+              if (diff > 50) setGalleryIndex((prev) => (prev! + 1) % gallery.length);
+              if (diff < -50) setGalleryIndex((prev) => (prev! - 1 + gallery.length) % gallery.length);
+            }}
+          >
+            <img
+              src={gallery[galleryIndex].large}
+              alt="Fullscreen View"
+              className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+            />
+
+            {/* Desktop Navigation Arrows */}
+            {gallery.length > 1 && (
+              <>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setGalleryIndex((prev) => (prev! - 1 + gallery.length) % gallery.length); }}
+                  className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 p-4 bg-black/50 hover:bg-black/80 rounded-full text-white transition-all hidden md:block"
+                >
+                  <ChevronLeft className="w-8 h-8" />
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setGalleryIndex((prev) => (prev! + 1) % gallery.length); }}
+                  className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 p-4 bg-black/50 hover:bg-black/80 rounded-full text-white transition-all hidden md:block"
+                >
+                  <ChevronRight className="w-8 h-8" />
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Mobile Swipe Hint */}
+          <div className="absolute bottom-8 left-0 w-full text-center text-white/50 text-xs md:hidden pointer-events-none">
+            Swipe left or right to view more
+          </div>
+        </div>
       )}
     </>
   );
