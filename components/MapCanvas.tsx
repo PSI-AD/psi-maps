@@ -177,34 +177,31 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
         return () => clearTimeout(timer);
     }, []);
 
-    // ── Supercluster state — tracks viewport for amenity clustering ──────────
-    const [clusterZoom, setClusterZoom] = useState(10);
-    const [clusterBounds, setClusterBounds] = useState<[number, number, number, number]>([
-        54.0, 24.0, 56.5, 25.5
-    ]);
+    const [bounds, setBounds] = useState<any>(null);
 
-    // Build GeoJSON points from filteredAmenities (valid coords only)
-    const amenityPoints = filteredAmenities
+    // Build GeoJSON points from filteredAmenities
+    const points = useMemo(() => filteredAmenities
         .filter(a => {
             const lat = Number(a.latitude);
             const lng = Number(a.longitude);
             return !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
         })
-        .map(amenity => ({
+        .map(landmark => ({
             type: 'Feature' as const,
-            properties: { cluster: false, amenityId: amenity.id, category: amenity.category, amenity },
+            properties: { cluster: false, landmarkId: landmark.id, amenity: landmark, ...landmark },
             geometry: {
                 type: 'Point' as const,
-                coordinates: [Number(amenity.longitude), Number(amenity.latitude)],
+                coordinates: [Number(landmark.longitude), Number(landmark.latitude)],
             },
-        }));
+        })), [filteredAmenities]);
 
     const { clusters, supercluster } = useSupercluster({
-        points: amenityPoints,
-        bounds: clusterBounds,
-        zoom: clusterZoom,
-        options: { radius: 100, maxZoom: 13 },
+        points,
+        bounds,
+        zoom: viewState.zoom,
+        options: { radius: 100, maxZoom: 14 }
     });
+
 
     useEffect(() => {
         if (activeIsochrone && selectedProject) {
@@ -313,12 +310,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
             onMove={evt => {
                 setViewState(evt.viewState);
                 updateBounds();
-                // Keep supercluster in sync with the current viewport
-                setClusterZoom(Math.round(evt.viewState.zoom));
-                const b = evt.target.getBounds();
-                setClusterBounds([
-                    b.getWest(), b.getSouth(), b.getEast(), b.getNorth(),
-                ] as [number, number, number, number]);
+                setBounds(evt.target.getBounds().toArray().flat());
             }}
             onLoad={(e) => {
                 e.target.resize();
@@ -502,27 +494,16 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                 const { cluster: isCluster, point_count: pointCount } = cluster.properties;
 
                 if (isCluster) {
-                    // ── Cluster badge — click to expand ──────────────────
                     return (
-                        <Marker
-                            key={`amenity-cluster-${cluster.id}`}
-                            longitude={longitude}
-                            latitude={latitude}
-                        >
+                        <Marker key={`cluster-${cluster.id}`} latitude={latitude} longitude={longitude}>
                             <div
-                                className="flex items-center justify-center w-11 h-11 bg-slate-800 hover:bg-slate-900 text-white font-black text-sm rounded-full border-[3px] border-white shadow-xl cursor-pointer hover:scale-110 transition-all ring-4 ring-slate-800/20"
-                                onClick={() => {
+                                className="w-10 h-10 bg-slate-900/90 backdrop-blur border-2 border-white rounded-full flex items-center justify-center text-white font-bold shadow-xl cursor-pointer hover:scale-110 transition-transform"
+                                onClick={(e) => {
+                                    e.stopPropagation();
                                     if (!supercluster) return;
-                                    const expansionZoom = Math.min(
-                                        supercluster.getClusterExpansionZoom(cluster.id as number), 20
-                                    );
-                                    mapRef.current?.getMap().flyTo({
-                                        center: [longitude, latitude],
-                                        zoom: expansionZoom,
-                                        duration: 900,
-                                    });
+                                    const expansionZoom = Math.min(supercluster.getClusterExpansionZoom(cluster.id as number), 20);
+                                    mapRef.current?.flyTo({ center: [longitude, latitude], zoom: expansionZoom, duration: 500 });
                                 }}
-                                title={`${pointCount} landmarks — click to expand`}
                             >
                                 {pointCount}
                             </div>
@@ -530,15 +511,15 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                     );
                 }
 
-                // ── Individual amenity — AmenityMarker owns its own <Marker> ──
-                const amenity: Landmark = cluster.properties.amenity;
+                // If it's not a cluster, render the exact existing custom Landmark Marker here:
+                const landmark = cluster.properties.amenity;
                 return (
                     <AmenityMarker
-                        key={`amenity-${amenity.id}`}
-                        amenity={amenity}
-                        isSelected={selectedLandmarkForSearch?.id === amenity.id}
-                        onClick={() => onLandmarkClick(amenity)}
-                        onMouseEnter={() => setHoveredLandmarkId(amenity.id)}
+                        key={`landmark-${landmark.id}`}
+                        amenity={landmark}
+                        isSelected={selectedLandmarkForSearch?.id === landmark.id}
+                        onClick={() => onLandmarkClick(landmark)}
+                        onMouseEnter={() => setHoveredLandmarkId(landmark.id)}
                         onMouseLeave={() => setHoveredLandmarkId(null)}
                         onInfo={onLandmarkInfo}
                     />
