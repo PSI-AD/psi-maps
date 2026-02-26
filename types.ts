@@ -63,7 +63,7 @@ export interface ClientPresentation {
 }
 
 export interface Developer {
-  id: string;
+  id?: string;
   name: string;
   logoUrl?: string;
   description?: string;
@@ -72,13 +72,21 @@ export interface Developer {
 }
 
 export interface Community {
-  id: string;
+  id?: string;
   name: string;
-  city: string;
+  city?: string;
+  imageUrl?: string;
   description?: string;
   images?: string[];
   latitude?: number;
   longitude?: number;
   tags?: string[];
   placeId?: string;
+}
+
+export interface City {
+  id?: string;
+  name: string;
+  country: string;
+  isActive: boolean;
 }
