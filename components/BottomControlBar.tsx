@@ -377,7 +377,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                                                     { label: 'Hypermarkets', cat: 'hypermarket' },
                                                 ].map(({ label, cat }) => (
                                                     <button key={cat} onClick={() => onToggleAmenity?.(cat)}
-                                                        className={`px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all ${activeAmenities.includes(cat) ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300 hover:text-blue-600'}`}>
+                                                        className={`px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all ${activeAmenities.includes(cat) ? 'bg-blue-50 text-blue-700 border-blue-200 shadow-sm' : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-blue-300 hover:text-blue-600'}`}>
                                                         {label}
                                                     </button>
                                                 ))}
@@ -577,7 +577,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                                         { label: 'Hypermarkets', cat: 'hypermarket' },
                                     ].map(({ label, cat }) => (
                                         <button key={cat} onClick={() => onToggleAmenity?.(cat)}
-                                            className={`px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider border transition-all ${activeAmenities.includes(cat) ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300'}`}>
+                                            className={`px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider border transition-all ${activeAmenities.includes(cat) ? 'bg-blue-50 text-blue-700 border-blue-200 shadow-sm' : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-blue-300'}`}>
                                             {label}
                                         </button>
                                     ))}

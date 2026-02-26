@@ -6,7 +6,7 @@ import BottomControlBar from './BottomControlBar';
 import FullscreenImageModal from './FullscreenImageModal';
 import NearbyPanel from './NearbyPanel';
 import FilteredProjectsCarousel from './FilteredProjectsCarousel';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Building } from 'lucide-react';
 
 interface MainLayoutProps {
   viewMode: 'map' | 'list';
@@ -263,20 +263,26 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
       {(developerFilter !== 'All' && developerFilter !== '' || statusFilter !== 'All' && statusFilter !== '' || selectedCity || selectedCommunity) && (
         <div className={`absolute ${chipsBottomClass} left-1/2 -translate-x-1/2 z-[4500] flex flex-wrap gap-2 pointer-events-none justify-center px-4 w-full max-w-3xl transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]`}>
 
-          {/* Reset All chip */}
-          <button
-            className="pointer-events-auto flex items-center gap-1.5 bg-white text-blue-700 border border-blue-600 px-3 py-1.5 rounded-full shadow-lg text-xs font-black uppercase tracking-wide hover:bg-blue-50 transition-colors"
-            onClick={() => {
-              setDeveloperFilter('All');
-              setStatusFilter('All');
-              props.setSelectedCity('');
-              props.setSelectedCommunity('');
-              props.onCloseProject();
-              props.handleLocationSelect('city', '', props.liveProjects);
-            }}
-          >
-            ↺ Reset All
-          </button>
+          {/* Properties Count & Reset */}
+          <div className="pointer-events-auto flex items-center gap-4 bg-white py-1.5 px-2 pr-4 rounded-xl shadow-lg border border-slate-200">
+            <div className="flex items-center gap-1.5 text-slate-700 font-bold text-sm bg-slate-100 px-3 py-1.5 rounded-lg">
+              <Building className="w-4 h-4" />
+              <span>{props.filteredProjects.length}</span>
+            </div>
+            <button
+              className="text-sm font-bold text-slate-500 hover:text-slate-800"
+              onClick={() => {
+                setDeveloperFilter('All');
+                setStatusFilter('All');
+                props.setSelectedCity('');
+                props.setSelectedCommunity('');
+                props.onCloseProject();
+                props.handleLocationSelect('city', '', props.liveProjects);
+              }}
+            >
+              Reset
+            </button>
+          </div>
 
           {/* Developer chip */}
           {developerFilter && developerFilter !== 'All' && (

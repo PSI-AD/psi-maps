@@ -774,29 +774,6 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
             </div>
           )}
 
-          {/* Dot indicator + expand hint row */}
-          <div className="absolute bottom-2 right-2 flex items-center gap-2 z-10">
-            {hasMultipleImages && (
-              <div className="flex gap-1">
-                {gallery.map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleThumbClick(idx)}
-                    aria-label={`Go to image ${idx + 1}`}
-                    className={`rounded-full transition-all ${activeIdx === idx ? 'w-4 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/50 hover:bg-white/80'
-                      }`}
-                  />
-                ))}
-              </div>
-            )}
-            <button
-              onClick={(e) => { e.stopPropagation(); setGalleryIndex(activeIdx); }}
-              aria-label="View fullscreen"
-              className="bg-black/40 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-lg pointer-events-auto hover:bg-black/60 transition-all"
-            >
-              ⤢ Expand
-            </button>
-          </div>
         </div>
 
         {/* Scrollable Content */}
