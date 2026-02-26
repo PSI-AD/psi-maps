@@ -83,7 +83,7 @@ const PropertyResultsList: React.FC<PropertyResultsListProps> = ({
                 {sortedProjects.map(project => {
                     const devNameLower = (project.developerName || '').toLowerCase();
                     const matchedKey = Object.keys(DEV_DOMAINS).find(k => devNameLower.includes(k));
-                    const logoUrl = matchedKey ? `https://logo.clearbit.com/${DEV_DOMAINS[matchedKey]}` : null;
+                    const logoUrl = matchedKey ? `https://www.google.com/s2/favicons?domain=${DEV_DOMAINS[matchedKey]}&sz=128` : null;
 
                     return (
                         <button
@@ -109,7 +109,6 @@ const PropertyResultsList: React.FC<PropertyResultsListProps> = ({
                                             src={logoUrl}
                                             alt={project.developerName}
                                             className="w-3.5 h-3.5 object-contain rounded-sm shrink-0"
-                                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
                                         />
                                     ) : (
                                         <div className="w-3.5 h-3.5 bg-blue-100 rounded-sm flex items-center justify-center shrink-0">

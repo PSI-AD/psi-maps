@@ -57,7 +57,7 @@ const getDeveloperLogo = (name: string): string => {
     if (!name) return '';
     const key = Object.keys(DOMAIN_MAP).find(k => name.toLowerCase().includes(k));
     return key
-        ? `https://logo.clearbit.com/${DOMAIN_MAP[key]}`
+        ? `https://www.google.com/s2/favicons?domain=${DOMAIN_MAP[key]}&sz=128`
         : `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0f172a&color=ffffff&size=64&bold=true&rounded=true`;
 };
 
@@ -197,9 +197,6 @@ const SearchBar: React.FC<SearchBarProps> = ({
                                 src={getDeveloperLogo(dev.name)}
                                 alt=""
                                 className="w-8 h-8 rounded-full object-cover shadow-sm bg-slate-100 shrink-0"
-                                onError={(e) => {
-                                    e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(dev.name)}&background=0f172a&color=ffffff&size=64&bold=true&rounded=true`;
-                                }}
                             />
                             <div className="flex flex-col overflow-hidden flex-1">
                                 <span className="font-bold text-sm text-slate-800 truncate">{dev.name}</span>

@@ -625,7 +625,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                       <div className="flex items-start gap-3 flex-1 min-w-0">
                         <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 relative overflow-hidden ${style.bg} ${style.text}`}>
                           {amenity.domain && (
-                            <img src={`https://logo.clearbit.com/${amenity.domain}`} alt={amenity.name} className="absolute inset-0 w-full h-full object-cover z-10 bg-white" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                            <img src={`https://www.google.com/s2/favicons?domain=${amenity.domain}&sz=128`} alt={amenity.name} className="absolute inset-0 w-full h-full object-cover z-10 bg-white" />
                           )}
                           <div className={`w-3 h-3 rounded-full ${style.dot}`} />
                         </div>
@@ -1020,7 +1020,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                         <div className="flex flex-1 min-w-0 items-center gap-3 pr-2">
                           <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 relative overflow-hidden ${style.bg} ${style.text}`}>
                             {amenity.domain && (
-                              <img src={`https://logo.clearbit.com/${amenity.domain}`} alt={amenity.name} className="absolute inset-0 w-full h-full object-cover z-10 bg-white" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                              <img src={`https://www.google.com/s2/favicons?domain=${amenity.domain}&sz=128`} alt={amenity.name} className="absolute inset-0 w-full h-full object-cover z-10 bg-white" />
                             )}
                             <div className={`w-3 h-3 rounded-full ${style.dot}`} />
                           </div>

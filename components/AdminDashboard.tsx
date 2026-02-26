@@ -895,17 +895,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                 <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden p-6">
                   <div className="mb-6 pb-6 border-b border-slate-100">
                     <h2 className="text-xl font-black text-slate-800 mb-2">Developer Logo Verification Engine</h2>
-                    <p className="text-slate-500 text-sm">This grid tests the Clearbit API against our known developer domains. If you see "Blocked" images here, your browser's Ad-Blocker or Privacy Shield is blocking the logo.clearbit.com domain.</p>
+                    <p className="text-slate-500 text-sm">This grid tests the Google Favicon API against our known developer domains. If you see globe icons here, it means the API is working but returned a generic fallback (200 OK) because a specific logo wasn't found.</p>
                   </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {Object.entries(DEV_DOMAINS).map(([name, domain]) => (
                       <div key={name} className="p-4 border border-slate-100 rounded-xl flex flex-col items-center justify-center gap-3 bg-slate-50">
                         <img
-                          src={`https://logo.clearbit.com/${domain}`}
+                          src={`https://www.google.com/s2/favicons?domain=${domain}&sz=128`}
                           alt={name}
                           className="w-16 h-16 object-contain bg-white rounded-lg shadow-sm p-1"
-                          onError={(e) => { e.currentTarget.src = 'https://placehold.co/100x100?text=Blocked'; }}
                         />
                         <div className="text-center">
                           <p className="text-sm font-bold text-slate-800 capitalize">{name}</p>

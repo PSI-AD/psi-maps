@@ -93,10 +93,9 @@ const AmenityMarker: React.FC<AmenityMarkerProps> = ({
           {config.icon}
           {amenity.domain && (
             <img
-              src={`https://logo.clearbit.com/${amenity.domain}`}
+              src={`https://www.google.com/s2/favicons?domain=${amenity.domain}&sz=128`}
               alt={amenity.name}
               className="absolute inset-0 w-full h-full object-cover bg-white z-20"
-              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
           )}
         </div>

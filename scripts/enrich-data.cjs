@@ -106,12 +106,12 @@ async function enrichCommunity(name, city) {
     await sleep(500);
 }
 
-// ── 2. Enrich Developers via Clearbit Logo API ──────────────────────────────
+// ── 2. Enrich Developers via Google Favicon API ──────────────────────────────
 async function enrichDeveloper(name, domain) {
     try {
         console.log(`\n🏗️   Enriching Developer: "${name}" (${domain})…`);
 
-        const logoUrl = `https://logo.clearbit.com/${domain}`;
+        const logoUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
         const docId = name.replace(/\s+/g, '_').toLowerCase();
 
         await db
