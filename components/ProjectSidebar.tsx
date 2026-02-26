@@ -615,11 +615,19 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                       }`}
                   >
                     <div className="flex justify-between items-center gap-3 w-full">
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-slate-800 text-sm leading-snug truncate">{amenity.name}</h4>
-                        <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide ${style.bg} ${style.text}`}>
-                          {style.label}
-                        </span>
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 relative overflow-hidden ${style.bg} ${style.text}`}>
+                          {amenity.domain && (
+                            <img src={`https://logo.clearbit.com/${amenity.domain}`} alt={amenity.name} className="absolute inset-0 w-full h-full object-cover z-10 bg-white" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                          )}
+                          <div className={`w-3 h-3 rounded-full ${style.dot}`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-bold text-slate-800 text-sm leading-snug truncate">{amenity.name}</h4>
+                          <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide ${style.bg} ${style.text}`}>
+                            {style.label}
+                          </span>
+                        </div>
                       </div>
                       <div className="flex-shrink-0">
                         <AnimatedMetricPill
@@ -1051,8 +1059,11 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                     return (
                       <div key={amenity.id} className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-xl shadow-sm gap-2">
                         <div className="flex flex-1 min-w-0 items-center gap-3 pr-2">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${style.bg} ${style.text}`}>
-                            <div className={`w-2.5 h-2.5 rounded-full ${style.dot}`} />
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 relative overflow-hidden ${style.bg} ${style.text}`}>
+                            {amenity.domain && (
+                              <img src={`https://logo.clearbit.com/${amenity.domain}`} alt={amenity.name} className="absolute inset-0 w-full h-full object-cover z-10 bg-white" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                            )}
+                            <div className={`w-3 h-3 rounded-full ${style.dot}`} />
                           </div>
                           <div className="min-w-0">
                             <p className="font-bold text-sm text-slate-800 truncate">{amenity.name}</p>

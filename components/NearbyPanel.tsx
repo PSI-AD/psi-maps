@@ -20,16 +20,15 @@ const categoryGroups: { label: string; cats: string[] }[] = [
     { label: 'Ports & Marinas', cats: ['Port'] },
 ];
 
-const groupColour: Record<string, string> = {
-    'Schools & Nurseries': 'text-emerald-700 bg-emerald-50 border-emerald-100',
-    'Hospitals & Clinics': 'text-red-700 bg-red-50 border-red-100',
-    'Malls & Retail': 'text-rose-700 bg-rose-50 border-rose-100',
-    'Hotels': 'text-violet-700 bg-violet-50 border-violet-100',
-    'Culture': 'text-purple-700 bg-purple-50 border-purple-100',
-    'Leisure & Parks': 'text-teal-700 bg-teal-50 border-teal-100',
-    'Airports': 'text-sky-700 bg-sky-50 border-sky-100',
-    'Ports & Marinas': 'text-cyan-700 bg-cyan-50 border-cyan-100',
+const categoryStyle: Record<string, { bg: string; text: string; dot: string; label: string }> = {
+    school: { bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500', label: 'School' },
+    hospital: { bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-500', label: 'Hospital' },
+    retail: { bg: 'bg-rose-100', text: 'text-rose-700', dot: 'bg-rose-500', label: 'Retail' },
+    culture: { bg: 'bg-purple-100', text: 'text-purple-700', dot: 'bg-purple-500', label: 'Culture' },
+    hotel: { bg: 'bg-violet-100', text: 'text-violet-700', dot: 'bg-violet-500', label: 'Hotel' },
+    leisure: { bg: 'bg-teal-100', text: 'text-teal-700', dot: 'bg-teal-500', label: 'Leisure' },
 };
+const defaultStyle = { bg: 'bg-slate-100', text: 'text-slate-700', dot: 'bg-slate-400', label: 'Landmark' };
 
 const NearbyPanel: React.FC<NearbyPanelProps> = ({ project, landmarks, onClose }) => {
     type LandmarkWithDist = Landmark & { distance: number; drivingTime: number; walkingTime: number };
@@ -90,62 +89,64 @@ const NearbyPanel: React.FC<NearbyPanelProps> = ({ project, landmarks, onClose }
                         <div key={groupLabel}>
                             <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">{groupLabel}</h4>
                             <div className="space-y-2">
-                                {items.map(item => (
-                                    <div
-                                        key={item.id}
-                                        className="flex items-center justify-between px-5 py-3.5 bg-white rounded-xl border border-slate-100 gap-4 shadow-sm hover:shadow-md transition-shadow group"
-                                    >
-                                        {/* Brand logo / category chip */}
-                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 overflow-hidden relative border ${groupColour[groupLabel] ?? 'bg-slate-50 text-slate-500 border-slate-100'}`}>
-                                            <span className="text-lg font-black opacity-30 select-none">{item.name.charAt(0)}</span>
-                                            {item.domain && (
-                                                <img
-                                                    src={`https://logo.clearbit.com/${item.domain}`}
-                                                    alt={item.name}
-                                                    className="absolute inset-0 w-full h-full object-cover bg-white z-20"
-                                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                                                />
-                                            )}
+                                {items.map(item => {
+                                    const style = categoryStyle[item.category?.toLowerCase?.()] ?? defaultStyle;
+                                    return (
+                                        <div
+                                            key={item.id}
+                                            className="flex items-center justify-between px-5 py-3.5 bg-white rounded-xl border border-slate-100 gap-4 shadow-sm hover:shadow-md transition-shadow group"
+                                        >
+                                            {/* Brand logo / category chip */}
+                                            {(() => {
+                                                return (
+                                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 relative overflow-hidden ${style.bg} ${style.text}`}>
+                                                        {item.domain && (
+                                                            <img src={`https://logo.clearbit.com/${item.domain}`} alt={item.name} className="absolute inset-0 w-full h-full object-cover z-10 bg-white" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                                                        )}
+                                                        <div className={`w-3 h-3 rounded-full ${style.dot}`} />
+                                                    </div>
+                                                );
+                                            })()}
+
+                                            {/* Name */}
+                                            <span className="font-black text-sm text-slate-800 flex-1 truncate group-hover:text-blue-600 transition-colors">
+                                                {item.name}
+                                            </span>
+
+                                            {/* Metrics */}
+                                            <div className="flex items-center gap-3 shrink-0">
+
+                                                {/* Distance — neutral blue */}
+                                                <div className="flex flex-col items-end">
+                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Distance</span>
+                                                    <span className="text-xs font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">
+                                                        {item.distance.toFixed(1)} km
+                                                    </span>
+                                                </div>
+
+                                                <div className="w-px h-8 bg-slate-100" />
+
+                                                {/* Driving — emerald green */}
+                                                <div className="flex flex-col items-end">
+                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Drive</span>
+                                                    <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                                        <Car className="w-3 h-3" /> {item.drivingTime} min
+                                                    </span>
+                                                </div>
+
+                                                <div className="w-px h-8 bg-slate-100" />
+
+                                                {/* Walking — amber orange */}
+                                                <div className="flex flex-col items-end">
+                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Walk</span>
+                                                    <span className="text-xs font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                                        <Footprints className="w-3 h-3" /> {item.walkingTime} min
+                                                    </span>
+                                                </div>
+                                            </div>
                                         </div>
-
-                                        {/* Name */}
-                                        <span className="font-black text-sm text-slate-800 flex-1 truncate group-hover:text-blue-600 transition-colors">
-                                            {item.name}
-                                        </span>
-
-                                        {/* Metrics */}
-                                        <div className="flex items-center gap-3 shrink-0">
-
-                                            {/* Distance — neutral blue */}
-                                            <div className="flex flex-col items-end">
-                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Distance</span>
-                                                <span className="text-xs font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">
-                                                    {item.distance.toFixed(1)} km
-                                                </span>
-                                            </div>
-
-                                            <div className="w-px h-8 bg-slate-100" />
-
-                                            {/* Driving — emerald green */}
-                                            <div className="flex flex-col items-end">
-                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Drive</span>
-                                                <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md flex items-center gap-1">
-                                                    <Car className="w-3 h-3" /> {item.drivingTime} min
-                                                </span>
-                                            </div>
-
-                                            <div className="w-px h-8 bg-slate-100" />
-
-                                            {/* Walking — amber orange */}
-                                            <div className="flex flex-col items-end">
-                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Walk</span>
-                                                <span className="text-xs font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md flex items-center gap-1">
-                                                    <Footprints className="w-3 h-3" /> {item.walkingTime} min
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     ))}
