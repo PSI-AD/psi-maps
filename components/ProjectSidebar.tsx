@@ -840,24 +840,35 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
 
           {/* 2. Name → Location → Developer */}
           <div className="sticky top-0 z-20 bg-white px-6 pt-6 pb-5 border-b border-slate-100 shadow-sm" style={{ paddingTop: 'max(env(safe-area-inset-top), 24px)' }}>
-            <h1 className="text-2xl font-black text-slate-900 leading-tight tracking-tight mb-2">{project.name}</h1>
-            <div className="flex items-center text-slate-500 text-sm font-medium mb-3">
+
+            {/* 1. Project Name */}
+            <h1 className="text-3xl font-black text-slate-900 leading-tight tracking-tight mb-2 truncate">
+              {project.name}
+            </h1>
+
+            {/* 2. Location */}
+            <div className="flex items-center text-slate-500 text-sm font-bold mb-3 truncate">
               <MapPin className="w-4 h-4 mr-1.5 text-blue-600 shrink-0" />
               <button onClick={() => onQuickFilter && project.community ? onQuickFilter('community', project.community) : undefined} className="hover:text-blue-800 hover:underline transition-all text-left truncate">
                 {project.community}
               </button>
               {project.city && (
-                <><span className="mx-2 text-slate-300">/</span>
-                  <button onClick={() => setSelectedCity?.(project.city || '')} className="text-slate-600 hover:text-blue-800 hover:underline transition-all text-left">
+                <>
+                  <span className="mx-2 text-slate-300 font-normal">/</span>
+                  <button onClick={() => setSelectedCity?.(project.city || '')} className="text-slate-600 hover:text-blue-800 hover:underline transition-all text-left truncate">
                     {project.city}
-                  </button></>
+                  </button>
+                </>
               )}
             </div>
-            <p className="text-base font-bold text-blue-600">
-              <button onClick={() => onQuickFilter && project.developerName ? onQuickFilter('developer', project.developerName) : undefined} className="hover:text-blue-800 hover:underline transition-all text-left">
+
+            {/* 3. Developer */}
+            <p className="text-base font-black text-blue-600 tracking-wide truncate">
+              <button onClick={() => onQuickFilter && project.developerName ? onQuickFilter('developer', project.developerName) : undefined} className="hover:text-blue-800 hover:underline transition-all text-left truncate">
                 {project.developerName || 'Exclusive Developer'}
               </button>
             </p>
+
           </div>
 
           <div className="px-6 py-6 space-y-8">
