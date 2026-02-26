@@ -99,6 +99,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
   // ── Developers & Communities collections ──────────────────────────────
   const [liveDevelopers, setLiveDevelopers] = useState<any[]>([]);
   const [liveCommunities, setLiveCommunities] = useState<any[]>([]);
+  const [liveCities, setLiveCities] = useState<any[]>([]);
+  const [stagedCity, setStagedCity] = useState<any | null>(null);
 
   useEffect(() => {
     if (!db) {
@@ -107,7 +109,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
     }
 
     // Real-time listener for Developers
-    const unsubDevelopers = onSnapshot(collection(db, 'developers'), (snapshot) => {
+    const unsubDevelopers = onSnapshot(collection(db, 'entities_developers'), (snapshot) => {
       const devs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setLiveDevelopers(devs);
     }, (error) => {
@@ -115,17 +117,26 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
     });
 
     // Real-time listener for Communities
-    const unsubCommunities = onSnapshot(collection(db, 'communities'), (snapshot) => {
+    const unsubCommunities = onSnapshot(collection(db, 'locations_communities'), (snapshot) => {
       const comms = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setLiveCommunities(comms);
     }, (error) => {
       console.error("Error fetching communities:", error);
     });
 
+    // Real-time listener for Cities
+    const unsubCities = onSnapshot(collection(db, 'locations_cities'), (snapshot) => {
+      const cities = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setLiveCities(cities);
+    }, (error) => {
+      console.error("Error fetching cities:", error);
+    });
+
     // Cleanup listeners on unmount
     return () => {
       unsubDevelopers();
       unsubCommunities();
+      unsubCities();
     };
   }, []);
 
@@ -164,7 +175,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
       let added = 0;
       for (const name of unique) {
         if (!liveDevelopers.find(d => d.name === name)) {
-          const ref = doc(collection(db, 'developers'));
+          const ref = doc(collection(db, 'entities_developers'));
           await setDoc(ref, { name, logoUrl: `https://www.google.com/s2/favicons?domain=${String(name).toLowerCase().replace(/\s+/g, '')}.com&sz=128` });
           added++;
         }
@@ -182,7 +193,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
       for (const name of unique) {
         if (!liveCommunities.find(c => c.name === name)) {
           const project = liveProjects.find(p => p.community === name);
-          const ref = doc(collection(db, 'communities'));
+          const ref = doc(collection(db, 'locations_communities'));
           await setDoc(ref, { name, city: project?.city || 'Abu Dhabi', imageUrl: '' });
           added++;
         }
@@ -739,193 +750,91 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
             )}
 
             {activeTab === 'settings' && (
-              <div className="p-8 max-w-3xl mx-auto w-full overflow-y-auto">
-                {/* Global App Settings */}
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-                  <h3 className="text-lg font-bold text-slate-800 mb-6">Global App Settings</h3>
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between">
+              <section className="animate-in fade-in duration-300 space-y-10">
+
+                {/* Global Toggles Section */}
+                <div>
+                  <div className="mb-6 border-b border-slate-100 pb-4">
+                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">Global App Settings</h2>
+                    <p className="text-slate-500 text-sm">Manage default application behaviors and UI toggles.</p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Replace with actual toggle UI mapped to your settings doc */}
+                    <div className="p-4 border border-slate-200 rounded-xl flex items-center justify-between bg-white shadow-sm">
                       <div>
-                        <p className="font-bold text-sm text-slate-800">Show Welcome Banner (Logo)</p>
-                        <p className="text-xs text-slate-500">Display the cinematic intro logo on initial load.</p>
+                        <p className="font-bold text-slate-800">Default Dark Mode</p>
+                        <p className="text-xs text-slate-500">Force the map into dark mode by default.</p>
                       </div>
-                      <button
-                        onClick={() => setDoc(doc(db, 'settings', 'global'), { showWelcomeBanner: !(props as any).globalSettings?.showWelcomeBanner }, { merge: true })}
-                        className={`relative w-12 h-6 rounded-full transition-colors ${(props as any).globalSettings?.showWelcomeBanner !== false ? 'bg-blue-600' : 'bg-slate-300'}`}
-                      >
-                        <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${(props as any).globalSettings?.showWelcomeBanner !== false ? 'translate-x-6' : 'translate-x-0'}`} />
-                      </button>
+                      <input type="checkbox" className="w-5 h-5 accent-blue-600" />
                     </div>
+                    <div className="p-4 border border-slate-200 rounded-xl flex items-center justify-between bg-white shadow-sm">
+                      <div>
+                        <p className="font-bold text-slate-800">Show Nearby Amenities</p>
+                        <p className="text-xs text-slate-500">Globally toggle the display of nearby points of interest.</p>
+                      </div>
+                      <input type="checkbox" className="w-5 h-5 accent-blue-600" defaultChecked />
+                    </div>
+                  </div>
+                  <button className="mt-4 px-6 py-2.5 bg-blue-600 text-white font-bold rounded-lg text-sm hover:bg-blue-700">Save Global Settings</button>
+                </div>
+
+                {/* Locations CMS (Cities & Countries) */}
+                <div>
+                  <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
                     <div>
-                      <p className="font-bold text-sm text-slate-800 mb-2">Map Camera Flight Duration: {((props as any).globalSettings?.cameraDuration ?? 2000) / 1000}s</p>
-                      <input
-                        type="range" min="500" max="5000" step="500"
-                        value={(props as any).globalSettings?.cameraDuration ?? 2000}
-                        onChange={(e) => setDoc(doc(db, 'settings', 'global'), { cameraDuration: Number(e.target.value) }, { merge: true })}
-                        className="w-full accent-blue-600"
-                      />
+                      <h2 className="text-2xl font-black text-slate-900 tracking-tight">Cities & Countries CMS</h2>
+                      <p className="text-slate-500 text-sm">Manage available locations for the main filtering system.</p>
                     </div>
+                    <button onClick={() => setStagedCity({ name: '', country: '', isActive: true })} className="px-4 py-2 bg-slate-900 hover:bg-black text-white rounded-xl font-bold text-sm transition-all flex items-center gap-2">
+                      <Plus className="w-4 h-4" /> Add City
+                    </button>
+                  </div>
 
-                    {/* ── Banner Duration ──────────────────────── */}
-                    <div className="mt-2 pt-4 border-t border-slate-100 flex items-center justify-between">
-                      <p className="font-bold text-sm text-slate-800">
-                        Banner Duration: {(props as any).globalSettings?.bannerDuration || 5}s
-                      </p>
-                      <input
-                        type="range" min="3" max="20" step="1"
-                        value={(props as any).globalSettings?.bannerDuration || 5}
-                        onChange={(e) => setDoc(doc(db, 'settings', 'global'), { bannerDuration: Number(e.target.value) }, { merge: true })}
-                        className="w-48 accent-blue-600"
-                      />
-                    </div>
-
-                    {/* ── Banner Position D-Pads ────────────────── */}
-                    <div className="pt-4 border-t border-slate-100">
-                      <p className="font-bold text-sm text-slate-800 mb-4">Banner Position</p>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                        {/* Desktop D-Pad */}
-                        <div>
-                          <p className="text-xs font-black text-slate-500 uppercase tracking-widest mb-3">🖥 Desktop</p>
-                          <div className="flex items-center gap-4">
-                            <div className="grid grid-cols-3 gap-1 w-24">
-                              <div />
-                              <button
-                                onClick={() => { const c = (props as any).globalSettings?.bannerPosition || { top: 30, left: 12 }; setDoc(doc(db, 'settings', 'global'), { bannerPosition: { ...c, top: c.top - 2 } }, { merge: true }); }}
-                                className="bg-slate-100 hover:bg-blue-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
-                              >↑</button>
-                              <div />
-                              <button
-                                onClick={() => { const c = (props as any).globalSettings?.bannerPosition || { top: 30, left: 12 }; setDoc(doc(db, 'settings', 'global'), { bannerPosition: { ...c, left: c.left - 2 } }, { merge: true }); }}
-                                className="bg-slate-100 hover:bg-blue-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
-                              >←</button>
-                              <div className="bg-slate-50 rounded border border-slate-200" />
-                              <button
-                                onClick={() => { const c = (props as any).globalSettings?.bannerPosition || { top: 30, left: 12 }; setDoc(doc(db, 'settings', 'global'), { bannerPosition: { ...c, left: c.left + 2 } }, { merge: true }); }}
-                                className="bg-slate-100 hover:bg-blue-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
-                              >→</button>
-                              <div />
-                              <button
-                                onClick={() => { const c = (props as any).globalSettings?.bannerPosition || { top: 30, left: 12 }; setDoc(doc(db, 'settings', 'global'), { bannerPosition: { ...c, top: c.top + 2 } }, { merge: true }); }}
-                                className="bg-slate-100 hover:bg-blue-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
-                              >↓</button>
-                            </div>
-                            <p className="text-xs text-slate-500 font-mono leading-relaxed">
-                              T: {(props as any).globalSettings?.bannerPosition?.top ?? 30}%<br />
-                              L: {(props as any).globalSettings?.bannerPosition?.left ?? 12}%
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Mobile D-Pad */}
-                        <div>
-                          <p className="text-xs font-black text-slate-500 uppercase tracking-widest mb-3">📱 Mobile</p>
-                          <div className="flex items-center gap-4">
-                            <div className="grid grid-cols-3 gap-1 w-24">
-                              <div />
-                              <button
-                                onClick={() => { const c = (props as any).globalSettings?.bannerPositionMobile || { top: 15, left: 50 }; setDoc(doc(db, 'settings', 'global'), { bannerPositionMobile: { ...c, top: c.top - 2 } }, { merge: true }); }}
-                                className="bg-slate-100 hover:bg-purple-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
-                              >↑</button>
-                              <div />
-                              <button
-                                onClick={() => { const c = (props as any).globalSettings?.bannerPositionMobile || { top: 15, left: 50 }; setDoc(doc(db, 'settings', 'global'), { bannerPositionMobile: { ...c, left: c.left - 2 } }, { merge: true }); }}
-                                className="bg-slate-100 hover:bg-purple-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
-                              >←</button>
-                              <div className="bg-slate-50 rounded border border-slate-200" />
-                              <button
-                                onClick={() => { const c = (props as any).globalSettings?.bannerPositionMobile || { top: 15, left: 50 }; setDoc(doc(db, 'settings', 'global'), { bannerPositionMobile: { ...c, left: c.left + 2 } }, { merge: true }); }}
-                                className="bg-slate-100 hover:bg-purple-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
-                              >→</button>
-                              <div />
-                              <button
-                                onClick={() => { const c = (props as any).globalSettings?.bannerPositionMobile || { top: 15, left: 50 }; setDoc(doc(db, 'settings', 'global'), { bannerPositionMobile: { ...c, top: c.top + 2 } }, { merge: true }); }}
-                                className="bg-slate-100 hover:bg-purple-100 p-2 rounded text-sm flex items-center justify-center font-bold transition-colors"
-                              >↓</button>
-                            </div>
-                            <p className="text-xs text-slate-500 font-mono leading-relaxed">
-                              T: {(props as any).globalSettings?.bannerPositionMobile?.top ?? 15}%<br />
-                              L: {(props as any).globalSettings?.bannerPositionMobile?.left ?? 50}%
-                            </p>
-                          </div>
-                        </div>
-
+                  {stagedCity && (
+                    <div className="mb-8 p-6 bg-slate-50 border border-slate-200 rounded-2xl relative">
+                      <button onClick={() => setStagedCity(null)} className="absolute top-4 right-4 p-2 bg-white rounded-full text-slate-500 hover:text-slate-800"><X className="w-4 h-4" /></button>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="text" placeholder="City Name (e.g., Dubai)" value={stagedCity.name} onChange={e => setStagedCity({ ...stagedCity, name: e.target.value })} className="h-12 px-4 rounded-xl border border-slate-200" />
+                        <input type="text" placeholder="Country (e.g., UAE)" value={stagedCity.country || ''} onChange={e => setStagedCity({ ...stagedCity, country: e.target.value })} className="h-12 px-4 rounded-xl border border-slate-200" />
+                        <button onClick={async () => {
+                          const payload = { ...stagedCity };
+                          const refId = payload.id || payload.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+                          await setDoc(doc(db, 'locations_cities', refId), payload);
+                          setStagedCity(null);
+                          alert('City Saved!');
+                        }} className="h-12 bg-blue-600 text-white font-bold rounded-xl md:col-span-2">Save Location</button>
                       </div>
                     </div>
+                  )}
 
-                    {/* ── Mobile Footer Theme ─────────────────────── */}
-                    <div className="mt-4 pt-4 border-t border-slate-100">
-                      <p className="font-bold text-sm text-slate-800 mb-2">Mobile Footer Theme</p>
-                      <select
-                        value={(props as any).globalSettings?.mobileFooterTheme || 'glass'}
-                        onChange={(e) => setDoc(doc(db, 'settings', 'global'), { mobileFooterTheme: e.target.value }, { merge: true })}
-                        className="w-full md:w-64 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-blue-500 transition-colors"
-                      >
-                        <option value="glass">Glass (Transparent / Gray)</option>
-                        <option value="brand">Brand (Solid Blue)</option>
-                        <option value="orange">Vibrant (Solid Orange)</option>
-                        <option value="dark">Dark (Slate 900)</option>
-                      </select>
-                    </div>
-
+                  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden w-full overflow-x-auto">
+                    <table className="w-full text-left min-w-[500px]">
+                      <thead className="bg-slate-50 border-b border-slate-100">
+                        <tr>
+                          <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">City</th>
+                          <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Country</th>
+                          <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Status</th>
+                          <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {liveCities.map(city => (
+                          <tr key={city.id} className="hover:bg-slate-50">
+                            <td className="p-4 font-bold text-slate-800">{city.name}</td>
+                            <td className="p-4 text-slate-500">{city.country}</td>
+                            <td className="p-4"><span className="px-2 py-1 bg-green-100 text-green-700 rounded-md text-[10px] font-bold uppercase">Active</span></td>
+                            <td className="p-4 text-right">
+                              <button onClick={() => setStagedCity(city)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg mr-2"><Edit2 className="w-4 h-4" /></button>
+                              <button onClick={async () => { if (window.confirm('Delete?')) await deleteDoc(doc(db, 'locations_cities', city.id)); }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <div>
-                      <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                        <Sliders className="w-5 h-5 text-blue-600" />
-                        Default Map State Controls
-                      </h3>
-                      <p className="text-sm text-slate-500 mt-1">Select which amenities should be active when the map first loads.</p>
-                    </div>
-                    {saveSuccess && (
-                      <span className="flex items-center gap-1.5 text-sm font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full animate-fade-in-out">
-                        <Check className="w-4 h-4" /> Saved!
-                      </span>
-                    )}
-                  </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {AMENITY_CATEGORIES.map(category => {
-                      const isActive = defaultAmenities.includes(category);
-                      return (
-                        <button
-                          key={category}
-                          onClick={() => toggleDefaultAmenity(category)}
-                          className={`
-                                        group flex items-center justify-between p-4 rounded-xl border transition-all duration-200
-                                        ${isActive
-                              ? 'bg-blue-50 border-blue-200 shadow-sm'
-                              : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                            }
-                                    `}
-                        >
-                          <span className={`text-sm font-bold capitalize ${isActive ? 'text-blue-700' : 'text-slate-600'}`}>
-                            {category}
-                          </span>
-
-                          <div className={`
-                                        w-10 h-6 rounded-full relative transition-colors duration-200
-                                        ${isActive ? 'bg-blue-600' : 'bg-slate-300'}
-                                    `}>
-                            <div className={`
-                                            absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200
-                                            ${isActive ? 'translate-x-4' : 'translate-x-0'}
-                                        `} />
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <div className="mt-6 pt-6 border-t border-slate-100">
-                    <p className="text-xs text-slate-400 font-medium text-center">
-                      Changes are saved automatically to your browser's local storage and will persist across sessions.
-                    </p>
-                  </div>
-                </div>
-              </div>
+              </section>
             )}
 
 
@@ -960,8 +869,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                       <textarea placeholder="Description..." value={stagedDeveloper.description || ''} onChange={e => setStagedDeveloper({ ...stagedDeveloper, description: e.target.value })} className="h-24 px-4 py-3 rounded-xl border border-blue-200 md:col-span-2" />
                       <button onClick={async () => {
                         const payload = { ...stagedDeveloper };
-                        if (payload.id) await updateDoc(doc(db, 'developers', payload.id), payload);
-                        else await addDoc(collection(db, 'developers'), payload);
+                        if (payload.id) await updateDoc(doc(db, 'entities_developers', payload.id), payload);
+                        else await addDoc(collection(db, 'entities_developers'), payload);
                         setStagedDeveloper(null);
                         alert('Saved!');
                       }} className="h-12 bg-blue-600 text-white font-bold rounded-xl md:col-span-2">Save Developer</button>
@@ -979,7 +888,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                             <td className="p-4 font-bold text-slate-800">{dev.name}</td>
                             <td className="p-4 text-right whitespace-nowrap">
                               <button onClick={() => setStagedDeveloper(dev)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg mr-2"><Edit2 className="w-4 h-4" /></button>
-                              <button onClick={async () => { if (window.confirm('Delete?')) await deleteDoc(doc(db, 'developers', dev.id)); }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                              <button onClick={async () => { if (window.confirm('Delete?')) await deleteDoc(doc(db, 'entities_developers', dev.id)); }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
                             </td>
                           </tr>
                         ))}
@@ -1009,8 +918,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                       <textarea placeholder="Description..." value={stagedCommunity.description || ''} onChange={e => setStagedCommunity({ ...stagedCommunity, description: e.target.value })} className="h-24 px-4 py-3 rounded-xl border border-blue-200 md:col-span-2" />
                       <button onClick={async () => {
                         const payload = { ...stagedCommunity };
-                        if (payload.id) await updateDoc(doc(db, 'communities', payload.id), payload);
-                        else await addDoc(collection(db, 'communities'), payload);
+                        if (payload.id) await updateDoc(doc(db, 'locations_communities', payload.id), payload);
+                        else await addDoc(collection(db, 'locations_communities'), payload);
                         setStagedCommunity(null);
                         alert('Saved!');
                       }} className="h-12 bg-blue-600 text-white font-bold rounded-xl md:col-span-2">Save Community</button>
@@ -1029,7 +938,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                             <td className="p-4 text-slate-500 text-sm">{comm.city}</td>
                             <td className="p-4 text-right whitespace-nowrap">
                               <button onClick={() => setStagedCommunity(comm)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg mr-2"><Edit2 className="w-4 h-4" /></button>
-                              <button onClick={async () => { if (window.confirm('Delete?')) await deleteDoc(doc(db, 'communities', comm.id)); }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                              <button onClick={async () => { if (window.confirm('Delete?')) await deleteDoc(doc(db, 'locations_communities', comm.id)); }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
                             </td>
                           </tr>
                         ))}

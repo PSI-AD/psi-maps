@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { collection, getDocs, addDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, deleteDoc, doc, setDoc } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { Project, ClientPresentation } from '../types';
 import { Play, Trash2, Plus, X, Search, GripVertical, Clock } from 'lucide-react';
@@ -70,7 +70,9 @@ const PresentationManager: React.FC<PresentationManagerProps> = ({ liveProjects,
                 intervalSeconds,
                 createdAt: new Date().toISOString(),
             };
-            const ref = await addDoc(collection(db, 'presentations'), payload);
+            const slugifiedId = title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
+            const ref = doc(db, 'presentations', slugifiedId);
+            await setDoc(ref, payload);
             const newPres: ClientPresentation = { id: ref.id, ...payload };
             setSaved(prev => [newPres, ...prev]);
             setTitle('');
