@@ -133,57 +133,41 @@ async function enrichDeveloper(name, domain) {
     }
 }
 
-// ── Seed Data ───────────────────────────────────────────────────────────────
-// Add more entries here as needed. Communities use Google Places; Developers use Clearbit.
-
-const COMMUNITIES = [
-    { name: 'Saadiyat Island', city: 'Abu Dhabi' },
-    { name: 'Yas Island', city: 'Abu Dhabi' },
-    { name: 'Al Reem Island', city: 'Abu Dhabi' },
-    { name: 'Al Maryah Island', city: 'Abu Dhabi' },
-    { name: 'Khalifa City', city: 'Abu Dhabi' },
-    { name: 'Mohammed Bin Zayed', city: 'Abu Dhabi' },
-    { name: 'Al Ghadeer', city: 'Abu Dhabi' },
-    { name: 'Masdar City', city: 'Abu Dhabi' },
-    { name: 'Downtown Dubai', city: 'Dubai' },
-    { name: 'Dubai Marina', city: 'Dubai' },
-    { name: 'Palm Jumeirah', city: 'Dubai' },
-    { name: 'Business Bay', city: 'Dubai' },
-    { name: 'Arabian Ranches', city: 'Dubai' },
-    { name: 'Jumeirah Village Circle', city: 'Dubai' },
-];
-
-const DEVELOPERS = [
-    { name: 'Emaar', domain: 'emaar.com' },
-    { name: 'Aldar', domain: 'aldar.com' },
-    { name: 'Damac', domain: 'damacproperties.com' },
-    { name: 'Nakheel', domain: 'nakheel.com' },
-    { name: 'Sobha', domain: 'sobharealty.com' },
-    { name: 'Meraas', domain: 'meraas.com' },
-    { name: 'Binghatti', domain: 'binghatti.com' },
-    { name: 'Danube', domain: 'danubeproperties.ae' },
-    { name: 'Imkan', domain: 'imkan.ae' },
-    { name: 'Reportage', domain: 'reportageuae.com' },
-    { name: 'Ellington', domain: 'ellingtonproperties.ae' },
-    { name: 'Bloom', domain: 'bloomholding.com' },
-    { name: 'Azizi', domain: 'azizidevelopments.com' },
-];
-
 // ── Main ────────────────────────────────────────────────────────────────────
 async function main() {
     console.log('\n🚀  PSI Maps — Data Enrichment Engine starting…');
-    console.log(`    ${COMMUNITIES.length} communities · ${DEVELOPERS.length} developers\n`);
+    console.log('📡  Fetching live entities from Firestore…\n');
 
-    // Developers first — fast (just Clearbit writes)
+    // ── Fetch live developers from Firestore ─────────────────────────────────
+    const devsSnapshot = await db.collection('entities_developers').get();
+    const DEVELOPERS = devsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    console.log(`🏗️   Loaded ${DEVELOPERS.length} developers from Firestore.`);
+
+    // ── Fetch live communities from Firestore ────────────────────────────────
+    const commsSnapshot = await db.collection('locations_communities').get();
+    const COMMUNITIES = commsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    console.log(`📍  Loaded ${COMMUNITIES.length} communities from Firestore.\n`);
+
+    // ── Phase 1: Developers — derive domain from name, skip if unresolvable ──
     console.log('── Phase 1: Developers ────────────────────────────────');
     for (const dev of DEVELOPERS) {
-        await enrichDeveloper(dev.name, dev.domain);
+        // Use stored domain or derive a best-guess from the developer name
+        const domain = dev.domain
+            || `${dev.name.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '')}.com`;
+
+        if (!domain) {
+            console.warn(`  ⚠️   Skipping "${dev.name}" — no domain available.`);
+            continue;
+        }
+        await enrichDeveloper(dev.name, domain);
+        await sleep(500);
     }
 
-    // Communities — slower (Google Places round-trip per entry)
+    // ── Phase 2: Communities — slower (Google Places round-trip per entry) ───
     console.log('\n── Phase 2: Communities ───────────────────────────────');
     for (const comm of COMMUNITIES) {
-        await enrichCommunity(comm.name, comm.city);
+        await enrichCommunity(comm.name, comm.city || 'Abu Dhabi');
+        // sleep already called inside enrichCommunity
     }
 
     console.log('\n✨  Enrichment complete! Refresh the AdminDashboard to see results.\n');
