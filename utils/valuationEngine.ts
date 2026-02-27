@@ -36,9 +36,9 @@ export const calculateLandmarkPremium = (project: Project, landmarks: Landmark[]
       landmark.longitude
     );
 
-    if (landmark.category === 'culture') {
+    if (landmark.category === 'Culture') {
       closestCultureDist = Math.min(closestCultureDist, dist);
-    } else if (landmark.category === 'leisure') {
+    } else if (landmark.category === 'Leisure') {
       closestLeisureDist = Math.min(closestLeisureDist, dist);
     }
   });

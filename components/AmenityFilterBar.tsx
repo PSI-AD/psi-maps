@@ -18,7 +18,7 @@ interface FilterOption {
 
 const options: FilterOption[] = [
   {
-    id: 'school',
+    id: 'School',
     label: 'Schools',
     tooltip: 'Education & Schools',
     icon: (
@@ -29,7 +29,7 @@ const options: FilterOption[] = [
     )
   },
   {
-    id: 'hotel',
+    id: 'Hotel',
     label: 'Hotels',
     tooltip: 'Luxury Hotels & Resorts',
     icon: (
@@ -39,7 +39,7 @@ const options: FilterOption[] = [
     )
   },
   {
-    id: 'culture',
+    id: 'Culture',
     label: 'Culture',
     tooltip: 'Museums & Cultural Landmarks',
     icon: (
@@ -49,7 +49,7 @@ const options: FilterOption[] = [
     )
   },
   {
-    id: 'leisure',
+    id: 'Leisure',
     label: 'Leisure',
     tooltip: 'Leisure & Beach Clubs',
     icon: (
@@ -59,7 +59,7 @@ const options: FilterOption[] = [
     )
   },
   {
-    id: 'retail',
+    id: 'Retail',
     label: 'Retail',
     tooltip: 'High-end Retail & Shopping',
     icon: (

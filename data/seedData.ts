@@ -102,24 +102,24 @@ export const projectsData: Project[] = [
 
 export const amenitiesData: Landmark[] = [
   // Schools
-  { id: "am-1", name: "Cranleigh Abu Dhabi", latitude: 24.5440, longitude: 54.4180, category: "school", thumbnailUrl: "https://picsum.photos/seed/cranleigh/400/300" },
-  { id: "am-2", name: "Redwood Montessori Nursery", latitude: 24.5380, longitude: 54.4250, category: "school", thumbnailUrl: "https://picsum.photos/seed/redwood/400/300" },
-  
+  { id: "am-1", name: "Cranleigh Abu Dhabi", latitude: 24.5440, longitude: 54.4180, category: "School", community: "Saadiyat Island", thumbnailUrl: "https://picsum.photos/seed/cranleigh/400/300" },
+  { id: "am-2", name: "Redwood Montessori Nursery", latitude: 24.5380, longitude: 54.4250, category: "School", community: "Saadiyat Island", thumbnailUrl: "https://picsum.photos/seed/redwood/400/300" },
+
   // Hotels
-  { id: "am-3", name: "The St. Regis Saadiyat Island", latitude: 24.5420, longitude: 54.4350, category: "hotel", thumbnailUrl: "https://picsum.photos/seed/stregis/400/300" },
-  { id: "am-4", name: "Park Hyatt Abu Dhabi", latitude: 24.5480, longitude: 54.4450, category: "hotel", thumbnailUrl: "https://picsum.photos/seed/parkhyatt/400/300" },
-  { id: "am-5", name: "Jumeirah at Saadiyat Island", latitude: 24.5520, longitude: 54.4650, category: "hotel", thumbnailUrl: "https://picsum.photos/seed/jumeirah/400/300" },
+  { id: "am-3", name: "The St. Regis Saadiyat Island", latitude: 24.5420, longitude: 54.4350, category: "Hotel", community: "Saadiyat Island", thumbnailUrl: "https://picsum.photos/seed/stregis/400/300" },
+  { id: "am-4", name: "Park Hyatt Abu Dhabi", latitude: 24.5480, longitude: 54.4450, category: "Hotel", community: "Saadiyat Island", thumbnailUrl: "https://picsum.photos/seed/parkhyatt/400/300" },
+  { id: "am-5", name: "Jumeirah at Saadiyat Island", latitude: 24.5520, longitude: 54.4650, category: "Hotel", community: "Saadiyat Island", thumbnailUrl: "https://picsum.photos/seed/jumeirah/400/300" },
 
   // Culture
-  { id: "am-6", name: "Louvre Abu Dhabi", latitude: 24.5337, longitude: 54.3982, category: "culture", thumbnailUrl: "https://picsum.photos/seed/louvre/400/300" },
-  { id: "am-7", name: "Manarat Al Saadiyat", latitude: 24.5323, longitude: 54.4035, category: "culture", thumbnailUrl: "https://picsum.photos/seed/manarat/400/300" },
-  { id: "am-8", name: "Abrahamic Family House", latitude: 24.5348, longitude: 54.4048, category: "culture", thumbnailUrl: "https://picsum.photos/seed/abrahamic/400/300" },
+  { id: "am-6", name: "Louvre Abu Dhabi", latitude: 24.5337, longitude: 54.3982, category: "Culture", community: "Saadiyat Island", thumbnailUrl: "https://picsum.photos/seed/louvre/400/300" },
+  { id: "am-7", name: "Manarat Al Saadiyat", latitude: 24.5323, longitude: 54.4035, category: "Culture", community: "Saadiyat Island", thumbnailUrl: "https://picsum.photos/seed/manarat/400/300" },
+  { id: "am-8", name: "Abrahamic Family House", latitude: 24.5348, longitude: 54.4048, category: "Culture", community: "Saadiyat Island", thumbnailUrl: "https://picsum.photos/seed/abrahamic/400/300" },
 
   // Leisure
-  { id: "am-9", name: "Saadiyat Beach Club", latitude: 24.5461, longitude: 54.4345, category: "leisure", thumbnailUrl: "https://picsum.photos/seed/beachclub/400/300" },
-  { id: "am-10", name: "Saadiyat Beach Golf Club", latitude: 24.5447, longitude: 54.4285, category: "leisure", thumbnailUrl: "https://picsum.photos/seed/golf/400/300" },
+  { id: "am-9", name: "Saadiyat Beach Club", latitude: 24.5461, longitude: 54.4345, category: "Leisure", community: "Saadiyat Island", thumbnailUrl: "https://picsum.photos/seed/beachclub/400/300" },
+  { id: "am-10", name: "Saadiyat Beach Golf Club", latitude: 24.5447, longitude: 54.4285, category: "Leisure", community: "Saadiyat Island", thumbnailUrl: "https://picsum.photos/seed/golf/400/300" },
 
   // Retail
-  { id: "am-11", name: "Waitrose Saadiyat (The Collection)", latitude: 24.5385, longitude: 54.4320, category: "retail", thumbnailUrl: "https://picsum.photos/seed/waitrose/400/300" },
-  { id: "am-12", name: "Saadiyat Grove", latitude: 24.5350, longitude: 54.4050, category: "retail", thumbnailUrl: "https://picsum.photos/seed/grove/400/300" }
+  { id: "am-11", name: "Waitrose Saadiyat (The Collection)", latitude: 24.5385, longitude: 54.4320, category: "Retail", community: "Saadiyat Island", thumbnailUrl: "https://picsum.photos/seed/waitrose/400/300" },
+  { id: "am-12", name: "Saadiyat Grove", latitude: 24.5350, longitude: 54.4050, category: "Retail", community: "Saadiyat Island", thumbnailUrl: "https://picsum.photos/seed/grove/400/300" }
 ];

@@ -15,7 +15,7 @@ interface NearbyFilterBarProps {
 
 const filters: FilterOption[] = [
   {
-    id: 'school',
+    id: 'School',
     label: 'Schools',
     icon: (
       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -25,7 +25,7 @@ const filters: FilterOption[] = [
     ),
   },
   {
-    id: 'leisure',
+    id: 'Leisure',
     label: 'Leisure',
     icon: (
       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -34,7 +34,7 @@ const filters: FilterOption[] = [
     ),
   },
   {
-    id: 'culture',
+    id: 'Culture',
     label: 'Culture',
     icon: (
       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -43,7 +43,7 @@ const filters: FilterOption[] = [
     ),
   },
   {
-    id: 'hotel',
+    id: 'Hotel',
     label: 'Hotels',
     icon: (
       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -52,7 +52,7 @@ const filters: FilterOption[] = [
     ),
   },
   {
-    id: 'retail',
+    id: 'Retail',
     label: 'Retail',
     icon: (
       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -72,11 +72,10 @@ const NearbyFilterBar: React.FC<NearbyFilterBarProps> = ({ activeFilters, onTogg
         <button
           key={filter.id}
           onClick={() => onToggleFilter(filter.id)}
-          className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-all duration-300 ${
-            activeFilters.has(filter.id)
+          className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-all duration-300 ${activeFilters.has(filter.id)
               ? 'bg-indigo-600 text-white shadow-lg scale-105'
               : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
-          }`}
+            }`}
         >
           {filter.icon}
           <span className="text-[10px] font-black uppercase tracking-widest">{filter.label}</span>
