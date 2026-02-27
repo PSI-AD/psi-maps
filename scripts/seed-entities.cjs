@@ -12,13 +12,14 @@ const seedEntities = async () => {
     try {
         const projectsPath = path.join(__dirname, '../data/master_projects.json');
         const projectsData = JSON.parse(fs.readFileSync(projectsPath, 'utf8'));
+        const projects = projectsData.result || projectsData;
 
         // Extract unique developers
-        const developers = [...new Set(projectsData.map(p => p.developerName).filter(Boolean))];
+        const developers = [...new Set(projects.map(p => p.developerName).filter(Boolean))];
         console.log(`Found ${developers.length} unique developers.`);
 
         // Extract unique communities
-        const communities = [...new Set(projectsData.map(p => p.community).filter(Boolean))];
+        const communities = [...new Set(projects.map(p => p.community).filter(Boolean))];
         console.log(`Found ${communities.length} unique communities.`);
 
         // Batch write Developers
@@ -37,7 +38,7 @@ const seedEntities = async () => {
             const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
             const ref = db.collection('locations_communities').doc(slug);
             // Try to find an associated city from the first project in that community
-            const sampleProj = projectsData.find(p => p.community === name);
+            const sampleProj = projects.find(p => p.community === name);
             commBatch.set(ref, { name, city: sampleProj?.city || 'Abu Dhabi', imageUrl: '', description: '' }, { merge: true });
         });
         await commBatch.commit();
