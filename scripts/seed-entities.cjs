@@ -14,41 +14,59 @@ const db = admin.firestore();
 const seedEntities = async () => {
     try {
         const projectsPath = path.join(__dirname, '../data/master_projects.json');
-        const projectsData = JSON.parse(fs.readFileSync(projectsPath, 'utf8'));
-        const projects = projectsData.result || projectsData;
+        const rawData = JSON.parse(fs.readFileSync(projectsPath, 'utf8'));
 
-        // Extract unique developers
-        const developers = [...new Set(projects.map(p => p.developerName).filter(Boolean))];
-        console.log(`Found ${developers.length} unique developers.`);
+        // Correctly target the 'result' array where the real data lives
+        const projectsData = Array.isArray(rawData.result) ? rawData.result : rawData;
 
-        // Extract unique communities
-        const communities = [...new Set(projects.map(p => p.community).filter(Boolean))];
-        console.log(`Found ${communities.length} unique communities.`);
+        // 1. Extract and Clean Unique Developers
+        const developers = [...new Set(projectsData.map(p => p.developerName).filter(Boolean))];
+        console.log(`🚀 Found ${developers.length} unique developers in JSON.`);
 
-        // Batch write Developers
-        let devBatch = db.batch();
-        developers.forEach(name => {
-            const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-            const ref = db.collection('entities_developers').doc(slug);
-            devBatch.set(ref, { name, logoUrl: `https://www.google.com/s2/favicons?domain=${name.toLowerCase().replace(/\s+/g, '')}.com&sz=128`, description: '' }, { merge: true });
-        });
-        await devBatch.commit();
-        console.log('Successfully seeded Developers!');
+        // 2. Extract and Clean Unique Communities
+        const communities = [...new Set(projectsData.map(p => p.community).filter(Boolean))];
+        console.log(`📍 Found ${communities.length} unique communities in JSON.`);
 
-        // Batch write Communities
-        let commBatch = db.batch();
-        communities.forEach(name => {
-            const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-            const ref = db.collection('locations_communities').doc(slug);
-            // Try to find an associated city from the first project in that community
-            const sampleProj = projects.find(p => p.community === name);
-            commBatch.set(ref, { name, city: sampleProj?.city || 'Abu Dhabi', imageUrl: '', description: '' }, { merge: true });
-        });
-        await commBatch.commit();
-        console.log('Successfully seeded Communities!');
+        // Helper: process items in batches of 450 (safely under the 500 Firestore limit)
+        const commitInBatches = async (items, collectionName, isCommunity = false) => {
+            let count = 0;
+            let batch = db.batch();
+
+            for (const name of items) {
+                const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+                const ref = db.collection(collectionName).doc(slug);
+
+                const data = isCommunity ? {
+                    name,
+                    city: projectsData.find(p => p.community === name)?.city || 'Abu Dhabi',
+                    imageUrl: '',
+                    description: ''
+                } : {
+                    name,
+                    logoUrl: `https://www.google.com/s2/favicons?domain=${name.toLowerCase().replace(/\s+/g, '')}.com&sz=128`,
+                    description: ''
+                };
+
+                batch.set(ref, data, { merge: true });
+                count++;
+
+                if (count % 450 === 0) {
+                    await batch.commit();
+                    batch = db.batch();
+                    console.log(`✅ Progress: Committed ${count} items to ${collectionName}...`);
+                }
+            }
+
+            await batch.commit(); // Commit final remainder
+            console.log(`✨ Total ${count} records seeded to ${collectionName}.`);
+        };
+
+        // Run seeding
+        await commitInBatches(developers, 'entities_developers');
+        await commitInBatches(communities, 'locations_communities', true);
 
     } catch (error) {
-        console.error('Error seeding entities:', error);
+        console.error('❌ Error seeding entities:', error);
     }
 };
 
