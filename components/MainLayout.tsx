@@ -6,7 +6,7 @@ import BottomControlBar from './BottomControlBar';
 import FullscreenImageModal from './FullscreenImageModal';
 import NearbyPanel from './NearbyPanel';
 import FilteredProjectsCarousel from './FilteredProjectsCarousel';
-import { Loader2, Building } from 'lucide-react';
+import { Loader2, Building, LayoutGrid, X, RotateCcw } from 'lucide-react';
 
 interface MainLayoutProps {
   viewMode: 'map' | 'list';
@@ -203,26 +203,25 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
         {children}
       </div>
 
-
-      {/* Breadcrumbs Navigation */}
-      <div className="absolute top-6 left-6 z-[4000] flex items-center gap-2 text-slate-800 text-sm font-bold bg-white/80 backdrop-blur-md px-4 py-2 rounded-full shadow-sm border border-slate-200">
-        <button onClick={() => { props.setSelectedCity(''); props.setSelectedCommunity(''); props.onCloseProject(); props.handleLocationSelect('city', '', props.liveProjects); }} className="hover:text-blue-600 transition-colors">UAE</button>
+      {/* Breadcrumbs Navigation — capped width on mobile, project name hidden on xs */}
+      <div className="absolute top-6 left-6 z-[4000] flex items-center gap-1.5 text-slate-800 text-sm font-bold bg-white/80 backdrop-blur-md px-4 py-2 rounded-full shadow-sm border border-slate-200 max-w-[calc(100vw-112px)] overflow-hidden">
+        <button onClick={() => { props.setSelectedCity(''); props.setSelectedCommunity(''); props.onCloseProject(); props.handleLocationSelect('city', '', props.liveProjects); }} className="hover:text-blue-600 transition-colors shrink-0">UAE</button>
         {props.selectedCity && (
           <>
-            <span className="text-slate-400">/</span>
-            <button onClick={() => { props.setSelectedCommunity(''); props.onCloseProject(); props.handleLocationSelect('city', props.selectedCity, props.liveProjects.filter(p => p.city === props.selectedCity)); }} className="hover:text-blue-600 transition-colors capitalize">{props.selectedCity}</button>
+            <span className="text-slate-400 shrink-0">/</span>
+            <button onClick={() => { props.setSelectedCommunity(''); props.onCloseProject(); props.handleLocationSelect('city', props.selectedCity, props.liveProjects.filter(p => p.city === props.selectedCity)); }} className="hover:text-blue-600 transition-colors capitalize truncate max-w-[100px] md:max-w-[160px]">{props.selectedCity}</button>
           </>
         )}
         {props.selectedCommunity && (
           <>
-            <span className="text-slate-400">/</span>
-            <button onClick={() => { props.onCloseProject(); props.handleLocationSelect('community', props.selectedCommunity, props.liveProjects.filter(p => p.community === props.selectedCommunity)); }} className="hover:text-blue-600 transition-colors capitalize">{props.selectedCommunity}</button>
+            <span className="text-slate-400 shrink-0">/</span>
+            <button onClick={() => { props.onCloseProject(); props.handleLocationSelect('community', props.selectedCommunity, props.liveProjects.filter(p => p.community === props.selectedCommunity)); }} className="hover:text-blue-600 transition-colors capitalize truncate max-w-[90px] md:max-w-[140px]">{props.selectedCommunity}</button>
           </>
         )}
         {props.selectedProject && (
           <>
-            <span className="text-slate-400">/</span>
-            <span className="text-blue-600 capitalize truncate max-w-[150px]">{props.selectedProject.name}</span>
+            <span className="text-slate-400 shrink-0 hidden sm:inline">/</span>
+            <span className="text-blue-600 capitalize truncate max-w-[80px] md:max-w-[150px] hidden sm:inline">{props.selectedProject.name}</span>
           </>
         )}
       </div>
@@ -259,9 +258,9 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
         </div>
       )}
 
-      {/* Active Filter Chips — floating above the bottom dock */}
+      {/* Active Filter Chips — floating above the bottom dock (desktop) */}
       {(developerFilter !== 'All' && developerFilter !== '' || statusFilter !== 'All' && statusFilter !== '' || selectedCity || selectedCommunity) && (
-        <div className={`absolute ${chipsBottomClass} left-1/2 -translate-x-1/2 z-[4500] flex flex-wrap gap-2 pointer-events-none justify-center px-4 w-full max-w-3xl transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]`}>
+        <div className={`absolute ${chipsBottomClass} left-1/2 -translate-x-1/2 z-[4500] hidden md:flex flex-wrap gap-2 pointer-events-none justify-center px-4 w-full max-w-3xl transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]`}>
 
           {/* Properties Count & Reset */}
           <div className="pointer-events-auto flex items-center gap-4 bg-white py-1.5 px-2 pr-4 rounded-xl shadow-lg border border-slate-200">
@@ -297,7 +296,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
             </div>
           )}
 
-          {/* Status chip — blue-800, not black */}
+          {/* Status chip */}
           {statusFilter && statusFilter !== 'All' && (
             <div className="pointer-events-auto flex items-center gap-1.5 bg-blue-800 text-white px-3 py-1.5 rounded-full shadow-lg text-xs font-black uppercase tracking-wide">
               <span>{statusFilter}</span>
@@ -310,7 +309,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
             </div>
           )}
 
-          {/* City chip — cascade: dismissing falls back to full UAE bounds */}
+          {/* City chip */}
           {selectedCity && (
             <div className="pointer-events-auto flex items-center gap-1.5 bg-emerald-600 text-white px-3 py-1.5 rounded-full shadow-lg text-xs font-black uppercase tracking-wide">
               <span className="capitalize">{selectedCity}</span>
@@ -328,7 +327,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
             </div>
           )}
 
-          {/* Community chip — cascade: dismissing falls back to selected city view */}
+          {/* Community chip */}
           {selectedCommunity && (
             <div className="pointer-events-auto flex items-center gap-1.5 bg-violet-600 text-white px-3 py-1.5 rounded-full shadow-lg text-xs font-black uppercase tracking-wide">
               <span className="capitalize">{selectedCommunity}</span>
@@ -358,6 +357,61 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
           landmarks={projectSpecificLandmarks}
           onClose={() => setShowNearbyPanel(false)}
         />
+      )}
+
+      {/* Mobile Filter Tag Bar — thin, horizontally scrollable, fixed above bottom dock */}
+      {isAnyFilterActive && (
+        <div
+          className="md:hidden flex items-center gap-2 px-3 py-2 bg-white border-t border-slate-100 shadow-lg fixed bottom-[64px] left-0 right-0 z-[4400] overflow-x-auto whitespace-nowrap scrollbar-hide"
+          style={{ paddingBottom: 'calc(8px + env(safe-area-inset-bottom, 0px))' }}
+        >
+          {/* Result count tag */}
+          <div className="flex items-center gap-1.5 text-sm font-semibold px-3 py-1 bg-blue-50 text-blue-800 border border-blue-100 rounded-full shrink-0">
+            <LayoutGrid className="w-3.5 h-3.5" />
+            <span>{props.filteredProjects.length}</span>
+          </div>
+
+          {/* Developer chip */}
+          {developerFilter && developerFilter !== 'All' && (
+            <button onClick={() => setDeveloperFilter('All')} className="flex items-center gap-1 text-sm font-normal px-3 py-1 bg-white border border-slate-200 rounded-full text-slate-700 hover:bg-slate-50 transition-colors shrink-0">
+              <span>{developerFilter}</span>
+              <X className="w-3.5 h-3.5 text-slate-400" />
+            </button>
+          )}
+
+          {/* Status chip */}
+          {statusFilter && statusFilter !== 'All' && (
+            <button onClick={() => setStatusFilter('All')} className="flex items-center gap-1 text-sm font-normal px-3 py-1 bg-white border border-slate-200 rounded-full text-slate-700 hover:bg-slate-50 transition-colors shrink-0">
+              <span>{statusFilter}</span>
+              <X className="w-3.5 h-3.5 text-slate-400" />
+            </button>
+          )}
+
+          {/* City chip */}
+          {selectedCity && (
+            <button onClick={() => { props.setSelectedCity(''); props.setSelectedCommunity(''); props.onCloseProject(); props.handleLocationSelect('city', '', props.liveProjects); }} className="flex items-center gap-1 text-sm font-normal px-3 py-1 bg-white border border-slate-200 rounded-full text-slate-700 hover:bg-slate-50 transition-colors shrink-0 capitalize">
+              <span>{selectedCity}</span>
+              <X className="w-3.5 h-3.5 text-slate-400" />
+            </button>
+          )}
+
+          {/* Community chip */}
+          {selectedCommunity && (
+            <button onClick={() => { props.setSelectedCommunity(''); props.onCloseProject(); selectedCity ? props.handleLocationSelect('city', selectedCity, props.liveProjects.filter(p => p.city === selectedCity)) : props.handleLocationSelect('city', '', props.liveProjects); }} className="flex items-center gap-1 text-sm font-normal px-3 py-1 bg-white border border-slate-200 rounded-full text-slate-700 hover:bg-slate-50 transition-colors shrink-0 capitalize">
+              <span>{selectedCommunity}</span>
+              <X className="w-3.5 h-3.5 text-slate-400" />
+            </button>
+          )}
+
+          {/* Reset all */}
+          <button
+            onClick={() => { setDeveloperFilter('All'); setStatusFilter('All'); props.setSelectedCity(''); props.setSelectedCommunity(''); props.onCloseProject(); props.handleLocationSelect('city', '', props.liveProjects); }}
+            className="flex items-center gap-1.5 text-sm font-semibold px-3 py-1 bg-slate-900 text-white rounded-full ml-auto shrink-0"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Reset</span>
+          </button>
+        </div>
       )}
 
       {/* Filtered results carousel / side panel — responsive dual mode */}

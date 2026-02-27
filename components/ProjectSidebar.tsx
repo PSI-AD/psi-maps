@@ -644,7 +644,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
           onMouseLeave={() => { /* only resume if already playing via user action */ }}
         >
           {/* Header action bar: Compare · Favourite · Flag · Share · PDF · Close */}
-          <div className="absolute top-3 right-3 flex flex-wrap justify-end items-center gap-1 z-10 max-w-[70%] md:max-w-none">
+          <div className="absolute top-0 right-0 flex flex-wrap justify-end items-center gap-1 z-10 max-w-[70%] md:max-w-none p-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
             <button
               onClick={() => handleSaveLocal('compare')}
               className="p-2 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md text-white border border-white/20 transition-all"
