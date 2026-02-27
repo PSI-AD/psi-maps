@@ -2,9 +2,12 @@ const admin = require('firebase-admin');
 const fs = require('fs');
 const path = require('path');
 
-// Initialize Firebase Admin (Uses default credentials like seed.cjs)
+// Initialize Firebase Admin using local service account (matches other seed scripts)
+const serviceAccount = require('../service-account.json');
 if (!admin.apps.length) {
-    admin.initializeApp({ credential: admin.credential.applicationDefault() });
+    admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+    });
 }
 const db = admin.firestore();
 
