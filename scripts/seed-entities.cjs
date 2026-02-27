@@ -16,24 +16,24 @@ const seedEntities = async () => {
         const projectsPath = path.join(__dirname, '../data/master_projects.json');
         const rawData = JSON.parse(fs.readFileSync(projectsPath, 'utf8'));
 
-        // Access the 'result' array which contains the projects
-        const projectsData = Array.isArray(rawData.result) ? rawData.result : [];
+        // Target the 'result' array where the real data is stored
+        const projects = Array.isArray(rawData.result) ? rawData.result : [];
 
-        if (projectsData.length === 0) {
-            console.error("❌ No projects found in the 'result' array of the JSON file.");
+        if (projects.length === 0) {
+            console.log("❌ The JSON file appears to be empty or missing the 'result' array.");
             return;
         }
-        console.log(`📦 Loaded ${projectsData.length} projects from JSON.`);
+        console.log(`📦 Loaded ${projects.length} projects from JSON.`);
 
-        // 1. Extract and Clean Unique Developers
-        const developers = [...new Set(projectsData.map(p => p.masterDeveloper).filter(Boolean))];
-        console.log(`🚀 Found ${developers.length} unique developers in JSON.`);
+        // 1. Extract Unique Developers (using 'masterDeveloper' key)
+        const developers = [...new Set(projects.map(p => p.masterDeveloper).filter(Boolean))];
+        console.log(`🚀 Found ${developers.length} unique developers.`);
 
-        // 2. Extract and Clean Unique Communities
-        const communities = [...new Set(projectsData.map(p => p.community).filter(Boolean))];
-        console.log(`📍 Found ${communities.length} unique communities in JSON.`);
+        // 2. Extract Unique Communities
+        const communities = [...new Set(projects.map(p => p.community).filter(Boolean))];
+        console.log(`📍 Found ${communities.length} unique communities.`);
 
-        // Helper: process items in batches of 450 (safely under the 500 Firestore limit)
+        // Batch helper — flushes every 450 writes (under Firestore's 500 limit)
         const commitInBatches = async (items, collectionName, isCommunity = false) => {
             let count = 0;
             let batch = db.batch();
@@ -44,13 +44,12 @@ const seedEntities = async () => {
 
                 const data = isCommunity ? {
                     name,
-                    city: projectsData.find(p => p.community === name)?.city || 'Abu Dhabi',
-                    imageUrl: '',
-                    description: ''
+                    city: projects.find(p => p.community === name)?.city || 'Abu Dhabi',
+                    isActive: true
                 } : {
                     name,
                     logoUrl: `https://www.google.com/s2/favicons?domain=${name.toLowerCase().replace(/\s+/g, '')}.com&sz=128`,
-                    description: ''
+                    isActive: true
                 };
 
                 batch.set(ref, data, { merge: true });
@@ -62,17 +61,15 @@ const seedEntities = async () => {
                     console.log(`✅ Progress: Committed ${count} items to ${collectionName}...`);
                 }
             }
-
-            await batch.commit(); // Commit final remainder
-            console.log(`✨ Total ${count} records seeded to ${collectionName}.`);
+            await batch.commit();
+            console.log(`✨ Seeded ${count} items to ${collectionName}.`);
         };
 
-        // Run seeding
         await commitInBatches(developers, 'entities_developers');
         await commitInBatches(communities, 'locations_communities', true);
 
     } catch (error) {
-        console.error('❌ Error seeding entities:', error);
+        console.error('❌ Error:', error);
     }
 };
 
