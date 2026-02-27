@@ -247,10 +247,10 @@ const LandmarkInfoModal: React.FC<Props> = ({ landmark, onClose }) => {
                                 </button>
                             </div>
                         </div>
-                    </div>{/* end collapsible content */}
-                </div>{/* end right panel */}
-            </div>{/* end modal card */}
-        </div>{/* end fixed overlay */ }
+                    </div>
+                </div>
+            </div>
+        </div>
     );
 };
 
