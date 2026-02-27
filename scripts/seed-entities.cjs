@@ -16,11 +16,17 @@ const seedEntities = async () => {
         const projectsPath = path.join(__dirname, '../data/master_projects.json');
         const rawData = JSON.parse(fs.readFileSync(projectsPath, 'utf8'));
 
-        // Correctly target the 'result' array where the real data lives
-        const projectsData = Array.isArray(rawData.result) ? rawData.result : rawData;
+        // Access the 'result' array which contains the projects
+        const projectsData = Array.isArray(rawData.result) ? rawData.result : [];
+
+        if (projectsData.length === 0) {
+            console.error("❌ No projects found in the 'result' array of the JSON file.");
+            return;
+        }
+        console.log(`📦 Loaded ${projectsData.length} projects from JSON.`);
 
         // 1. Extract and Clean Unique Developers
-        const developers = [...new Set(projectsData.map(p => p.developerName).filter(Boolean))];
+        const developers = [...new Set(projectsData.map(p => p.masterDeveloper).filter(Boolean))];
         console.log(`🚀 Found ${developers.length} unique developers in JSON.`);
 
         // 2. Extract and Clean Unique Communities
