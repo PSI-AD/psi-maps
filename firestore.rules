@@ -13,6 +13,15 @@ service cloud.firestore {
     match /settings/{document} {
       allow read, write: if true;
     }
+    match /entities_developers/{dev} {
+      allow read, write: if true;
+    }
+    match /locations_communities/{comm} {
+      allow read, write: if true;
+    }
+    match /locations_cities/{city} {
+      allow read, write: if true;
+    }
     match /{document=**} {
       allow read, write: if false;
     }
