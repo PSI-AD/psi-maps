@@ -168,40 +168,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
     return Array.from(new Set(liveProjects.map(p => p.developerName).filter(Boolean))).sort() as string[];
   }, [liveProjects]);
 
-  const handleSyncDevelopers = async () => {
-    setIsSaving(true);
-    try {
-      const unique = Array.from(new Set(liveProjects.map(p => p.developerName).filter(Boolean)));
-      let added = 0;
-      for (const name of unique) {
-        if (!liveDevelopers.find(d => d.name === name)) {
-          const ref = doc(collection(db, 'entities_developers'));
-          await setDoc(ref, { name, logoUrl: `https://www.google.com/s2/favicons?domain=${String(name).toLowerCase().replace(/\s+/g, '')}.com&sz=128` });
-          added++;
-        }
-      }
-      alert(`Imported ${added} new developers! Refresh to see them.`);
-    } catch (e) { console.error(e); }
-    setIsSaving(false);
-  };
-
-  const handleSyncCommunities = async () => {
-    setIsSaving(true);
-    try {
-      const unique = Array.from(new Set(liveProjects.map(p => p.community).filter(Boolean)));
-      let added = 0;
-      for (const name of unique) {
-        if (!liveCommunities.find(c => c.name === name)) {
-          const project = liveProjects.find(p => p.community === name);
-          const ref = doc(collection(db, 'locations_communities'));
-          await setDoc(ref, { name, city: project?.city || 'Abu Dhabi', imageUrl: '' });
-          added++;
-        }
-      }
-      alert(`Imported ${added} new communities! Refresh to see them.`);
-    } catch (e) { console.error(e); }
-    setIsSaving(false);
-  };
 
   const filteredAdminProjects = useMemo(() => {
     return liveProjects.filter(p =>
@@ -856,7 +822,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 w-full">
                   <h2 className="text-2xl font-black text-slate-900 tracking-tight">Developers CMS</h2>
                   <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
-                    <button onClick={handleSyncDevelopers} className="w-full md:w-auto justify-center px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-sm transition-all flex items-center gap-2"><RefreshCw className="w-4 h-4" /> Auto-Import</button>
                     <button onClick={() => setStagedDeveloper({ name: '', logoUrl: '', description: '' })} className="w-full md:w-auto justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition-all flex items-center gap-2"><Plus className="w-4 h-4" /> Add Developer</button>
                   </div>
                 </div>
@@ -904,7 +869,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 w-full">
                   <h2 className="text-2xl font-black text-slate-900 tracking-tight">Communities CMS</h2>
                   <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
-                    <button onClick={handleSyncCommunities} className="w-full md:w-auto justify-center px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-sm transition-all flex items-center gap-2"><RefreshCw className="w-4 h-4" /> Auto-Import</button>
                     <button onClick={() => setStagedCommunity({ name: '', city: '', imageUrl: '', description: '' })} className="w-full md:w-auto justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition-all flex items-center gap-2"><Plus className="w-4 h-4" /> Add Community</button>
                   </div>
                 </div>
