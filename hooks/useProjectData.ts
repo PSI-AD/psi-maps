@@ -147,7 +147,8 @@ export const useProjectData = () => {
     }, []);
 
     const filteredProjects = useMemo(() => {
-        let projects = liveProjects;
+        // Exclude hidden projects first — they should never appear on the map or carousel
+        let projects = liveProjects.filter(p => !p.isHidden);
 
         // Location filters — applied first (most restrictive)
         if (selectedCity) {
