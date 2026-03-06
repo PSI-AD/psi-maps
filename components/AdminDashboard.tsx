@@ -785,13 +785,22 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                       </thead>
                       <tbody className="divide-y divide-slate-50">
                         {liveCities.map(city => (
-                          <tr key={city.id} className="hover:bg-slate-50">
+                          <tr key={city.id} className={`hover:bg-slate-50 transition-all group ${city.isHidden ? 'opacity-50' : ''}`}>
                             <td className="p-4 font-bold text-slate-800">{city.name}</td>
                             <td className="p-4 text-slate-500">{city.country}</td>
-                            <td className="p-4"><span className="px-2 py-1 bg-green-100 text-green-700 rounded-md text-[10px] font-bold uppercase">Active</span></td>
+                            <td className="p-4">
+                              <span className={`text-[10px] font-black uppercase tracking-widest ${city.isHidden ? 'text-rose-500' : 'text-emerald-600'}`}>
+                                {city.isHidden ? 'Hidden' : 'Visible'}
+                              </span>
+                            </td>
                             <td className="p-4 text-right">
-                              <button onClick={() => setStagedCity(city)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg mr-2"><Edit2 className="w-4 h-4" /></button>
-                              <button onClick={async () => { if (window.confirm('Delete?')) await deleteDoc(doc(db, 'locations_cities', city.id)); }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                              <div className="flex items-center justify-end gap-1">
+                                <button onClick={async () => { try { await updateDoc(doc(db, 'locations_cities', city.id), { isHidden: !city.isHidden }); } catch (e) { console.error(e); } }} className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all" title={city.isHidden ? 'Show' : 'Hide'}>
+                                  {city.isHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                                <button onClick={() => setStagedCity(city)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"><Edit2 className="w-4 h-4" /></button>
+                                <button onClick={async () => { if (window.confirm('Delete?')) await deleteDoc(doc(db, 'locations_cities', city.id)); }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-all"><Trash2 className="w-4 h-4" /></button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -845,15 +854,25 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                 <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                   <div className="w-full overflow-x-auto hide-scrollbar">
                     <table className="w-full text-left min-w-[500px]">
-                      <thead className="bg-slate-50 border-b border-slate-100"><tr><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Logo</th><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Name</th><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right">Actions</th></tr></thead>
+                      <thead className="bg-slate-50 border-b border-slate-100"><tr><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Logo</th><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Name</th><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Status</th><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right">Actions</th></tr></thead>
                       <tbody className="divide-y divide-slate-50">
                         {liveDevelopers.map(dev => (
-                          <tr key={dev.id} className="hover:bg-slate-50">
+                          <tr key={dev.id} className={`hover:bg-slate-50 transition-all group ${dev.isHidden ? 'opacity-50' : ''}`}>
                             <td className="p-4"><img src={dev.logoUrl} alt="" className="w-10 h-10 object-contain rounded bg-white border border-slate-100" onError={e => e.currentTarget.src = '/placeholder-image.png'} /></td>
                             <td className="p-4 font-bold text-slate-800">{dev.name}</td>
+                            <td className="p-4">
+                              <span className={`text-[10px] font-black uppercase tracking-widest ${dev.isHidden ? 'text-rose-500' : 'text-emerald-600'}`}>
+                                {dev.isHidden ? 'Hidden' : 'Visible'}
+                              </span>
+                            </td>
                             <td className="p-4 text-right whitespace-nowrap">
-                              <button onClick={() => setStagedDeveloper(dev)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg mr-2"><Edit2 className="w-4 h-4" /></button>
-                              <button onClick={async () => { if (window.confirm('Delete?')) await deleteDoc(doc(db, 'entities_developers', dev.id)); }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                              <div className="flex items-center justify-end gap-1">
+                                <button onClick={async () => { try { await updateDoc(doc(db, 'entities_developers', dev.id), { isHidden: !dev.isHidden }); } catch (e) { console.error(e); } }} className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all" title={dev.isHidden ? 'Show' : 'Hide'}>
+                                  {dev.isHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                                <button onClick={() => setStagedDeveloper(dev)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"><Edit2 className="w-4 h-4" /></button>
+                                <button onClick={async () => { if (window.confirm('Delete?')) await deleteDoc(doc(db, 'entities_developers', dev.id)); }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-all"><Trash2 className="w-4 h-4" /></button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -893,16 +912,26 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                 <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                   <div className="w-full overflow-x-auto hide-scrollbar">
                     <table className="w-full text-left min-w-[600px]">
-                      <thead className="bg-slate-50 border-b border-slate-100"><tr><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Image</th><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Name</th><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">City</th><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right">Actions</th></tr></thead>
+                      <thead className="bg-slate-50 border-b border-slate-100"><tr><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Image</th><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Name</th><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">City</th><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Status</th><th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right">Actions</th></tr></thead>
                       <tbody className="divide-y divide-slate-50">
                         {liveCommunities.map(comm => (
-                          <tr key={comm.id} className="hover:bg-slate-50">
+                          <tr key={comm.id} className={`hover:bg-slate-50 transition-all group ${comm.isHidden ? 'opacity-50' : ''}`}>
                             <td className="p-4"><img src={comm.imageUrl} alt="" className="w-16 h-10 object-cover rounded bg-slate-200 border border-slate-100" onError={e => e.currentTarget.src = '/placeholder-image.png'} /></td>
                             <td className="p-4 font-bold text-slate-800">{comm.name}</td>
                             <td className="p-4 text-slate-500 text-sm">{comm.city}</td>
+                            <td className="p-4">
+                              <span className={`text-[10px] font-black uppercase tracking-widest ${comm.isHidden ? 'text-rose-500' : 'text-emerald-600'}`}>
+                                {comm.isHidden ? 'Hidden' : 'Visible'}
+                              </span>
+                            </td>
                             <td className="p-4 text-right whitespace-nowrap">
-                              <button onClick={() => setStagedCommunity(comm)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg mr-2"><Edit2 className="w-4 h-4" /></button>
-                              <button onClick={async () => { if (window.confirm('Delete?')) await deleteDoc(doc(db, 'locations_communities', comm.id)); }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                              <div className="flex items-center justify-end gap-1">
+                                <button onClick={async () => { try { await updateDoc(doc(db, 'locations_communities', comm.id), { isHidden: !comm.isHidden }); } catch (e) { console.error(e); } }} className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all" title={comm.isHidden ? 'Show' : 'Hide'}>
+                                  {comm.isHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                                <button onClick={() => setStagedCommunity(comm)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"><Edit2 className="w-4 h-4" /></button>
+                                <button onClick={async () => { if (window.confirm('Delete?')) await deleteDoc(doc(db, 'locations_communities', comm.id)); }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-all"><Trash2 className="w-4 h-4" /></button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -940,17 +969,26 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                         <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Project Name</th>
                         <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Developer</th>
                         <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Completion</th>
-                        <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Action</th>
+                        <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                        <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
                       {filteredAdminProjects.map((p) => (
-                        <tr key={p.id} className="hover:bg-slate-50 transition-all group">
+                        <tr key={p.id} className={`hover:bg-slate-50 transition-all group ${p.isHidden ? 'opacity-50' : ''}`}>
                           <td className="px-8 py-5 font-bold text-slate-800">{p.name}</td>
                           <td className="px-8 py-5 text-sm text-slate-500 font-medium">{p.developerName}</td>
                           <td className="px-8 py-5 text-sm text-slate-400 font-medium font-mono">{formatCompletionDate(p.completionDate)}</td>
+                          <td className="px-8 py-5">
+                            <span className={`text-[10px] font-black uppercase tracking-widest ${p.isHidden ? 'text-rose-500' : 'text-emerald-600'}`}>
+                              {p.isHidden ? 'Hidden' : 'Visible'}
+                            </span>
+                          </td>
                           <td className="px-8 py-5 text-right">
                             <div className="flex items-center justify-end gap-1">
+                              <button onClick={async () => { try { await updateDoc(doc(db, 'projects', p.id), { isHidden: !p.isHidden }); } catch (e) { console.error(e); } }} className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all" title={p.isHidden ? 'Show' : 'Hide'}>
+                                {p.isHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              </button>
                               <button onClick={() => setStagedProject(p)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="Edit Project">
                                 <Edit2 className="w-4 h-4" />
                               </button>

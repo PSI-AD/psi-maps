@@ -17,7 +17,7 @@ export const useProjectData = () => {
     const [liveProjects, setLiveProjects] = useState<Project[]>([]);
     const [liveLandmarks, setLiveLandmarks] = useState<Landmark[]>([]);
     const [isRefreshing, setIsRefreshing] = useState(false);
-    
+
     // Initialize active amenities from localStorage or default to empty array
     const [activeAmenities, setActiveAmenities] = useState<string[]>(() => {
         try {
@@ -98,7 +98,8 @@ export const useProjectData = () => {
                     community: data.community || data.subCommunity || 'Exclusive Community',
                     subCommunity: data.subCommunity || '',
                     optimizedGallery: data.optimizedGallery || [],
-                    responsiveMedia: data.responsiveMedia || null
+                    responsiveMedia: data.responsiveMedia || null,
+                    isHidden: data.isHidden || false
                 } as Project;
             });
 

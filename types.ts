@@ -27,6 +27,7 @@ export interface Project {
   // Optimized media (written by batch-optimize.cjs)
   optimizedGallery?: { thumb: string; large: string }[];
   responsiveMedia?: { thumb: string; medium: string; large: string } | null;
+  isHidden?: boolean;
 }
 
 export type LandmarkCategory = 'School' | 'Retail' | 'Culture' | 'Hospital' | 'Hotel' | 'Leisure' | 'Airport' | 'Port';
@@ -69,6 +70,7 @@ export interface Developer {
   description?: string;
   website?: string;
   tags?: string[];
+  isHidden?: boolean;
 }
 
 export interface Community {
@@ -82,6 +84,7 @@ export interface Community {
   longitude?: number;
   tags?: string[];
   placeId?: string;
+  isHidden?: boolean;
 }
 
 export interface City {
@@ -89,4 +92,5 @@ export interface City {
   name: string;
   country: string;
   isActive: boolean;
+  isHidden?: boolean;
 }

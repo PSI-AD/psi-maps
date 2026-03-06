@@ -252,6 +252,9 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
     const RING_C = 88;
     const ringOffset = RING_C - (RING_C * playProgress) / presentationTargetTicks;
 
+    // ── Touch-tap tracker — distinguish taps from scroll-swipes ───────────
+    const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+
     // ── Single card renderer ────────────────────────────────────────────────
     const renderCard = (project: Project, idx: number) => {
         const isSelected = selectedProjectId === project.id;
@@ -261,6 +264,22 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                 key={project.id}
                 ref={el => { itemRefs.current[project.id] = el; }}
                 onClick={() => onSelectProject(project)}
+                onTouchStart={(e) => {
+                    const t = e.touches[0];
+                    touchStartRef.current = { x: t.clientX, y: t.clientY };
+                }}
+                onTouchEnd={(e) => {
+                    if (!touchStartRef.current) return;
+                    const t = e.changedTouches[0];
+                    const dx = Math.abs(t.clientX - touchStartRef.current.x);
+                    const dy = Math.abs(t.clientY - touchStartRef.current.y);
+                    // Only fire if movement < 10px (a real tap, not a scroll)
+                    if (dx < 10 && dy < 10) {
+                        e.preventDefault();
+                        onSelectProject(project);
+                    }
+                    touchStartRef.current = null;
+                }}
                 className={`
                     shrink-0 w-[82vw] sm:w-[300px] snap-center
                     md:w-full md:shrink-0 md:rounded-none

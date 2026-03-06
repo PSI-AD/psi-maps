@@ -279,13 +279,8 @@ const AppInner: React.FC = () => {
   const handleMarkerClick = (id: string) => {
     setSelectedProjectId(id);
     setSelectedLandmarkId(null);
-    // Desktop: open analysis panel immediately
-    // Mobile (<768px): keep panel closed — user navigates via carousel card tap
-    if (typeof window !== 'undefined' && window.innerWidth >= 768) {
-      setIsAnalysisOpen(true);
-    } else {
-      setIsAnalysisOpen(false);
-    }
+    // Open analysis panel on both desktop AND mobile
+    setIsAnalysisOpen(true);
     const p = filteredProjects.find(pr => pr.id === id);
     if (p) {
       // Sync Breadcrumbs on click
