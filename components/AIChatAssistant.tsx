@@ -111,22 +111,22 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
             const lng = Number(selectedProject.longitude);
             const devName = selectedProject.developerName || '';
 
-            // 1️⃣ Nearby Projects Tour — 5 closest by distance
+            // 1️⃣ Nearby Projects Tour — 15 closest by distance
             const nearby = allProjects
                 .filter(p => p.id !== selectedProject.id && p.latitude && p.longitude)
                 .map(p => ({ ...p, dist: calculateDistance(lat, lng, Number(p.latitude), Number(p.longitude)) }))
                 .sort((a, b) => a.dist - b.dist)
-                .slice(0, 5);
+                .slice(0, 15);
 
             // 2️⃣ Developer Portfolio Tour
             const devPortfolio = allProjects.filter(p => p.developerName === devName && p.id !== selectedProject.id);
 
-            // 3️⃣ Nearby Landmarks Tour — 5 closest
+            // 3️⃣ Nearby Landmarks Tour — 15 closest
             const nearbyLandmarks = allLandmarks
                 .filter(l => l.latitude && l.longitude)
                 .map(l => ({ ...l, dist: calculateDistance(lat, lng, l.latitude, l.longitude) }))
                 .sort((a, b) => a.dist - b.dist)
-                .slice(0, 5);
+                .slice(0, 15);
 
             actions = [
                 {
@@ -274,7 +274,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
                 .filter(p => p.latitude && p.longitude)
                 .map(p => ({ ...p, dist: calculateDistance(lLat, lLng, Number(p.latitude), Number(p.longitude)) }))
                 .sort((a, b) => a.dist - b.dist)
-                .slice(0, 5);
+                .slice(0, 15);
 
             actions = [
                 {

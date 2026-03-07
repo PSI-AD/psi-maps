@@ -93,6 +93,27 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
     const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
     const [isMobileMapOpen, setIsMobileMapOpen] = useState(false);
 
+    // ── Quick toolbar continuous rotation (same as MapCommandCenter) ────
+    const [isQuickRotating, setIsQuickRotating] = useState(false);
+    const rotationAnimRef = useRef<number | undefined>(undefined);
+
+    useEffect(() => {
+        const map = mapRef?.current?.getMap?.();
+        const rotateCamera = (timestamp: number) => {
+            if (!map) return;
+            map.rotateTo(360 - (timestamp / 150) % 360, { duration: 0 });
+            rotationAnimRef.current = requestAnimationFrame(rotateCamera);
+        };
+        if (isQuickRotating && map) {
+            rotationAnimRef.current = requestAnimationFrame(rotateCamera);
+        } else if (rotationAnimRef.current !== undefined) {
+            cancelAnimationFrame(rotationAnimRef.current);
+        }
+        return () => {
+            if (rotationAnimRef.current !== undefined) cancelAnimationFrame(rotationAnimRef.current);
+        };
+    }, [isQuickRotating, mapRef]);
+
     // ── Desktop Map Command Center — hover + click to pin ───────────────
     const [isMapClicked, setIsMapClicked] = useState(false);
     const [isMapHovered, setIsMapHovered] = useState(false);
@@ -248,16 +269,12 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                             <Box className="w-4 h-4" />
                         </button>
                         <button
-                            onClick={() => {
-                                const map = mapRef?.current?.getMap?.();
-                                if (!map) return;
-                                const bearing = (map.getBearing() + 45) % 360;
-                                map.rotateTo(bearing, { duration: 500 });
-                            }}
-                            className="p-2 rounded-lg hover:bg-blue-50 text-slate-500 hover:text-blue-600 transition-all"
-                            title="Rotate Map"
+                            onClick={() => setIsQuickRotating(r => !r)}
+                            className={`p-2 rounded-lg transition-all ${isQuickRotating
+                                ? 'bg-amber-100 text-amber-600 shadow-inner' : 'hover:bg-blue-50 text-slate-500 hover:text-blue-600'}`}
+                            title={isQuickRotating ? 'Stop Rotation' : 'Rotate Map'}
                         >
-                            <RefreshCw className="w-4 h-4" />
+                            <RefreshCw className={`w-4 h-4 ${isQuickRotating ? 'animate-spin' : ''}`} style={isQuickRotating ? { animationDuration: '4s' } : undefined} />
                         </button>
                         <div className="w-px h-5 bg-slate-200 mx-0.5" />
                         <button

@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { X, Send, ChevronDown } from 'lucide-react';
+import { X, Send, ChevronDown, Loader2 } from 'lucide-react';
+import { submitLead } from '../utils/emailService';
 
 interface InquireModalProps {
     projectName: string;
+    community?: string;
+    developer?: string;
     onClose: () => void;
 }
 
@@ -21,13 +24,15 @@ const COUNTRY_CODES = [
     { code: '+7', flag: '🇷🇺', name: 'Russia' },
 ];
 
-const InquireModal: React.FC<InquireModalProps> = ({ projectName, onClose }) => {
+const InquireModal: React.FC<InquireModalProps> = ({ projectName, community, developer, onClose }) => {
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
     const [countryCode, setCountryCode] = useState('+971');
     const [submitted, setSubmitted] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState('');
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const validate = () => {
@@ -40,12 +45,29 @@ const InquireModal: React.FC<InquireModalProps> = ({ projectName, onClose }) => 
         return Object.keys(e).length === 0;
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!validate()) return;
-        // Placeholder submit — wire to CRM / email as needed
-        console.log('Inquiry:', { firstName, lastName, email, phone: `${countryCode}${phone}`, projectName });
-        setSubmitted(true);
+        setIsSubmitting(true);
+        setSubmitError('');
+
+        const result = await submitLead({
+            formType: 'project_inquiry',
+            projectName,
+            community,
+            developer,
+            firstName,
+            lastName,
+            email,
+            phone: `${countryCode}${phone}`,
+        });
+
+        setIsSubmitting(false);
+        if (result.success) {
+            setSubmitted(true);
+        } else {
+            setSubmitError(result.error || 'Failed to send. Please try again.');
+        }
     };
 
     const inputBase = 'w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 text-slate-800 font-medium text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-400 transition-all';
@@ -158,13 +180,22 @@ const InquireModal: React.FC<InquireModalProps> = ({ projectName, onClose }) => 
                             {errors.phone && <p className={errorClass}>{errors.phone}</p>}
                         </div>
 
+                        {/* Error */}
+                        {submitError && (
+                            <p className="text-sm text-rose-500 font-bold text-center mb-3">{submitError}</p>
+                        )}
+
                         {/* Submit */}
                         <button
                             type="submit"
-                            className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-xs uppercase tracking-[0.15em] transition-all shadow-lg shadow-blue-100 hover:shadow-xl hover:shadow-blue-200 flex items-center justify-center gap-2 active:scale-[0.99]"
+                            disabled={isSubmitting}
+                            className="w-full py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-xl font-black text-xs uppercase tracking-[0.15em] transition-all shadow-lg shadow-blue-100 hover:shadow-xl hover:shadow-blue-200 flex items-center justify-center gap-2 active:scale-[0.99] disabled:cursor-not-allowed"
                         >
-                            <Send className="w-4 h-4" />
-                            Submit Inquiry
+                            {isSubmitting ? (
+                                <><Loader2 className="w-4 h-4 animate-spin" /> Sending…</>
+                            ) : (
+                                <><Send className="w-4 h-4" /> Submit Inquiry</>
+                            )}
                         </button>
                     </form>
                 )}

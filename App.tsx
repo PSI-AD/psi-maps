@@ -146,7 +146,12 @@ const AppInner: React.FC = () => {
         Math.min(...lngs), Math.min(...lats),
         Math.max(...lngs), Math.max(...lats),
       ];
-      mapRef.current?.getMap().fitBounds(bbox, { padding: 80, duration: 1500, maxZoom: 16 });
+      // Extra padding to account for side panels (left sidebar ≈420px, right carousel ≈350px)
+      const isDesktop = typeof window !== 'undefined' && window.innerWidth > 768;
+      const routePadding = isDesktop
+        ? { top: 100, bottom: 100, left: 440, right: 380 }
+        : { top: 80, bottom: 300, left: 40, right: 40 };
+      mapRef.current?.getMap().fitBounds(bbox, { padding: routePadding, duration: 1500, maxZoom: 15 });
     }
   };
 

@@ -558,25 +558,25 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                         },
                     }}
                 >
-                    {/* Outer glow / casing */}
+                    {/* White outline casing */}
                     <Layer
                         id="real-route-casing"
                         type="line"
                         paint={{
-                            'line-color': '#1d4ed8',
-                            'line-width': 8,
-                            'line-opacity': 0.25,
+                            'line-color': '#ffffff',
+                            'line-width': 11,
+                            'line-opacity': 0.85,
                         }}
                         layout={{ 'line-cap': 'round', 'line-join': 'round' }}
                     />
-                    {/* Core route line */}
+                    {/* Core route line — Electric Cyan */}
                     <Layer
                         id="real-route-layer"
                         type="line"
                         paint={{
-                            'line-color': '#3b82f6',
-                            'line-width': 4,
-                            'line-opacity': 0.9,
+                            'line-color': '#00C2FF',
+                            'line-width': 7,
+                            'line-opacity': 0.95,
                         }}
                         layout={{ 'line-cap': 'round', 'line-join': 'round' }}
                     />

@@ -1201,7 +1201,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
       {/* Modals */}
       {isTextModalOpen && (<TextModal text={formattedDescription} onClose={() => setIsTextModalOpen(false)} />)}
       {isInquireModalOpen && (
-        <InquireModal projectName={project.name} onClose={() => setIsInquireModalOpen(false)} />
+        <InquireModal projectName={project.name} community={project.community} developer={project.developerName} onClose={() => setIsInquireModalOpen(false)} />
       )}
       {lightboxIndex !== null && (
         <LightboxGallery
