@@ -88,19 +88,36 @@ const getFacts = (landmark: Landmark): string[] => {
     );
 };
 
-/** Try to fetch a thumbnail from Wikipedia (free, no API key needed) */
+/** Try to fetch a thumbnail from Wikipedia using SEARCH first (prevents 404s) */
 const fetchWikiImage = async (name: string): Promise<string | null> => {
     try {
-        // Convert landmark name to Wikipedia article title format
-        const title = name.replace(/\s+/g, '_');
-        const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`);
-        if (!res.ok) return null;
-        const data = await res.json();
-        // Use original image for higher quality, fallback to thumbnail
-        return data.originalimage?.source || data.thumbnail?.source || null;
+        // Step 1: Search Wikipedia for the correct article title
+        const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(name)}&srlimit=1&format=json&origin=*`;
+        const searchRes = await fetch(searchUrl);
+        if (!searchRes.ok) return null;
+        const searchData = await searchRes.json();
+        const firstResult = searchData?.query?.search?.[0];
+        if (!firstResult) return null;
+
+        // Step 2: Fetch page summary using the correct title
+        const title = firstResult.title.replace(/\s+/g, '_');
+        const summaryRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`);
+        if (!summaryRes.ok) return null;
+        const summaryData = await summaryRes.json();
+        return summaryData.originalimage?.source || summaryData.thumbnail?.source || null;
     } catch {
         return null;
     }
+};
+
+/** Mapbox satellite static image fallback */
+const getMapboxSatelliteUrl = (lat?: number | string, lng?: number | string): string | null => {
+    const numLat = Number(lat);
+    const numLng = Number(lng);
+    if (!lat || !lng || isNaN(numLat) || isNaN(numLng)) return null;
+    const token = (import.meta as any).env?.VITE_MAPBOX_TOKEN;
+    if (!token) return null;
+    return `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${numLng},${numLat},16,0/600x400@2x?access_token=${token}`;
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -115,7 +132,7 @@ const LandmarkInfoModal: React.FC<Props> = ({ landmark, onClose }) => {
     const facts = getFacts(landmark);
     const catStyle = CATEGORY_STYLES[landmark.category?.toLowerCase()] ?? defaultStyle;
 
-    // Check for existing images from the database first, else try Wikipedia
+    // Check for existing images from the database first, else try Wikipedia, then Mapbox satellite
     const hasDbImages = (landmark.images && landmark.images.length > 0) || !!landmark.imageUrl;
     const dbImage = landmark.images?.[0] || landmark.imageUrl;
 
@@ -124,10 +141,18 @@ const LandmarkInfoModal: React.FC<Props> = ({ landmark, onClose }) => {
         if (hasDbImages) return;
         let cancelled = false;
         fetchWikiImage(landmark.name).then(url => {
-            if (!cancelled && url) setWikiImage(url);
+            if (!cancelled) {
+                if (url) {
+                    setWikiImage(url);
+                } else {
+                    // Fallback: Mapbox satellite view
+                    const satUrl = getMapboxSatelliteUrl(landmark.latitude, landmark.longitude);
+                    if (satUrl) setWikiImage(satUrl);
+                }
+            }
         });
         return () => { cancelled = true; };
-    }, [landmark.name, hasDbImages]);
+    }, [landmark.name, hasDbImages, landmark.latitude, landmark.longitude]);
 
     const thumbnailUrl = dbImage || wikiImage;
     const showImage = thumbnailUrl && !imageFailed;
