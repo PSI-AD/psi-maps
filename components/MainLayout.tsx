@@ -491,6 +491,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
         selectedCommunity={selectedCommunity}
         selectedCity={selectedCity}
         allProjects={liveProjects}
+        allLandmarks={liveLandmarks}
         onFilterDeveloper={(dev) => {
           setDeveloperFilter(dev);
           handleFitBounds(liveProjects.filter(p => p.developerName === dev));

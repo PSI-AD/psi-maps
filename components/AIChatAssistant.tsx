@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Sparkles, X, Eye, Navigation, Map, Compass, Volume2, VolumeX, LocateFixed } from 'lucide-react';
-import { Project } from '../types';
+import { Sparkles, X, Eye, Navigation, Map, Compass, Volume2, VolumeX, LocateFixed, Landmark as LandmarkIcon } from 'lucide-react';
+import { Project, Landmark } from '../types';
+import { calculateDistance } from '../utils/geo';
 
 interface ChatAction {
     label: string;
@@ -23,6 +24,8 @@ interface AIChatAssistantProps {
     onFlyTo?: (lng: number, lat: number, zoom?: number) => void;
     /** All live projects — used to build filter subsets */
     allProjects?: Project[];
+    /** All landmarks — used for Nearby Landmarks tour */
+    allLandmarks?: Landmark[];
     /** Notify parent when open state changes */
     onOpenChange?: (isOpen: boolean) => void;
     /** Reset all map filters before executing an action */
@@ -38,6 +41,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
     onFitBounds,
     onFlyTo,
     allProjects = [],
+    allLandmarks = [],
     onOpenChange,
     clearFilters,
 }) => {
@@ -70,50 +74,65 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
 
     useEffect(() => {
         let name = '';
+        let question = '';
         let actions: ChatAction[] = [];
 
         if (selectedProject) {
             name = selectedProject.name;
+            question = `What would you like to explore about ${name}?`;
+
+            const lat = Number(selectedProject.latitude);
+            const lng = Number(selectedProject.longitude);
             const devName = selectedProject.developerName || '';
-            const community = selectedProject.community || '';
-            const neighborProjects = allProjects.filter(
-                (p) => p.community?.toLowerCase() === community.toLowerCase() && p.id !== selectedProject.id
-            );
+
+            // 1️⃣ Nearby Projects Tour — 5 closest by distance
+            const nearby = allProjects
+                .filter(p => p.id !== selectedProject.id && p.latitude && p.longitude)
+                .map(p => ({ ...p, dist: calculateDistance(lat, lng, Number(p.latitude), Number(p.longitude)) }))
+                .sort((a, b) => a.dist - b.dist)
+                .slice(0, 5);
+
+            // 2️⃣ Developer Portfolio Tour
+            const devPortfolio = allProjects.filter(p => p.developerName === devName && p.id !== selectedProject.id);
+
+            // 3️⃣ Nearby Landmarks Tour — 5 closest
+            const nearbyLandmarks = allLandmarks
+                .filter(l => l.latitude && l.longitude)
+                .map(l => ({ ...l, dist: calculateDistance(lat, lng, l.latitude, l.longitude) }))
+                .sort((a, b) => a.dist - b.dist)
+                .slice(0, 5);
 
             actions = [
                 {
-                    label: 'Neighboring Projects',
+                    label: 'Nearby Projects',
                     icon: <Map className="w-3.5 h-3.5" />,
-                    onClick: () => {
-                        if (neighborProjects.length > 0 && onFitBounds) {
-                            onFitBounds(neighborProjects);
-                        } else if (community && onFilterCommunity) {
-                            onFilterCommunity(community);
-                        }
-                    },
+                    onClick: () => onFitBounds?.(nearby),
+                },
+                ...(devName && devName !== 'Exclusive' ? [{
+                    label: `More by ${devName}`,
+                    icon: <Compass className="w-3.5 h-3.5" />,
+                    onClick: () => onFitBounds?.(devPortfolio),
+                } as ChatAction] : []),
+                {
+                    label: 'Nearby Landmarks',
+                    icon: <LandmarkIcon className="w-3.5 h-3.5" />,
+                    onClick: () => onFlyTo?.(lng, lat, 14),
                 },
                 {
-                    label: '20-Min Walk Radius',
-                    icon: <Navigation className="w-3.5 h-3.5" />,
-                    onClick: () => {
-                        if (onFlyTo && selectedProject.latitude && selectedProject.longitude) {
-                            onFlyTo(Number(selectedProject.longitude), Number(selectedProject.latitude), 15);
-                        }
-                    },
+                    label: 'Distance Overview',
+                    icon: <Eye className="w-3.5 h-3.5" />,
+                    onClick: () => onFlyTo?.(lng, lat, 12),
                 },
-                ...(devName
-                    ? [
-                        {
-                            label: 'Developer Portfolio',
-                            icon: <Compass className="w-3.5 h-3.5" />,
-                            onClick: () => onFilterDeveloper?.(devName),
-                        } as ChatAction,
-                    ]
-                    : []),
+                {
+                    label: 'Explore Area',
+                    icon: <Navigation className="w-3.5 h-3.5" />,
+                    onClick: () => onFlyTo?.(lng, lat, 15),
+                },
                 { label: 'No thanks', icon: <X className="w-3.5 h-3.5" />, isDismiss: true },
             ];
         } else if (selectedCommunity) {
             name = selectedCommunity;
+            question = `What would you like to explore in ${name}?`;
             const communityProjects = allProjects.filter(
                 (p) => p.community?.toLowerCase() === selectedCommunity.toLowerCase()
             );
@@ -146,6 +165,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
             ];
         } else if (selectedCity) {
             name = selectedCity;
+            question = `What would you like to discover in ${name}?`;
             const cityProjects = allProjects.filter(
                 (p) => p.city?.toLowerCase() === selectedCity.toLowerCase()
             );
@@ -180,7 +200,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
         }
 
         if (name) {
-            setChatMessage({ text: `For ${name}`, actions });
+            setChatMessage({ text: question || `What would you like to explore about ${name}?`, actions });
             setIsOpen(true);
             setIsFading(false);
             onOpenChange?.(true);
