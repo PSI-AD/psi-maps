@@ -56,24 +56,28 @@ const auditLocations = async () => {
         for (let i = 0; i < projects.length; i++) {
             const p = projects[i];
 
-            // 1. DYNAMIC EXTRACTION: Look in root OR nested coordinates object
+            // 1. Try to get coordinates from the root or the nested object
             let lat = p.latitude;
             let lng = p.longitude;
 
-            if (p.coordinates && (lat === undefined || lng === undefined)) {
+            if ((lat === undefined || lng === undefined) && p.coordinates) {
                 lat = p.coordinates.lat;
                 lng = p.coordinates.lng;
             }
 
-            // Convert to numbers
+            // 2. Convert to numbers
             const numLat = Number(lat);
             const numLng = Number(lng);
 
-            // 2. STRICTER CHECK: Skip if missing, NaN, OR set to 0 (which causes that 5000km error)
-            if (!lat || !lng || isNaN(numLat) || isNaN(numLng) || numLat === 0 || numLng === 0) {
+            // 3. Skip only if truly missing, NaN, or [0,0]
+            if (!lat || !lng || isNaN(numLat) || isNaN(numLng) || (numLat === 0 && numLng === 0)) {
                 skippedCount++;
                 continue;
             }
+
+            // Use the numeric values for the distance check
+            const currentLat = numLat;
+            const currentLng = numLng;
 
             // Append community + city context for better Mapbox results
             const searchQuery = encodeURIComponent(`${p.name}, ${p.community || ''}, ${p.city || 'Abu Dhabi'}, UAE`);
@@ -87,7 +91,7 @@ const auditLocations = async () => {
                     // Mapbox returns coordinates as [longitude, latitude]
                     const [mbLng, mbLat] = data.features[0].center;
 
-                    const distance = getDistanceInMeters(numLat, numLng, mbLat, mbLng);
+                    const distance = getDistanceInMeters(currentLat, currentLng, mbLat, mbLng);
 
                     if (distance > 100) {
                         console.log(`⚠️  Mismatch: ${p.name} — off by ${Math.round(distance)}m (community: ${p.community || 'N/A'})`);
@@ -98,7 +102,7 @@ const auditLocations = async () => {
                             projectId: p.id,
                             projectName: p.name,
                             community: p.community || 'Unknown',
-                            currentCoordinates: { lat: numLat, lng: numLng },
+                            currentCoordinates: { lat: currentLat, lng: currentLng },
                             suggestedCoordinates: { lat: mbLat, lng: mbLng },
                             distanceOffMeters: Math.round(distance),
                             mapboxPlaceName: data.features[0].place_name,
