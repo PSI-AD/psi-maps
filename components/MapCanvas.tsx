@@ -6,6 +6,7 @@ import { Project, Landmark } from '../types';
 import DrawControl from './DrawControl';
 import AmenityMarker from './AmenityMarker';
 import { getOptimizedImageUrl } from '../utils/imageHelpers';
+import { MapPin, Crosshair } from 'lucide-react';
 
 
 interface MapCanvasProps {
@@ -45,6 +46,8 @@ interface MapCanvasProps {
     supercluster?: any;
     /** Called when the ⓘ badge on an AmenityMarker is clicked */
     onLandmarkInfo?: (landmark: Landmark) => void;
+    /** Project currently being reviewed in the Coordinate Review Tool */
+    auditReviewProject?: Project | null;
 }
 
 // 🚨 PERMANENT FIX: Base64 decoded token. Passed only via component prop.
@@ -130,6 +133,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
     activeRouteGeometry, enableHeatmap = false, enableSunlight = false,
     isLassoMode = false, drawnCoordinates = [], setDrawnCoordinates,
     onLandmarkInfo,
+    auditReviewProject,
 }) => {
 
     // Safety check for valid GPS coordinates
@@ -669,6 +673,42 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                     );
                 })()}
             </div>
+
+            {/* ── Coordinate Review Markers ── */}
+            {auditReviewProject && auditReviewProject.auditLatitude && auditReviewProject.auditLongitude && (
+                <>
+                    {/* CRM Marker — Red */}
+                    <Marker
+                        latitude={Number(auditReviewProject.latitude)}
+                        longitude={Number(auditReviewProject.longitude)}
+                        anchor="bottom"
+                    >
+                        <div className="flex flex-col items-center" style={{ animation: 'bounce 1s ease-in-out infinite' }}>
+                            <div className="bg-red-500 text-white text-[9px] font-black px-2.5 py-0.5 rounded-full mb-1 shadow-lg whitespace-nowrap border-2 border-white">
+                                CRM
+                            </div>
+                            <div className="w-7 h-7 bg-red-500 rounded-full border-[3px] border-white shadow-xl flex items-center justify-center">
+                                <MapPin className="w-4 h-4 text-white" />
+                            </div>
+                        </div>
+                    </Marker>
+                    {/* Mapbox Marker — Blue */}
+                    <Marker
+                        latitude={auditReviewProject.auditLatitude}
+                        longitude={auditReviewProject.auditLongitude}
+                        anchor="bottom"
+                    >
+                        <div className="flex flex-col items-center" style={{ animation: 'bounce 1s ease-in-out infinite' }}>
+                            <div className="bg-blue-500 text-white text-[9px] font-black px-2.5 py-0.5 rounded-full mb-1 shadow-lg whitespace-nowrap border-2 border-white">
+                                MAPBOX
+                            </div>
+                            <div className="w-7 h-7 bg-blue-500 rounded-full border-[3px] border-white shadow-xl flex items-center justify-center">
+                                <Crosshair className="w-4 h-4 text-white" />
+                            </div>
+                        </div>
+                    </Marker>
+                </>
+            )}
         </Map>
     );
 };

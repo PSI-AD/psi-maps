@@ -100,6 +100,10 @@ const AppInner: React.FC = () => {
   // Landmark 3D info modal state
   const [infoLandmark, setInfoLandmark] = useState<Landmark | null>(null);
 
+  // Coordinate Review Tool state
+  const [showCoordReview, setShowCoordReview] = useState(false);
+  const [auditReviewProject, setAuditReviewProject] = useState<Project | null>(null);
+
   const setShowWelcomeBanner = (newValue: boolean) => {
     _setShowWelcomeBanner(newValue);
     localStorage.setItem('psi_banner_enabled', String(newValue));
@@ -433,6 +437,9 @@ const AppInner: React.FC = () => {
       enableLasso={enableLasso} setEnableLasso={setEnableLasso}
       mobileFooterTheme={bannerSettings.mobileFooterTheme}
       bannerSettings={bannerSettings}
+      showCoordReview={showCoordReview}
+      setShowCoordReview={setShowCoordReview}
+      onAuditProjectChange={setAuditReviewProject}
     >
       <WelcomeBanner show={showWelcomeBanner} isAppLoading={isRefreshing} duration={bannerSettings.duration} position={bannerSettings.position} positionMobile={bannerSettings.positionMobile} />
 
@@ -457,6 +464,7 @@ const AppInner: React.FC = () => {
           drawnCoordinates={drawnCoordinates}
           setDrawnCoordinates={setDrawnCoordinates}
           onLandmarkInfo={handleLandmarkInfoClick}
+          auditReviewProject={showCoordReview ? auditReviewProject : null}
         />
       </ErrorBoundary>
       {/* Reverse Search: floating nearby projects panel */}

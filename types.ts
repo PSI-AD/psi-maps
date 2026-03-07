@@ -28,6 +28,12 @@ export interface Project {
   optimizedGallery?: { thumb: string; large: string }[];
   responsiveMedia?: { thumb: string; medium: string; large: string } | null;
   isHidden?: boolean;
+  // Audit fields (written by audit-locations.cjs — never overwrite originals)
+  auditLatitude?: number;
+  auditLongitude?: number;
+  auditDistanceMeters?: number;
+  auditMapboxPlaceName?: string;
+  auditStatus?: 'pending' | 'approved' | 'rejected';
 }
 
 export type LandmarkCategory = 'School' | 'Retail' | 'Culture' | 'Hospital' | 'Hotel' | 'Leisure' | 'Airport' | 'Port';

@@ -7,7 +7,8 @@ import FullscreenImageModal from './FullscreenImageModal';
 import NearbyPanel from './NearbyPanel';
 import FilteredProjectsCarousel from './FilteredProjectsCarousel';
 import AIChatAssistant from './AIChatAssistant';
-import { Loader2, Building, LayoutGrid, X, RotateCcw } from 'lucide-react';
+import CoordinateReviewTool from './CoordinateReviewTool';
+import { Loader2, Building, LayoutGrid, X, RotateCcw, Crosshair } from 'lucide-react';
 
 interface MainLayoutProps {
   viewMode: 'map' | 'list';
@@ -81,6 +82,10 @@ interface MainLayoutProps {
   setEnableLasso?: (v: boolean) => void;
   mobileFooterTheme?: string;
   bannerSettings?: { duration: number; position: { top: number; left: number }; positionMobile: { top: number; left: number }; mobileFooterTheme: string };
+  // Coordinate Review Tool
+  showCoordReview?: boolean;
+  setShowCoordReview?: (v: boolean) => void;
+  onAuditProjectChange?: (project: any) => void;
 }
 
 const MainLayout: React.FC<MainLayoutProps> = (props) => {
@@ -510,6 +515,31 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
           setSelectedCommunity('');
         }}
       />
+
+      {/* ── Coordinate Review Tool Toggle Button ── */}
+      <button
+        onClick={() => props.setShowCoordReview?.(!props.showCoordReview)}
+        className={`hidden md:flex fixed top-20 right-6 z-[7000] items-center gap-2 px-4 py-2.5 rounded-full shadow-lg border transition-all duration-200 hover:scale-105 active:scale-95 ${props.showCoordReview
+            ? 'bg-indigo-600 text-white border-indigo-500 shadow-indigo-200'
+            : 'bg-white/95 backdrop-blur-md text-slate-700 border-slate-200 hover:bg-slate-50'
+          }`}
+        title="Coordinate Review Tool"
+      >
+        <Crosshair className="w-4 h-4" />
+        <span className="text-[11px] font-black uppercase tracking-widest">
+          {props.showCoordReview ? 'Close Review' : 'Coord Review'}
+        </span>
+      </button>
+
+      {/* ── Coordinate Review Tool Panel ── */}
+      {props.showCoordReview && (
+        <CoordinateReviewTool
+          projects={liveProjects}
+          onFlyTo={onFlyTo}
+          onClose={() => props.setShowCoordReview?.(false)}
+          onActiveProjectChange={props.onAuditProjectChange}
+        />
+      )}
     </div>
   );
 };
