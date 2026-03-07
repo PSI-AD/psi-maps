@@ -968,15 +968,11 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
                   <Activity className="w-4 h-4 mr-2 text-blue-600" />About The Project
                 </h3>
-                {isDescriptionLong ? (
-                  <div>
-                    <div className="prose prose-sm text-slate-600 leading-relaxed max-w-none prose-p:mb-3 prose-strong:text-slate-900 line-clamp-[12]" dangerouslySetInnerHTML={{ __html: formattedDescription }} />
-                    <button onClick={() => setIsTextModalOpen(true)} className="mt-2 text-blue-600 hover:text-blue-800 text-xs font-black uppercase tracking-widest transition-colors">
-                      Read More →
-                    </button>
-                  </div>
-                ) : (
-                  <div className="prose prose-sm text-slate-600 leading-relaxed max-w-none prose-p:mb-3 prose-strong:text-slate-900" dangerouslySetInnerHTML={{ __html: formattedDescription }} />
+                <div className="prose prose-sm text-slate-600 leading-relaxed max-w-none prose-p:mb-3 prose-strong:text-slate-900 line-clamp-4" dangerouslySetInnerHTML={{ __html: formattedDescription }} />
+                {plainText.length > 120 && (
+                  <button onClick={() => setIsTextModalOpen(true)} className="mt-2 text-blue-600 hover:text-blue-800 text-xs font-black uppercase tracking-widest transition-colors">
+                    Read More →
+                  </button>
                 )}
               </div>
             )}
