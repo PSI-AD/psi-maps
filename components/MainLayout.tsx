@@ -1,4 +1,4 @@
-import React, { useState, Suspense, useRef, useEffect, useCallback } from 'react';
+import React, { useState, Suspense } from 'react';
 import { Project, Landmark, ClientPresentation } from '../types';
 const AdminDashboard = React.lazy(() => import('./AdminDashboard'));
 const ProjectSidebar = React.lazy(() => import('./ProjectSidebar'));
@@ -117,46 +117,6 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
   const [isNearbyToolsOpen, setIsNearbyToolsOpen] = useState(false);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
 
-  // ── ProjectSidebar 10-second auto-close ──
-  const [isSidebarFading, setIsSidebarFading] = useState(false);
-  const sidebarTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const SIDEBAR_DISMISS_MS = 10_000;
-
-  const startSidebarTimer = useCallback(() => {
-    setIsSidebarFading(false);
-    if (sidebarTimer.current) clearTimeout(sidebarTimer.current);
-    sidebarTimer.current = setTimeout(() => {
-      setIsSidebarFading(true);
-      setTimeout(() => {
-        setIsAnalysisOpen(false);
-        onCloseProject();
-      }, 500);
-    }, SIDEBAR_DISMISS_MS);
-  }, [setIsAnalysisOpen, onCloseProject]);
-
-  const resetSidebarTimer = useCallback(() => {
-    setIsSidebarFading(false);
-    if (sidebarTimer.current) clearTimeout(sidebarTimer.current);
-    sidebarTimer.current = setTimeout(() => {
-      setIsSidebarFading(true);
-      setTimeout(() => {
-        setIsAnalysisOpen(false);
-        onCloseProject();
-      }, 500);
-    }, SIDEBAR_DISMISS_MS);
-  }, [setIsAnalysisOpen, onCloseProject]);
-
-  // Start timer when sidebar opens, clear when it closes
-  useEffect(() => {
-    if (isAnalysisOpen && selectedProject) {
-      setIsSidebarFading(false);
-      startSidebarTimer();
-    } else {
-      if (sidebarTimer.current) clearTimeout(sidebarTimer.current);
-    }
-    return () => { if (sidebarTimer.current) clearTimeout(sidebarTimer.current); };
-  }, [isAnalysisOpen, selectedProject, startSidebarTimer]);
-
   const [isAiChatOpen, setIsAiChatOpen] = useState(false);
 
   // Carousel + chip animation logic
@@ -247,7 +207,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
       </div>
 
       {/* Breadcrumbs Navigation — capped width on mobile, project name hidden on xs */}
-      <div className="absolute top-6 left-6 z-[4000] flex items-center gap-1.5 text-slate-800 text-sm font-bold bg-white/80 backdrop-blur-md px-4 py-2 rounded-full shadow-sm border border-slate-200 max-w-[calc(100vw-112px)] overflow-hidden">
+      <div className="absolute top-4 left-4 z-[4000] flex items-center gap-1.5 text-slate-800 text-sm font-bold bg-white/80 backdrop-blur-md px-4 py-2 rounded-full shadow-sm border border-slate-200 max-w-[calc(100vw-112px)] overflow-hidden">
         <button onClick={() => { props.setSelectedCity(''); props.setSelectedCommunity(''); props.onCloseProject(); props.handleLocationSelect('city', '', props.liveProjects); }} className="hover:text-blue-600 transition-colors shrink-0">UAE</button>
         {props.selectedCity && (
           <>
@@ -272,16 +232,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
       {/* Analysis Sidebar */}
       {isAnalysisOpen && selectedProject && (
         <div
-          className="absolute top-0 right-0 bottom-[76px] w-full md:w-[380px] z-[5000] shadow-2xl bg-white border-l border-slate-200 overflow-hidden flex flex-col"
-          style={{
-            opacity: isSidebarFading ? 0 : 1,
-            transform: isSidebarFading ? 'translateX(20px)' : 'translateX(0)',
-            transition: 'opacity 0.5s ease, transform 0.5s ease',
-          }}
-          onMouseMove={resetSidebarTimer}
-          onScroll={resetSidebarTimer}
-          onTouchStart={resetSidebarTimer}
-          onClick={resetSidebarTimer}
+          className="absolute top-0 right-0 bottom-[76px] w-full md:w-[380px] z-[5000] shadow-2xl bg-white transition-transform transform translate-x-0 border-l border-slate-200 overflow-hidden flex flex-col"
         >
           <Suspense fallback={
             <div className="h-full flex items-center justify-center bg-white">
