@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import SearchBar from './SearchBar';
 import { Project, Landmark } from '../types';
-import { Settings, Filter as FilterIcon, X, Pencil, Search, Map } from 'lucide-react';
+import { Settings, Filter as FilterIcon, X, Pencil, Search, Map as MapIcon, Box, RefreshCw, Layers, ZoomIn, ZoomOut } from 'lucide-react';
 import { MapCommandCenter } from './MapCommandCenter';
 
 interface BottomControlBarProps {
@@ -197,10 +197,16 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
         setDeveloperFilter('All');
         if (val) {
             const proj = projects.find(p => p.community === val);
-            if (proj?.city) setSelectedCity(proj.city);
+            // Always sync the city — use lowercase to match dropdown option IDs
+            if (proj?.city) setSelectedCity(proj.city.toLowerCase());
             handleFitBounds(projects.filter(p => p.community === val));
         } else {
-            handleFitBounds(projects);
+            // Community cleared — keep the current city (don't reset it)
+            if (selectedCity) {
+                handleFitBounds(projects.filter(p => p.city?.toLowerCase() === selectedCity.toLowerCase()));
+            } else {
+                handleFitBounds(projects);
+            }
         }
     };
 
@@ -226,6 +232,68 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                     </div>
                 </button>
 
+                {/* ── Quick Map Tools (desktop only) ── */}
+                {mapRef && (
+                    <div className="hidden lg:flex items-center gap-1 bg-slate-50/80 border border-slate-200 rounded-xl px-1.5 py-1 shrink-0">
+                        <button
+                            onClick={() => {
+                                const map = mapRef?.current?.getMap?.();
+                                if (!map) return;
+                                const targetPitch = map.getPitch() > 30 ? 0 : 60;
+                                map.flyTo({ pitch: targetPitch, duration: 1500 });
+                            }}
+                            className="p-2 rounded-lg hover:bg-blue-50 text-slate-500 hover:text-blue-600 transition-all"
+                            title="Toggle 3D View"
+                        >
+                            <Box className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={() => {
+                                const map = mapRef?.current?.getMap?.();
+                                if (!map) return;
+                                const bearing = (map.getBearing() + 45) % 360;
+                                map.rotateTo(bearing, { duration: 500 });
+                            }}
+                            className="p-2 rounded-lg hover:bg-blue-50 text-slate-500 hover:text-blue-600 transition-all"
+                            title="Rotate Map"
+                        >
+                            <RefreshCw className="w-4 h-4" />
+                        </button>
+                        <div className="w-px h-5 bg-slate-200 mx-0.5" />
+                        <button
+                            onClick={() => setMapStyle?.('mapbox://styles/mapbox/streets-v12')}
+                            className={`p-2 rounded-lg transition-all ${(mapStyle || '').includes('streets') && !(mapStyle || '').includes('satellite')
+                                ? 'bg-blue-100 text-blue-600' : 'text-slate-500 hover:bg-blue-50 hover:text-blue-600'}`}
+                            title="Map View"
+                        >
+                            <MapIcon className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={() => setMapStyle?.('mapbox://styles/mapbox/satellite-streets-v12')}
+                            className={`p-2 rounded-lg transition-all ${(mapStyle || '').includes('satellite')
+                                ? 'bg-blue-100 text-blue-600' : 'text-slate-500 hover:bg-blue-50 hover:text-blue-600'}`}
+                            title="Satellite View"
+                        >
+                            <Layers className="w-4 h-4" />
+                        </button>
+                        <div className="w-px h-5 bg-slate-200 mx-0.5" />
+                        <button
+                            onClick={() => mapRef?.current?.getMap?.()?.zoomIn({ duration: 500 })}
+                            className="p-2 rounded-lg hover:bg-blue-50 text-slate-500 hover:text-blue-600 transition-all"
+                            title="Zoom In"
+                        >
+                            <ZoomIn className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={() => mapRef?.current?.getMap?.()?.zoomOut({ duration: 500 })}
+                            className="p-2 rounded-lg hover:bg-blue-50 text-slate-500 hover:text-blue-600 transition-all"
+                            title="Zoom Out"
+                        >
+                            <ZoomOut className="w-4 h-4" />
+                        </button>
+                    </div>
+                )}
+
                 {/* Search + Dropdowns */}
                 <div className="hidden md:flex items-center gap-2 flex-1 max-w-4xl justify-center">
                     <div className="flex-1 min-w-[250px] max-w-sm">
@@ -247,6 +315,9 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                                 } else if (type === 'community') {
                                     setSelectedCommunity(name);
                                     setDeveloperFilter('All');
+                                    // Auto-link: set the city from the first project in this community
+                                    const proj = projects.find(p => p.community?.toLowerCase() === name.toLowerCase());
+                                    if (proj?.city) setSelectedCity(proj.city.toLowerCase());
                                     handleFitBounds(projects.filter(p => p.community?.toLowerCase() === name.toLowerCase()));
                                 }
                             }}
@@ -274,7 +345,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                             aria-label="Open Map Command Center"
                             className={`p-2.5 rounded-xl border transition-all flex items-center gap-2 px-4 ${showMap ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
                         >
-                            <Map className="w-5 h-5" />
+                            <MapIcon className="w-5 h-5" />
                             <span className="text-[10px] font-black uppercase tracking-widest hidden lg:block">Map</span>
                         </button>
                         {showMap && mapRef && (

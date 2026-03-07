@@ -1040,7 +1040,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                 <Car className="w-4 h-4 mr-2 text-blue-600" /> Route & Drive Time
               </h3>
               <p className="text-[10px] text-slate-400 font-medium mb-3 -mt-2">Search a destination — we'll draw the real traffic-adjusted route on the map.</p>
-              <div className="relative z-50">
+              <div className="relative z-10">
                 <input
                   type="text"
                   placeholder="Search any place in UAE…"

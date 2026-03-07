@@ -19,14 +19,20 @@ export const useProjectData = () => {
     const [liveLandmarks, setLiveLandmarks] = useState<Landmark[]>([]);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
-    // Initialize active amenities from localStorage or default to empty array
+    // All available amenity categories — used as default when user has no saved preference
+    const ALL_AMENITY_CATEGORIES = [
+        'schools', 'hospitals', 'retail', 'leisure', 'hotels', 'culture',
+        'airports', 'ports', 'parks', 'beaches', 'hypermarkets'
+    ];
+
+    // Initialize active amenities from localStorage or default to ALL categories
     const [activeAmenities, setActiveAmenities] = useState<string[]>(() => {
         try {
             const savedDefaults = localStorage.getItem('psi-default-amenities');
-            return savedDefaults ? JSON.parse(savedDefaults) : [];
+            return savedDefaults ? JSON.parse(savedDefaults) : ALL_AMENITY_CATEGORIES;
         } catch (e) {
             console.error("Error reading default amenities from localStorage:", e);
-            return [];
+            return ALL_AMENITY_CATEGORIES;
         }
     });
 

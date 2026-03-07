@@ -440,11 +440,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
           presentationProjects={props.presentationProjects}
           onExitPresentation={props.onExitPresentation}
           onDismiss={() => {
-            setDeveloperFilter('All');
-            setStatusFilter('All');
-            props.setSelectedCity('');
-            props.setSelectedCommunity('');
-            props.handleLocationSelect('city', '', props.liveProjects);
+            props.handleGlobalReset();
           }}
           isAiChatOpen={isAiChatOpen}
         />
