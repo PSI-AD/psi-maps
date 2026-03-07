@@ -854,65 +854,75 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
 
           <div className="px-6 py-6 space-y-8">
 
-            {/* 3. Data Grid */}
-            <div className="grid grid-cols-2 gap-3">
-              {isValidPrice(project.priceRange) && (
-                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3 col-span-2">
-                  <Building className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Starting Price</p>
-                    <p className="font-bold text-slate-900 text-lg">
-                      AED {Number(project.priceRange!.split('-')[0].trim().replace(/[^0-9.]/g, '')).toLocaleString()}
-                    </p>
-                  </div>
+            {/* 3. Data Grid — hides any field with 0, null, N/A, or empty values */}
+            {(() => {
+              /** Universal guard: returns true if a value is meaningless */
+              const isEmpty = (v: any): boolean => {
+                if (v === null || v === undefined || v === '') return true;
+                const s = String(v).trim().toLowerCase();
+                return ['0', 'n/a', 'na', 'null', 'undefined', '-', '—', 'none'].includes(s) || (typeof v === 'number' && (isNaN(v) || v === 0)) || Number(s) === 0;
+              };
+              return (
+                <div className="grid grid-cols-2 gap-3">
+                  {isValidPrice(project.priceRange) && (
+                    <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3 col-span-2">
+                      <Building className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Starting Price</p>
+                        <p className="font-bold text-slate-900 text-lg">
+                          AED {Number(project.priceRange!.split('-')[0].trim().replace(/[^0-9.]/g, '')).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {!isEmpty(project.type) && project.type!.toLowerCase() !== 'apartment' && (
+                    <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3">
+                      <LayoutTemplate className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Type</p>
+                        <p className="font-bold text-slate-800 text-sm capitalize">{project.type}</p>
+                      </div>
+                    </div>
+                  )}
+                  {!isEmpty(project.bedrooms) && (
+                    <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3">
+                      <BedDouble className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Beds</p>
+                        <p className="font-bold text-slate-800 text-sm">{project.bedrooms}</p>
+                      </div>
+                    </div>
+                  )}
+                  {!isEmpty(project.bathrooms) && (
+                    <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3">
+                      <Bath className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Baths</p>
+                        <p className="font-bold text-slate-800 text-sm">{project.bathrooms}</p>
+                      </div>
+                    </div>
+                  )}
+                  {!isEmpty(project.completionDate) && (
+                    <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3">
+                      <Calendar className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Completion</p>
+                        <p className="font-bold text-slate-800 text-sm">{formatCompletionDate(project.completionDate)}</p>
+                      </div>
+                    </div>
+                  )}
+                  {!isEmpty(project.builtupArea) && (
+                    <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3">
+                      <SquareIcon className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">BUA</p>
+                        <p className="font-bold text-slate-800 text-sm">{Number(project.builtupArea).toLocaleString()} sqft</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-              {project.type && project.type.toLowerCase() !== 'apartment' && project.type !== 'N/A' && (
-                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3">
-                  <LayoutTemplate className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Type</p>
-                    <p className="font-bold text-slate-800 text-sm capitalize">{project.type}</p>
-                  </div>
-                </div>
-              )}
-              {project.bedrooms && project.bedrooms !== 'N/A' && project.bedrooms !== '0' && (
-                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3">
-                  <BedDouble className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Beds</p>
-                    <p className="font-bold text-slate-800 text-sm">{project.bedrooms}</p>
-                  </div>
-                </div>
-              )}
-              {project.bathrooms && project.bathrooms !== 'N/A' && project.bathrooms !== '0' && (
-                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3">
-                  <Bath className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Baths</p>
-                    <p className="font-bold text-slate-800 text-sm">{project.bathrooms}</p>
-                  </div>
-                </div>
-              )}
-              {project.completionDate && project.completionDate !== 'N/A' && (
-                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3">
-                  <Calendar className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">Completion</p>
-                    <p className="font-bold text-slate-800 text-sm">{formatCompletionDate(project.completionDate)}</p>
-                  </div>
-                </div>
-              )}
-              {project.builtupArea && project.builtupArea !== 0 && project.builtupArea !== '0' && (
-                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3">
-                  <SquareIcon className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">BUA</p>
-                    <p className="font-bold text-slate-800 text-sm">{Number(project.builtupArea).toLocaleString()} sqft</p>
-                  </div>
-                </div>
-              )}
-            </div>
+              );
+            })()}
 
             {/* ── SECTION 1: About the Project ── */}
             {rawDescription && (
