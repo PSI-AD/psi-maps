@@ -481,7 +481,11 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
       )}
 
       {/* AI Chat Assistant overlay */}
-      <AIChatAssistant />
+      <AIChatAssistant
+        selectedProject={selectedProject}
+        selectedCommunity={selectedCommunity}
+        selectedCity={selectedCity}
+      />
     </div>
   );
 };
