@@ -62,6 +62,20 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
     const [isAudioEnabled, setIsAudioEnabled] = useState(false);
     const [chatMessage, setChatMessage] = useState<{ text: string; actions: ChatAction[] } | null>(null);
     const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [isNeighborhoodTouring, setIsNeighborhoodTouring] = useState(false);
+
+    // Listen for neighborhood tour start/stop from ProjectSidebar
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const detail = (e as CustomEvent).detail;
+            setIsNeighborhoodTouring(!!detail?.active);
+        };
+        window.addEventListener('neighborhood-tour-changed', handler);
+        return () => window.removeEventListener('neighborhood-tour-changed', handler);
+    }, []);
+
+    // Effective "any tour running" flag
+    const anyTourActive = isTourActive || isNeighborhoodTouring;
 
     const AUTO_DISMISS_MS = 8_000;
 
@@ -120,6 +134,8 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
                     icon: <Play className="w-3.5 h-3.5" />,
                     onClick: () => {
                         if (onLaunchPresentation && nearby.length > 0) {
+                            // Force results panel to expand so STOP button is visible
+                            window.dispatchEvent(new CustomEvent('ai-expand-results-panel'));
                             onLaunchPresentation({
                                 id: `ai-nearby-${Date.now()}`,
                                 title: `Nearby ${name}`,
@@ -137,6 +153,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
                     icon: <Play className="w-3.5 h-3.5" />,
                     onClick: () => {
                         if (onLaunchPresentation && devPortfolio.length > 0) {
+                            window.dispatchEvent(new CustomEvent('ai-expand-results-panel'));
                             onLaunchPresentation({
                                 id: `ai-dev-${Date.now()}`,
                                 title: `${devName} Showcase`,
@@ -153,12 +170,8 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
                     label: 'Landmark Tour',
                     icon: <LandmarkIcon className="w-3.5 h-3.5" />,
                     onClick: () => {
-                        // Landmarks are not Projects, so use cinematic tour fallback
-                        if (startCinematicTour && nearbyLandmarks.length > 0) {
-                            startCinematicTour(nearbyLandmarks.map(l => ({ lng: l.longitude, lat: l.latitude, name: l.name })), 15);
-                        } else {
-                            onFlyTo?.(lng, lat, 14);
-                        }
+                        // Open the Neighborhood panel and start the landmark tour
+                        window.dispatchEvent(new CustomEvent('ai-open-neighborhood-tour'));
                     },
                 },
                 {
@@ -186,6 +199,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
                     icon: <Play className="w-3.5 h-3.5" />,
                     onClick: () => {
                         if (onLaunchPresentation && communityProjects.length > 0) {
+                            window.dispatchEvent(new CustomEvent('ai-expand-results-panel'));
                             onLaunchPresentation({
                                 id: `ai-community-${Date.now()}`,
                                 title: `${name} Tour`,
@@ -292,8 +306,8 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
             ];
         }
 
-        // ── TOUR GUARD: If a tour is running, suppress ALL chat ──
-        if (isTourActive) {
+        // ── TOUR GUARD: If ANY tour is running, suppress ALL chat ──
+        if (anyTourActive) {
             setIsOpen(false);
             onOpenChange?.(false);
             return;
@@ -318,7 +332,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
             onOpenChange?.(false);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedProject?.id, selectedCommunity, selectedCity, selectedLandmark?.id, allProjects.length, isTourActive]);
+    }, [selectedProject?.id, selectedCommunity, selectedCity, selectedLandmark?.id, allProjects.length, anyTourActive]);
 
     if (!isOpen || !chatMessage) return null;
 

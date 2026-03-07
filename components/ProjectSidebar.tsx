@@ -220,6 +220,11 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   const [isTouringNeighborhood, setIsTouringNeighborhood] = useState(false);
   const [activeTourAmenityIdx, setActiveTourAmenityIdx] = useState<number | null>(null);
   const [amenitySearch, setAmenitySearch] = useState('');
+
+  // Notify AI chat when neighborhood tour state changes
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('neighborhood-tour-changed', { detail: { active: isTouringNeighborhood } }));
+  }, [isTouringNeighborhood]);
   const [visibleAmenitiesCount, setVisibleAmenitiesCount] = useState(15);
 
   // Auto-expand visible window if tour advances past the current limit
@@ -247,6 +252,30 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
       }))
       .sort((a, b) => a.distance - b.distance);
   }, [project, nearbyLandmarks]);
+
+  // Listen for AI chat requesting a neighborhood/landmark tour
+  useEffect(() => {
+    const handler = () => {
+      // Open the neighborhood panel
+      setShowNeighborhoodList(true);
+      // Start the tour — same logic as clicking "Start Tour" button
+      setIsTouringNeighborhood(true);
+      setActiveTourAmenityIdx(0);
+      // Fly to the first amenity
+      if (project && localAmenities.length > 0) {
+        const first = localAmenities[0];
+        window.dispatchEvent(new CustomEvent('tour-fly-bounds', {
+          detail: {
+            pLng: project.longitude, pLat: project.latitude,
+            aLng: first.longitude, aLat: first.latitude,
+            amenityId: first.id,
+          },
+        }));
+      }
+    };
+    window.addEventListener('ai-open-neighborhood-tour', handler);
+    return () => window.removeEventListener('ai-open-neighborhood-tour', handler);
+  }, [project, localAmenities]);
 
   // ── Filter localAmenities by live search query ───────────────────────────
   const searchedAmenities = useMemo(() => {

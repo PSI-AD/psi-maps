@@ -63,6 +63,13 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
         prevAiChatRef.current = isAiChatOpen;
     }, [isAiChatOpen]);
 
+    // Expand when AI chat triggers a tour (so STOP button is visible)
+    useEffect(() => {
+        const handler = () => setIsCollapsed(false);
+        window.addEventListener('ai-expand-results-panel', handler);
+        return () => window.removeEventListener('ai-expand-results-panel', handler);
+    }, []);
+
     // ── Nearest-neighbor spatial sort + group by community ──────────────────
     const groupedProjects = useMemo(() => {
         const groups: Record<string, Project[]> = {};
