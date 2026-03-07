@@ -521,7 +521,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                     </button>
 
                     <button onClick={() => setIsMobileMapOpen(true)} aria-label="Open map controls" className={`flex flex-col items-center gap-1 flex-1 py-1 ${inactiveIconColor} transition-colors`}>
-                        <Map size={26} strokeWidth={2.5} />
+                        <MapIcon size={26} strokeWidth={2.5} />
                         <span className="text-[11px] font-bold tracking-wide mt-1">Map</span>
                     </button>
                 </div>
