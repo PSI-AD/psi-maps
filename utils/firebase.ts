@@ -23,6 +23,17 @@ if (!getApps().length) {
 
 const db: Firestore = getFirestore(app);
 const storage: FirebaseStorage = getStorage(app);
-export const analytics: Analytics | null = typeof window !== 'undefined' ? getAnalytics(app) : null;
+
+// Analytics is optional — wrap in try-catch so invalid API key restrictions
+// for firebaseinstallations.googleapis.com don't crash the app
+let _analytics: Analytics | null = null;
+try {
+  if (typeof window !== 'undefined') {
+    _analytics = getAnalytics(app);
+  }
+} catch (e) {
+  console.warn('Firebase Analytics could not be initialized:', (e as Error).message);
+}
+export const analytics: Analytics | null = _analytics;
 
 export { db, storage };
