@@ -65,6 +65,41 @@ export const useMapState = (filteredProjects: Project[], cameraDuration: number 
         });
     }, [cameraDuration]);
 
+    /** Cinematic single-point flyTo with dramatic angle */
+    const handleCinematicFlyTo = useCallback((longitude: number, latitude: number, zoom?: number) => {
+        mapRef.current?.flyTo({
+            center: [longitude, latitude],
+            zoom: zoom ?? 15,
+            pitch: 60,
+            bearing: 45,
+            duration: 3000,
+            essential: true
+        });
+    }, []);
+
+    /** Cinematic sequential tour — flies through a list of stops */
+    const startCinematicTour = useCallback((stops: { lng: number; lat: number; name?: string }[], zoom: number = 15) => {
+        if (!stops.length || !mapRef.current) return;
+        let i = 0;
+        const flyNext = () => {
+            if (i >= stops.length) return;
+            const stop = stops[i];
+            mapRef.current?.flyTo({
+                center: [stop.lng, stop.lat],
+                zoom,
+                pitch: 60,
+                bearing: 20 + (i * 30) % 90, // rotate bearing for variety
+                duration: 3000,
+                essential: true
+            });
+            i++;
+            if (i < stops.length) {
+                setTimeout(flyNext, 3500); // wait for previous fly to finish + brief pause
+            }
+        };
+        flyNext();
+    }, []);
+
     const handleToggleDraw = () => {
         if (!drawRef.current) return;
         if (!isDrawing) {
@@ -89,6 +124,8 @@ export const useMapState = (filteredProjects: Project[], cameraDuration: number 
         setIsDrawing,
         handleToggleDraw,
         handleFlyTo,
+        handleCinematicFlyTo,
+        startCinematicTour,
         clusters,
         supercluster
     };

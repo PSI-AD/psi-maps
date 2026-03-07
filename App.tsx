@@ -47,7 +47,7 @@ const AppInner: React.FC = () => {
 
   const {
     viewState, setViewState, mapStyle, setMapStyle, bounds, updateBounds,
-    isDrawing, setIsDrawing, mapRef, drawRef, handleFlyTo, handleToggleDraw
+    isDrawing, setIsDrawing, mapRef, drawRef, handleFlyTo, handleCinematicFlyTo, startCinematicTour, handleToggleDraw
   } = useMapState(filteredProjects, cameraDuration);
 
   // Super Admin Toggles
@@ -403,6 +403,7 @@ const AppInner: React.FC = () => {
       activeAmenities={activeAmenities} onToggleAmenity={handleToggleAmenity} isDrawing={isDrawing} onToggleDraw={handleToggleDraw}
       mapStyle={mapStyle} setMapStyle={setMapStyle} onDiscoverNeighborhood={(lat, lng) => fetchNearbyAmenities(lat, lng)}
       onFlyTo={handleFlyTo}
+      startCinematicTour={startCinematicTour}
       mapFeatures={mapFeatures} setMapFeatures={setMapFeatures}
       propertyType={propertyType} setPropertyType={setPropertyType}
       developerFilter={developerFilter} setDeveloperFilter={setDeveloperFilter}

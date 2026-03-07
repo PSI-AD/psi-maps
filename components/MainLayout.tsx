@@ -37,6 +37,7 @@ interface MainLayoutProps {
   children: React.ReactNode;
   onDiscoverNeighborhood: (lat: number, lng: number) => void;
   onFlyTo: (lng: number, lat: number, zoom?: number) => void;
+  startCinematicTour?: (stops: { lng: number; lat: number; name?: string }[], zoom?: number) => void;
   mapFeatures: { show3D: boolean; showAnalytics: boolean; showCommunityBorders: boolean };
   setMapFeatures: React.Dispatch<React.SetStateAction<{ show3D: boolean; showAnalytics: boolean; showCommunityBorders: boolean }>>;
   propertyType: string;
@@ -507,6 +508,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
         }}
         onFitBounds={handleFitBounds}
         onFlyTo={(lng, lat, zoom) => onFlyTo?.(lng, lat, zoom || 14)}
+        startCinematicTour={props.startCinematicTour}
         onOpenChange={setIsAiChatOpen}
         clearFilters={() => {
           setDeveloperFilter('All');
@@ -520,8 +522,8 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
       <button
         onClick={() => props.setShowCoordReview?.(!props.showCoordReview)}
         className={`hidden md:flex fixed top-20 right-6 z-[7000] items-center gap-2 px-4 py-2.5 rounded-full shadow-lg border transition-all duration-200 hover:scale-105 active:scale-95 ${props.showCoordReview
-            ? 'bg-indigo-600 text-white border-indigo-500 shadow-indigo-200'
-            : 'bg-white/95 backdrop-blur-md text-slate-700 border-slate-200 hover:bg-slate-50'
+          ? 'bg-indigo-600 text-white border-indigo-500 shadow-indigo-200'
+          : 'bg-white/95 backdrop-blur-md text-slate-700 border-slate-200 hover:bg-slate-50'
           }`}
         title="Coordinate Review Tool"
       >

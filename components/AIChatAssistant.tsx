@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Sparkles, X, Eye, Navigation, Map, Compass, Volume2, VolumeX, LocateFixed, Landmark as LandmarkIcon } from 'lucide-react';
+import { Sparkles, X, Eye, Navigation, Map, Compass, Volume2, VolumeX, LocateFixed, Landmark as LandmarkIcon, Film } from 'lucide-react';
 import { Project, Landmark } from '../types';
 import { calculateDistance } from '../utils/geo';
 
@@ -30,6 +30,8 @@ interface AIChatAssistantProps {
     onOpenChange?: (isOpen: boolean) => void;
     /** Reset all map filters before executing an action */
     clearFilters?: () => void;
+    /** Cinematic sequential tour through stops */
+    startCinematicTour?: (stops: { lng: number; lat: number; name?: string }[], zoom?: number) => void;
 }
 
 const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
@@ -44,6 +46,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
     allLandmarks = [],
     onOpenChange,
     clearFilters,
+    startCinematicTour,
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [isFading, setIsFading] = useState(false);
@@ -104,22 +107,41 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
 
             actions = [
                 {
-                    label: 'Nearby Projects',
-                    icon: <Map className="w-3.5 h-3.5" />,
-                    onClick: () => onFitBounds?.(nearby),
+                    label: 'Tour Nearby',
+                    icon: <Film className="w-3.5 h-3.5" />,
+                    onClick: () => {
+                        if (startCinematicTour && nearby.length > 0) {
+                            startCinematicTour(nearby.map(p => ({ lng: Number(p.longitude), lat: Number(p.latitude), name: p.name })), 15);
+                        } else {
+                            onFitBounds?.(nearby);
+                        }
+                    },
                 },
                 ...(devName && devName !== 'Exclusive' ? [{
-                    label: `More by ${devName}`,
+                    label: `${devName} Tour`,
                     icon: <Compass className="w-3.5 h-3.5" />,
-                    onClick: () => onFitBounds?.(devPortfolio),
+                    onClick: () => {
+                        if (startCinematicTour && devPortfolio.length > 0) {
+                            const stops = devPortfolio.slice(0, 8).map(p => ({ lng: Number(p.longitude), lat: Number(p.latitude), name: p.name }));
+                            startCinematicTour(stops, 14);
+                        } else {
+                            onFitBounds?.(devPortfolio);
+                        }
+                    },
                 } as ChatAction] : []),
                 {
-                    label: 'Nearby Landmarks',
+                    label: 'Landmark Tour',
                     icon: <LandmarkIcon className="w-3.5 h-3.5" />,
-                    onClick: () => onFlyTo?.(lng, lat, 14),
+                    onClick: () => {
+                        if (startCinematicTour && nearbyLandmarks.length > 0) {
+                            startCinematicTour(nearbyLandmarks.map(l => ({ lng: l.longitude, lat: l.latitude, name: l.name })), 15);
+                        } else {
+                            onFlyTo?.(lng, lat, 14);
+                        }
+                    },
                 },
                 {
-                    label: 'Distance Overview',
+                    label: 'Bird\'s Eye',
                     icon: <Eye className="w-3.5 h-3.5" />,
                     onClick: () => onFlyTo?.(lng, lat, 12),
                 },
@@ -140,9 +162,12 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
             actions = [
                 {
                     label: 'Flyover Tour',
-                    icon: <Eye className="w-3.5 h-3.5" />,
+                    icon: <Film className="w-3.5 h-3.5" />,
                     onClick: () => {
-                        if (communityProjects.length > 0 && onFitBounds) {
+                        if (startCinematicTour && communityProjects.length > 0) {
+                            const stops = communityProjects.slice(0, 10).map(p => ({ lng: Number(p.longitude), lat: Number(p.latitude), name: p.name }));
+                            startCinematicTour(stops, 14);
+                        } else if (communityProjects.length > 0 && onFitBounds) {
                             onFitBounds(communityProjects);
                         }
                     },

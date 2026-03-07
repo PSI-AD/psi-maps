@@ -15,13 +15,15 @@ const CoordinateReviewTool: React.FC<CoordinateReviewToolProps> = ({ projects, o
     const [currentIndex, setCurrentIndex] = useState(0);
     const [resolvedCount, setResolvedCount] = useState(0);
 
-    // Filter projects that have audit data with status 'pending'
+    // Filter projects with pending audit data, sorted by distance (largest mismatch first)
     const auditProjects = useMemo(() => {
-        return projects.filter(
-            p => p.auditLatitude !== undefined &&
-                p.auditLongitude !== undefined &&
-                p.auditStatus === 'pending'
-        );
+        return projects
+            .filter(
+                p => p.auditLatitude !== undefined &&
+                    p.auditLongitude !== undefined &&
+                    p.auditStatus === 'pending'
+            )
+            .sort((a, b) => (b.auditDistanceMeters || 0) - (a.auditDistanceMeters || 0));
     }, [projects]);
 
     const currentProject = auditProjects[currentIndex] ?? null;
@@ -126,8 +128,8 @@ const CoordinateReviewTool: React.FC<CoordinateReviewToolProps> = ({ projects, o
                 <div className="flex items-center gap-3 mt-1">
                     <span className="text-[10px] text-slate-400">{currentProject.community || 'N/A'}</span>
                     <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${distanceM > 10000 ? 'bg-red-500/20 text-red-300' :
-                            distanceM > 1000 ? 'bg-amber-500/20 text-amber-300' :
-                                'bg-green-500/20 text-green-300'
+                        distanceM > 1000 ? 'bg-amber-500/20 text-amber-300' :
+                            'bg-green-500/20 text-green-300'
                         }`}>
                         ↕ {distanceLabel} off
                     </span>
