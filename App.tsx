@@ -146,12 +146,21 @@ const AppInner: React.FC = () => {
         Math.min(...lngs), Math.min(...lats),
         Math.max(...lngs), Math.max(...lats),
       ];
-      // Extra padding to account for side panels (left sidebar ≈420px, right carousel ≈350px)
+      // Mapbox best practice: fit route only within the visible map area
+      // Panels are treated as blocked space — route stays centered in the clear zone
+      const map = mapRef.current?.getMap();
       const isDesktop = typeof window !== 'undefined' && window.innerWidth > 768;
       const routePadding = isDesktop
-        ? { top: 100, bottom: 100, left: 440, right: 380 }
-        : { top: 80, bottom: 300, left: 40, right: 40 };
-      mapRef.current?.getMap().fitBounds(bbox, { padding: routePadding, duration: 1500, maxZoom: 15 });
+        ? { top: 140, bottom: 100, left: 460, right: 460 }
+        : { top: 100, bottom: 280, left: 40, right: 40 };
+      map?.fitBounds(bbox, { padding: routePadding, duration: 1500, maxZoom: 15 });
+
+      // Navigation-style camera tilt — adds depth after route fits
+      if (map) {
+        setTimeout(() => {
+          map.easeTo({ pitch: 40, bearing: map.getBearing(), duration: 1200 });
+        }, 1600);
+      }
     }
   };
 
