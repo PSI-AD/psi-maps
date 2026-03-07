@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Project, Landmark } from '../types';
-import * as turf from '@turf/turf';
+import { distance as turfDistance } from '@turf/distance';
 import { X, Car, MapPin, Footprints } from 'lucide-react';
 
 interface NearbyPanelProps {
@@ -58,7 +58,7 @@ const NearbyPanel: React.FC<NearbyPanelProps> = ({ project, landmarks, onClose }
         const withDistance: LandmarkWithDist[] = landmarks
             .filter(l => !l.isHidden && !isNaN(Number(l.latitude)) && !isNaN(Number(l.longitude)))
             .map(l => {
-                const dist = turf.distance(projCoord, [Number(l.longitude), Number(l.latitude)], { units: 'kilometers' });
+                const dist = turfDistance(projCoord, [Number(l.longitude), Number(l.latitude)], { units: 'kilometers' });
                 return {
                     ...l,
                     distance: dist,

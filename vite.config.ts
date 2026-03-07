@@ -30,8 +30,8 @@ export default defineConfig(({ mode }) => {
           }
         }
       },
-      // Silence the mapbox-gl 500KB chunk warning — it's intentionally an atomic chunk
-      chunkSizeWarningLimit: 600,
+      // Silence chunk size warnings — mapbox & project sidebar are intentionally large
+      chunkSizeWarningLimit: 1700,
     },
     define: {
       'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),

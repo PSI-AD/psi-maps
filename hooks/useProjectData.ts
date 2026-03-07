@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import * as turf from '@turf/turf';
+import { featureCollection, point as turfPoint } from '@turf/helpers';
+import { pointsWithinPolygon } from '@turf/points-within-polygon';
 import { Project, Landmark } from '../types';
 import { collection, onSnapshot, query } from 'firebase/firestore';
 import { db } from '../utils/firebase';
@@ -182,10 +183,10 @@ export const useProjectData = () => {
             if (filterPolygon.geometry?.type !== 'Polygon') {
                 return projects;
             }
-            const points = turf.featureCollection(
-                projects.map(p => turf.point([p.longitude, p.latitude], { ...p }))
+            const points = featureCollection(
+                projects.map(p => turfPoint([p.longitude, p.latitude], { ...p }))
             ) as any;
-            const within = turf.pointsWithinPolygon(points, filterPolygon);
+            const within = pointsWithinPolygon(points, filterPolygon);
             return within.features.map(f => f.properties as Project);
         } catch (error) {
             console.error("Draw area error caught safely:", error);

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Project, Landmark } from '../types';
 import { X, MapPin } from 'lucide-react';
-import * as turf from '@turf/turf';
+import { distance as turfDistance } from '@turf/distance';
 
 const DEV_DOMAINS: Record<string, string> = {
     'emaar': 'emaar.com',
@@ -41,7 +41,7 @@ const PropertyResultsList: React.FC<PropertyResultsListProps> = ({
     const sortedProjects = useMemo(() => {
         if (!landmark?.latitude || !landmark?.longitude || !projects) return projects || [];
         return [...projects].map(p => {
-            const dist = turf.distance(
+            const dist = turfDistance(
                 [Number(landmark.longitude), Number(landmark.latitude)],
                 [Number(p.longitude), Number(p.latitude)],
                 { units: 'kilometers' }

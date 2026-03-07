@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useMemo, useState } from 'react';
-import * as turf from '@turf/turf';
+import { distance as turfDistance } from '@turf/distance';
 import { Project, ClientPresentation } from '../types';
 import { MapPin, Building, BedDouble, ChevronLeft, ChevronRight, X, Play, Square } from 'lucide-react';
 import { getOptimizedImageUrl } from '../utils/imageHelpers';
@@ -78,7 +78,7 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                 const current = sorted[sorted.length - 1];
                 let nearestIdx = 0, minDist = Infinity;
                 remaining.forEach((p, idx) => {
-                    const dist = turf.distance(
+                    const dist = turfDistance(
                         [Number(current.longitude), Number(current.latitude)],
                         [Number(p.longitude), Number(p.latitude)],
                         { units: 'kilometers' }

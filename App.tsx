@@ -1,6 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import mapboxgl from 'mapbox-gl';
-import * as turf from '@turf/turf';
+import { distance as turfDistance } from '@turf/distance';
+import { point as turfPoint } from '@turf/helpers';
+import { polygon as turfPolygon } from '@turf/helpers';
+import { booleanPointInPolygon } from '@turf/boolean-point-in-polygon';
+import { bbox as turfBbox } from '@turf/bbox';
 import { useProjectData } from './hooks/useProjectData';
 import { useMapState } from './hooks/useMapState';
 import { fetchNearbyAmenities } from './utils/placesClient';
@@ -151,11 +155,11 @@ const AppInner: React.FC = () => {
     if (!enableLasso || drawnCoordinates.length < 3) return filteredProjects;
     try {
       const closed = [...drawnCoordinates, drawnCoordinates[0]];
-      const polygon = turf.polygon([closed]);
+      const polygon = turfPolygon([closed]);
       return filteredProjects.filter(p => {
         if (isNaN(Number(p.longitude)) || isNaN(Number(p.latitude))) return false;
-        return turf.booleanPointInPolygon(
-          turf.point([Number(p.longitude), Number(p.latitude)]),
+        return booleanPointInPolygon(
+          turfPoint([Number(p.longitude), Number(p.latitude)]),
           polygon
         );
       });
@@ -172,7 +176,7 @@ const AppInner: React.FC = () => {
       .filter(l => !l.isHidden && !isNaN(Number(l.latitude)) && !isNaN(Number(l.longitude)))
       .map(l => ({
         ...l,
-        _dist: turf.distance(projCoord, [Number(l.longitude), Number(l.latitude)])
+        _dist: turfDistance(projCoord, [Number(l.longitude), Number(l.latitude)])
       }))
       .sort((a, b) => a._dist - b._dist);
 
@@ -193,7 +197,7 @@ const AppInner: React.FC = () => {
     const lCoord: [number, number] = [Number(selectedLandmarkForSearch.longitude), Number(selectedLandmarkForSearch.latitude)];
     return liveProjects.filter(p => {
       if (!p.longitude || !p.latitude || isNaN(Number(p.longitude)) || isNaN(Number(p.latitude))) return false;
-      return turf.distance(lCoord, [Number(p.longitude), Number(p.latitude)]) <= 5;
+      return turfDistance(lCoord, [Number(p.longitude), Number(p.latitude)]) <= 5;
     });
   }, [selectedLandmarkForSearch, liveProjects]);
 
@@ -262,7 +266,7 @@ const AppInner: React.FC = () => {
           const geojson = await getBoundaryFromDB(locationName);
           if (geojson) {
             setActiveBoundary(geojson);
-            const bbox = turf.bbox(geojson) as [number, number, number, number];
+            const bbox = turfBbox(geojson) as [number, number, number, number];
             const uiPadding = typeof window !== 'undefined' && window.innerWidth > 768
               ? { top: 80, bottom: 80, left: 420, right: 80 }
               : { top: 80, bottom: 300, left: 40, right: 40 };
