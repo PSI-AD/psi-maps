@@ -56,13 +56,16 @@ const auditLocations = async () => {
         for (let i = 0; i < projects.length; i++) {
             const p = projects[i];
 
-            // 1. Try to get coordinates from the root or the nested object
-            let lat = p.latitude;
-            let lng = p.longitude;
+            // 1. Try to get coordinates from multiple possible field names
+            //    CRM imports use mapLatitude/mapLongitude
+            //    Manual entries may use latitude/longitude
+            //    Some may have a nested coordinates object
+            let lat = p.mapLatitude ?? p.latitude;
+            let lng = p.mapLongitude ?? p.longitude;
 
             if ((lat === undefined || lng === undefined) && p.coordinates) {
-                lat = p.coordinates.lat;
-                lng = p.coordinates.lng;
+                lat = lat ?? p.coordinates.lat;
+                lng = lng ?? p.coordinates.lng;
             }
 
             // 2. Convert to numbers
@@ -79,8 +82,11 @@ const auditLocations = async () => {
             const currentLat = numLat;
             const currentLng = numLng;
 
+            // Resolve project name from multiple possible fields
+            const projectName = p.name || p.propertyName || p.enMarketingTitle || 'Unknown Project';
+
             // Append community + city context for better Mapbox results
-            const searchQuery = encodeURIComponent(`${p.name}, ${p.community || ''}, ${p.city || 'Abu Dhabi'}, UAE`);
+            const searchQuery = encodeURIComponent(`${projectName}, ${p.community || ''}, ${p.city || 'Abu Dhabi'}, UAE`);
             const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${searchQuery}.json?access_token=${MAPBOX_TOKEN}&limit=1`;
 
             try {
@@ -94,13 +100,13 @@ const auditLocations = async () => {
                     const distance = getDistanceInMeters(currentLat, currentLng, mbLat, mbLng);
 
                     if (distance > 100) {
-                        console.log(`⚠️  Mismatch: ${p.name} — off by ${Math.round(distance)}m (community: ${p.community || 'N/A'})`);
+                        console.log(`⚠️  Mismatch: ${projectName} — off by ${Math.round(distance)}m (community: ${p.community || 'N/A'})`);
                         mismatchCount++;
 
                         const auditRef = db.collection('audit_locations').doc(p.id);
                         batch.set(auditRef, {
                             projectId: p.id,
-                            projectName: p.name,
+                            projectName: projectName,
                             community: p.community || 'Unknown',
                             currentCoordinates: { lat: currentLat, lng: currentLng },
                             suggestedCoordinates: { lat: mbLat, lng: mbLng },
