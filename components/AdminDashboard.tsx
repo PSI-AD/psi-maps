@@ -18,6 +18,34 @@ const DEV_DOMAINS: Record<string, string> = {
   'bloom': 'bloomholding.com', 'azizi': 'azizidevelopments.com'
 };
 
+const BRANDFETCH_KEY = 'JlB99i7lKckSdE_COVE_FNUtfmxWTpfyNBq6uWwvrKAXvU_MINGjzai9GZyspeIUhCTNM-F20qKwxgW7AFvaXw';
+
+/** Fetch the best logo URL from Brandfetch for a given domain */
+const fetchBrandfetchLogo = async (domain: string): Promise<string | null> => {
+  if (!BRANDFETCH_KEY) return null;
+  try {
+    const res = await fetch(`https://api.brandfetch.io/v2/brands/${domain}`, {
+      headers: { Authorization: `Bearer ${BRANDFETCH_KEY}` },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const logos = data.logos || [];
+    // Prefer icon (square), then logo (horizontal)
+    const icon = logos.find((l: any) => l.type === 'icon');
+    const logo = logos.find((l: any) => l.type === 'logo');
+    const pick = icon || logo;
+    if (!pick) return null;
+    const formats = pick.formats || [];
+    // Prefer png > jpeg > svg
+    const png = formats.find((f: any) => f.format === 'png');
+    const jpeg = formats.find((f: any) => f.format === 'jpeg');
+    const svg = formats.find((f: any) => f.format === 'svg');
+    return (png || jpeg || svg)?.src || null;
+  } catch {
+    return null;
+  }
+};
+
 const PUBLIC_MAPBOX_TOKEN = typeof window !== 'undefined'
   ? atob('cGsuZXlKMUlqb2ljSE5wYm5ZaUxDSmhJam9pWTIxc2NqQnpNMjF4TURacU56Tm1jMlZtZEd0NU1XMDVaQ0o5LlZ4SUVuMWpMVHpNd0xBTjhtNEIxNWc=')
   : '';
@@ -854,6 +882,28 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 w-full">
                   <h2 className="text-2xl font-black text-slate-900 tracking-tight">Developers CMS</h2>
                   <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+                    <button
+                      onClick={async () => {
+                        if (!window.confirm('Fetch logos from Brandfetch for all developers? This may take a moment.')) return;
+                        let updated = 0;
+                        for (const dev of liveDevelopers) {
+                          if (dev.logoUrl && !dev.logoUrl.includes('gstatic.com')) continue; // skip if already has good logo
+                          const nameLower = (dev.name || '').toLowerCase().replace(/\s+/g, '');
+                          const matchedKey = Object.keys(DEV_DOMAINS).find(k => nameLower.includes(k));
+                          const domain = matchedKey ? DEV_DOMAINS[matchedKey] : null;
+                          if (!domain) continue;
+                          const logoUrl = await fetchBrandfetchLogo(domain);
+                          if (logoUrl) {
+                            await updateDoc(doc(db, 'entities_developers', dev.id), { logoUrl });
+                            updated++;
+                          }
+                        }
+                        alert(`Done! Updated ${updated} developer logos.`);
+                      }}
+                      className="w-full md:w-auto justify-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm transition-all flex items-center gap-2"
+                    >
+                      <Zap className="w-4 h-4" /> Fetch All Logos
+                    </button>
                     <button onClick={() => setStagedDeveloper({ name: '', logoUrl: '', description: '' })} className="w-full md:w-auto justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition-all flex items-center gap-2"><Plus className="w-4 h-4" /> Add Developer</button>
                   </div>
                 </div>
@@ -866,18 +916,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                         <input type="text" placeholder="Logo URL (auto-detected or paste)" value={stagedDeveloper.logoUrl || ''} onChange={e => setStagedDeveloper({ ...stagedDeveloper, logoUrl: e.target.value })} className="h-12 px-4 rounded-xl border border-blue-200 flex-1" />
                         <button
                           type="button"
-                          onClick={() => {
+                          onClick={async () => {
                             const nameLower = (stagedDeveloper.name || '').toLowerCase().replace(/\s+/g, '');
                             const matchedKey = Object.keys(DEV_DOMAINS).find(k => nameLower.includes(k));
-                            if (matchedKey) {
-                              setStagedDeveloper({ ...stagedDeveloper, logoUrl: `https://www.google.com/s2/favicons?domain=${DEV_DOMAINS[matchedKey]}&sz=128` });
+                            if (!matchedKey) {
+                              alert('Could not match developer to a known domain. Please paste a logo URL manually.');
+                              return;
+                            }
+                            const logoUrl = await fetchBrandfetchLogo(DEV_DOMAINS[matchedKey]);
+                            if (logoUrl) {
+                              setStagedDeveloper({ ...stagedDeveloper, logoUrl });
                             } else {
-                              alert('Could not auto-detect logo. Please paste a URL manually.');
+                              alert('Logo not found on Brandfetch. Please paste a URL manually.');
                             }
                           }}
-                          className="h-12 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors whitespace-nowrap"
+                          className="h-12 px-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs rounded-xl transition-colors whitespace-nowrap border border-emerald-200"
                         >
-                          🔍 Auto
+                          🔍 Fetch Logo
                         </button>
                       </div>
                       <textarea placeholder="Description..." value={stagedDeveloper.description || ''} onChange={e => setStagedDeveloper({ ...stagedDeveloper, description: e.target.value })} className="h-24 px-4 py-3 rounded-xl border border-blue-200 md:col-span-2" />
