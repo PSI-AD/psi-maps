@@ -1045,13 +1045,13 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                 )}
                 {destSuggestions.length > 0 && (
                   <div className="absolute top-full left-0 w-full mt-2 bg-white border border-slate-100 rounded-xl shadow-2xl overflow-hidden max-h-56 overflow-y-auto custom-scrollbar z-50">
-                    {destSuggestions.map((s: any) => (
+                    {destSuggestions.map((s: any, idx: number) => (
                       <button
-                        key={s.place_id}
+                        key={s.mapbox_id || idx}
                         onClick={() => handleSelectDest(s)}
                         className="w-full text-left px-4 py-3 hover:bg-blue-50 border-b border-slate-50 last:border-0 transition-colors"
                       >
-                        <p className="text-xs font-bold text-slate-800 truncate">{s.structured_formatting?.main_text || s.description.split(',')[0]}</p>
+                        <p className="text-xs font-bold text-slate-800 truncate">{s.text || s.description?.split(',')[0]}</p>
                         <p className="text-[10px] text-slate-400 truncate mt-0.5">{s.description}</p>
                       </button>
                     ))}

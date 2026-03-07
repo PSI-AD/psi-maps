@@ -177,7 +177,8 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
         return () => clearTimeout(timer);
     }, []);
 
-    const [bounds, setBounds] = useState<any>(null);
+    // Initialize with UAE bounding box to avoid null warnings from useSupercluster
+    const [bounds, setBounds] = useState<any>([51.5, 22.5, 56.5, 26.5]);
 
     // Build GeoJSON points from filteredAmenities
     const points = useMemo(() => filteredAmenities
@@ -310,16 +311,19 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
             doubleClickZoom={false}
             onMove={evt => {
                 setViewState(evt.viewState);
-                updateBounds();
-                setBounds(evt.target.getBounds().toArray().flat());
             }}
             onLoad={(e) => {
                 e.target.resize();
                 // Failsafe for slower DOM layout paints
                 setTimeout(() => e.target.resize(), 100);
+                // Set initial bounds
+                const b = e.target.getBounds().toArray().flat();
+                setBounds(b);
                 if (onBoundsChange) onBoundsChange(e.target.getBounds());
             }}
             onMoveEnd={(e) => {
+                updateBounds();
+                setBounds(e.target.getBounds().toArray().flat());
                 if (onBoundsChange) onBoundsChange((e.target as any).getBounds());
             }}
             mapStyle={mapStyle}
