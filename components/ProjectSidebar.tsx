@@ -468,19 +468,60 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   const formatDescription = (html: string): string => {
     // If it already has paragraph tags, return as-is
     if (html.includes('<p>') || html.includes('<br')) return html;
-    // Strip tags, then split into paragraphs
-    const text = html.replace(/<[^>]*>/g, '').trim();
-    // Split on double newlines first
-    let blocks = text.split(/\n\s*\n/).filter(b => b.trim());
-    // If only one block, try splitting every 2-3 sentences
-    if (blocks.length <= 1) {
+
+    // Strip tags, then work with plain text
+    let text = html.replace(/<[^>]*>/g, '').trim();
+    if (!text) return '';
+
+    // ── Step 1: Split pipe-separated items into line breaks ──
+    // e.g. "✅ One | ✅ Two | ✅ Three" → separate lines
+    text = text.replace(/\s*\|\s*/g, '\n');
+
+    // ── Step 2: Insert line break before emoji-style section markers ──
+    // Common emoji markers used as bullet points / section headers
+    const emojiPattern = /([\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{1F900}-\u{1F9FF}\u{200D}\u{20E3}\u{2705}\u{2714}\u{2716}\u{274C}\u{274E}\u{2B50}\u{2B55}\u{1F680}-\u{1F6FF}✅✨🌟📍🏡🏗️🏢🏊💎🎯🏆🌴🌊🛎️🏖️🎉🔑💰🏠🏘️🪴🔱💫🌆🏙️✔️❌])/gu;
+    text = text.replace(new RegExp(`(?<!^)(?=${emojiPattern.source})`, 'gmu'), '\n');
+
+    // ── Step 3: Insert line break before common section keywords ──
+    const sectionKeywords = [
+      'Welcome to', 'Key Features', 'Unique Selling', 'Strategic Location',
+      'Exceptional Amenities', 'Amenities', 'Features', 'Highlights',
+      'Why Invest', 'Why Choose', 'Investment Opportunity', 'About the',
+      'About The', 'Project Overview', 'Location', 'Payment Plan',
+      'Facilities', 'Lifestyle', 'Community', 'Connectivity',
+      'Floor Plans', 'Unit Types', 'Starting Price', 'Price Range',
+    ];
+    for (const keyword of sectionKeywords) {
+      const re = new RegExp(`(?<=[.!?\\n])\\s*(?=${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'g');
+      text = text.replace(re, '\n\n');
+    }
+
+    // ── Step 4: Split into blocks ──
+    let blocks = text.split(/\n+/).map(b => b.trim()).filter(Boolean);
+
+    // If we still have just 1 giant block, split every 2-3 sentences
+    if (blocks.length <= 1 && text.length > 200) {
       const sentences = text.split(/(?<=[.!?])\s+/).filter(s => s.trim());
       blocks = [];
-      for (let i = 0; i < sentences.length; i += 3) {
-        blocks.push(sentences.slice(i, i + 3).join(' '));
+      for (let i = 0; i < sentences.length; i += 2) {
+        blocks.push(sentences.slice(i, i + 2).join(' '));
       }
     }
-    return blocks.map(b => `<p>${b.trim()}</p>`).join('');
+
+    // ── Step 5: Format each block ──
+    return blocks.map(block => {
+      // If a block starts with an emoji + short text (likely a header)
+      const isHeader = /^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{1F900}-\u{1F9FF}✅✨🌟📍💎🎯🏆🔑💰🏡🏗️🏢🏊🌴🌊🛎️🏖️🎉🏠🏘️💫🌆🏙️✔️❌][^\n.!?]{0,60}$/u.test(block);
+      if (isHeader) {
+        return `<p style="margin-top:16px;margin-bottom:4px"><strong>${block}</strong></p>`;
+      }
+      // Check marks / bullets become list items
+      const isBullet = /^[✅✔️☑️•▪▸►✓→–—]\s/.test(block);
+      if (isBullet) {
+        return `<p style="padding-left:8px;margin-bottom:4px">${block}</p>`;
+      }
+      return `<p style="margin-bottom:12px">${block}</p>`;
+    }).join('');
   };
   const formattedDescription = formatDescription(rawDescription);
 
@@ -929,7 +970,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                 </h3>
                 {isDescriptionLong ? (
                   <div>
-                    <p className="prose prose-sm text-slate-600 leading-relaxed max-w-none">{truncatedHtml}…</p>
+                    <div className="prose prose-sm text-slate-600 leading-relaxed max-w-none prose-p:mb-3 prose-strong:text-slate-900 line-clamp-[12]" dangerouslySetInnerHTML={{ __html: formattedDescription }} />
                     <button onClick={() => setIsTextModalOpen(true)} className="mt-2 text-blue-600 hover:text-blue-800 text-xs font-black uppercase tracking-widest transition-colors">
                       Read More →
                     </button>
