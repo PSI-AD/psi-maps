@@ -119,9 +119,6 @@ const NearbyPanel: React.FC<NearbyPanelProps> = ({ project, landmarks, onClose }
                                             {(() => {
                                                 return (
                                                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 relative overflow-hidden ${style.bg} ${style.text}`}>
-                                                        {item.domain && (
-                                                            <img src={`https://www.google.com/s2/favicons?domain=${item.domain}&sz=128`} alt={item.name} className="absolute inset-0 w-full h-full object-cover z-10 bg-white" />
-                                                        )}
                                                         <div className={`w-3 h-3 rounded-full ${style.dot}`} />
                                                     </div>
                                                 );
