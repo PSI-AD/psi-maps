@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Sparkles, X, Eye, Navigation, Map, Compass, Volume2, VolumeX, LocateFixed } from 'lucide-react';
 import { Project } from '../types';
 
@@ -36,8 +36,27 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
     allProjects = [],
 }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const [isFading, setIsFading] = useState(false);
     const [isAudioEnabled, setIsAudioEnabled] = useState(false);
     const [chatMessage, setChatMessage] = useState<{ text: string; actions: ChatAction[] } | null>(null);
+    const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const AUTO_DISMISS_MS = 10_000;
+
+    // Start / reset the 10-second auto-dismiss countdown
+    const resetTimer = useCallback(() => {
+        setIsFading(false);
+        if (dismissTimer.current) clearTimeout(dismissTimer.current);
+        dismissTimer.current = setTimeout(() => {
+            setIsFading(true); // start fade-out
+            setTimeout(() => setIsOpen(false), 500); // unmount after animation
+        }, AUTO_DISMISS_MS);
+    }, []);
+
+    // Clear timer on unmount
+    useEffect(() => {
+        return () => { if (dismissTimer.current) clearTimeout(dismissTimer.current); };
+    }, []);
 
     useEffect(() => {
         let name = '';
@@ -153,6 +172,13 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
         if (name) {
             setChatMessage({ text: `For ${name}`, actions });
             setIsOpen(true);
+            setIsFading(false);
+            // kick off the auto-dismiss countdown
+            if (dismissTimer.current) clearTimeout(dismissTimer.current);
+            dismissTimer.current = setTimeout(() => {
+                setIsFading(true);
+                setTimeout(() => setIsOpen(false), 500);
+            }, AUTO_DISMISS_MS);
         } else {
             setIsOpen(false);
         }
@@ -161,7 +187,16 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
     if (!isOpen || !chatMessage) return null;
 
     return (
-        <div className="fixed bottom-[110px] left-4 md:left-6 z-[6000] max-w-[380px] flex flex-col items-start gap-3 pointer-events-none animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div
+            className="fixed bottom-[110px] left-4 md:left-6 z-[6000] max-w-[380px] flex flex-col items-start gap-3 pointer-events-none"
+            style={{
+                opacity: isFading ? 0 : 1,
+                transform: isFading ? 'translateY(12px)' : 'translateY(0)',
+                transition: 'opacity 0.5s ease, transform 0.5s ease',
+            }}
+            onMouseEnter={resetTimer}
+            onClick={resetTimer}
+        >
             {/* AI Chat Bubble */}
             <div className="flex items-start gap-3 pointer-events-auto">
                 <div className="flex flex-col items-center gap-1.5 shrink-0">
@@ -202,8 +237,8 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
                             }
                         }}
                         className={`flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-bold tracking-wide rounded-full shadow-lg transition-all duration-200 border ${act.isDismiss
-                                ? 'bg-white/90 backdrop-blur-md border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                                : 'shiny-effect text-indigo-50 hover:scale-105'
+                            ? 'bg-white/90 backdrop-blur-md border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                            : 'shiny-effect text-indigo-50 hover:scale-105'
                             }`}
                         style={
                             act.isDismiss
