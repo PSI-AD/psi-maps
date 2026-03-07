@@ -20,7 +20,13 @@ const DEV_DOMAINS: Record<string, string> = {
 
 const BRANDFETCH_KEY = 'JlB99i7lKckSdE_COVE_FNUtfmxWTpfyNBq6uWwvrKAXvU_MINGjzai9GZyspeIUhCTNM-F20qKwxgW7AFvaXw';
 
-/** Fetch the best logo URL from Brandfetch for a given domain */
+/** Check if a logo URL is a known-broken pattern */
+const isBrokenLogoUrl = (url?: string): boolean => {
+  if (!url) return true;
+  return url.includes('gstatic.com/faviconV2') || url.includes('placeholder-image');
+};
+
+/** Fetch the best logo URL from Brandfetch for a given domain (full brand lookup) */
 const fetchBrandfetchLogo = async (domain: string): Promise<string | null> => {
   if (!BRANDFETCH_KEY) return null;
   try {
@@ -30,17 +36,38 @@ const fetchBrandfetchLogo = async (domain: string): Promise<string | null> => {
     if (!res.ok) return null;
     const data = await res.json();
     const logos = data.logos || [];
-    // Prefer icon (square), then logo (horizontal)
     const icon = logos.find((l: any) => l.type === 'icon');
     const logo = logos.find((l: any) => l.type === 'logo');
     const pick = icon || logo;
     if (!pick) return null;
     const formats = pick.formats || [];
-    // Prefer png > jpeg > svg
     const png = formats.find((f: any) => f.format === 'png');
     const jpeg = formats.find((f: any) => f.format === 'jpeg');
     const svg = formats.find((f: any) => f.format === 'svg');
     return (png || jpeg || svg)?.src || null;
+  } catch {
+    return null;
+  }
+};
+
+/** Search Brandfetch by name — works for ANY developer, returns icon URL */
+const searchBrandfetchLogo = async (name: string): Promise<string | null> => {
+  if (!BRANDFETCH_KEY || !name.trim()) return null;
+  try {
+    const encoded = encodeURIComponent(name.trim());
+    const res = await fetch(`https://api.brandfetch.io/v2/search/${encoded}`, {
+      headers: { Authorization: `Bearer ${BRANDFETCH_KEY}` },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (Array.isArray(data) && data.length > 0) {
+      // First result is the best match — it includes an icon URL directly
+      const best = data[0];
+      if (best.icon) return best.icon;
+      // Fallback: use domain to do full lookup
+      if (best.domain) return fetchBrandfetchLogo(best.domain);
+    }
+    return null;
   } catch {
     return null;
   }
@@ -886,19 +913,34 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                       onClick={async () => {
                         if (!window.confirm('Fetch logos from Brandfetch for all developers? This may take a moment.')) return;
                         let updated = 0;
+                        let skipped = 0;
                         for (const dev of liveDevelopers) {
-                          if (dev.logoUrl && !dev.logoUrl.includes('gstatic.com')) continue; // skip if already has good logo
+                          // Skip if already has a good (non-broken) logo
+                          if (dev.logoUrl && !isBrokenLogoUrl(dev.logoUrl)) { skipped++; continue; }
+
+                          let logoUrl: string | null = null;
+
+                          // Strategy 1: Try known domain from DEV_DOMAINS
                           const nameLower = (dev.name || '').toLowerCase().replace(/\s+/g, '');
                           const matchedKey = Object.keys(DEV_DOMAINS).find(k => nameLower.includes(k));
-                          const domain = matchedKey ? DEV_DOMAINS[matchedKey] : null;
-                          if (!domain) continue;
-                          const logoUrl = await fetchBrandfetchLogo(domain);
+                          if (matchedKey) {
+                            logoUrl = await fetchBrandfetchLogo(DEV_DOMAINS[matchedKey]);
+                          }
+
+                          // Strategy 2: Search Brandfetch by name (works for ANY developer)
+                          if (!logoUrl && dev.name) {
+                            logoUrl = await searchBrandfetchLogo(dev.name);
+                          }
+
                           if (logoUrl) {
                             await updateDoc(doc(db, 'entities_developers', dev.id), { logoUrl });
                             updated++;
                           }
+
+                          // Small delay to avoid rate-limiting
+                          await new Promise(r => setTimeout(r, 200));
                         }
-                        alert(`Done! Updated ${updated} developer logos.`);
+                        alert(`Done! Updated ${updated} logos. (${skipped} already had logos)`);
                       }}
                       className="w-full md:w-auto justify-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm transition-all flex items-center gap-2"
                     >
@@ -917,13 +959,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                         <button
                           type="button"
                           onClick={async () => {
-                            const nameLower = (stagedDeveloper.name || '').toLowerCase().replace(/\s+/g, '');
-                            const matchedKey = Object.keys(DEV_DOMAINS).find(k => nameLower.includes(k));
-                            if (!matchedKey) {
-                              alert('Could not match developer to a known domain. Please paste a logo URL manually.');
+                            if (!stagedDeveloper.name?.trim()) {
+                              alert('Please enter a developer name first.');
                               return;
                             }
-                            const logoUrl = await fetchBrandfetchLogo(DEV_DOMAINS[matchedKey]);
+                            let logoUrl: string | null = null;
+                            // Try known domain first
+                            const nameLower = (stagedDeveloper.name || '').toLowerCase().replace(/\s+/g, '');
+                            const matchedKey = Object.keys(DEV_DOMAINS).find(k => nameLower.includes(k));
+                            if (matchedKey) {
+                              logoUrl = await fetchBrandfetchLogo(DEV_DOMAINS[matchedKey]);
+                            }
+                            // Fallback: search by name
+                            if (!logoUrl) {
+                              logoUrl = await searchBrandfetchLogo(stagedDeveloper.name);
+                            }
                             if (logoUrl) {
                               setStagedDeveloper({ ...stagedDeveloper, logoUrl });
                             } else {
@@ -954,7 +1004,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                         {liveDevelopers.map(dev => (
                           <tr key={dev.id} className={`hover:bg-slate-50 transition-all group ${dev.isHidden ? 'opacity-50' : ''}`}>
                             <td className="p-4">
-                              {dev.logoUrl ? (
+                              {dev.logoUrl && !isBrokenLogoUrl(dev.logoUrl) ? (
                                 <img
                                   src={dev.logoUrl}
                                   alt=""
@@ -965,7 +1015,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                               <div
                                 className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-black text-sm"
                                 style={{
-                                  display: dev.logoUrl ? 'none' : 'flex',
+                                  display: dev.logoUrl && !isBrokenLogoUrl(dev.logoUrl) ? 'none' : 'flex',
                                   background: `hsl(${(dev.name || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 360}, 55%, 50%)`
                                 }}
                               >
