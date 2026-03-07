@@ -20,10 +20,13 @@ const DEV_DOMAINS: Record<string, string> = {
 
 const BRANDFETCH_KEY = 'JlB99i7lKckSdE_COVE_FNUtfmxWTpfyNBq6uWwvrKAXvU_MINGjzai9GZyspeIUhCTNM-F20qKwxgW7AFvaXw';
 
-/** Check if a logo URL is a known-broken pattern */
+/** Check if a logo URL is a known-broken or placeholder pattern */
 const isBrokenLogoUrl = (url?: string): boolean => {
   if (!url) return true;
-  return url.includes('gstatic.com/faviconV2') || url.includes('placeholder-image');
+  return url.includes('gstatic.com/faviconV2')
+    || url.includes('google.com/s2/favicons')
+    || url.includes('ui-avatars.com')
+    || url.includes('placeholder-image');
 };
 
 /** Fetch the best logo URL from Brandfetch for a given domain (full brand lookup) */
