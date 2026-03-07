@@ -509,6 +509,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
         onFitBounds={handleFitBounds}
         onFlyTo={(lng, lat, zoom) => onFlyTo?.(lng, lat, zoom || 14)}
         startCinematicTour={props.startCinematicTour}
+        onLaunchPresentation={props.onLaunchPresentation}
         onOpenChange={setIsAiChatOpen}
         clearFilters={() => {
           setDeveloperFilter('All');

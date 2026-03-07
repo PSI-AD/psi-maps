@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Sparkles, X, Eye, Navigation, Map, Compass, Volume2, VolumeX, LocateFixed, Landmark as LandmarkIcon, Film } from 'lucide-react';
-import { Project, Landmark } from '../types';
+import { Sparkles, X, Eye, Navigation, Map, Compass, Volume2, VolumeX, LocateFixed, Landmark as LandmarkIcon, Film, Play } from 'lucide-react';
+import { Project, Landmark, ClientPresentation } from '../types';
 import { calculateDistance } from '../utils/geo';
 
 interface ChatAction {
@@ -30,8 +30,10 @@ interface AIChatAssistantProps {
     onOpenChange?: (isOpen: boolean) => void;
     /** Reset all map filters before executing an action */
     clearFilters?: () => void;
-    /** Cinematic sequential tour through stops */
+    /** Cinematic sequential tour through stops (fallback for non-project entities) */
     startCinematicTour?: (stops: { lng: number; lat: number; name?: string }[], zoom?: number) => void;
+    /** Launch a presentation (existing Play button engine) */
+    onLaunchPresentation?: (pres: ClientPresentation) => void;
 }
 
 const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
@@ -47,6 +49,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
     onOpenChange,
     clearFilters,
     startCinematicTour,
+    onLaunchPresentation,
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [isFading, setIsFading] = useState(false);
@@ -108,10 +111,16 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
             actions = [
                 {
                     label: 'Tour Nearby',
-                    icon: <Film className="w-3.5 h-3.5" />,
+                    icon: <Play className="w-3.5 h-3.5" />,
                     onClick: () => {
-                        if (startCinematicTour && nearby.length > 0) {
-                            startCinematicTour(nearby.map(p => ({ lng: Number(p.longitude), lat: Number(p.latitude), name: p.name })), 15);
+                        if (onLaunchPresentation && nearby.length > 0) {
+                            onLaunchPresentation({
+                                id: `ai-nearby-${Date.now()}`,
+                                title: `Nearby ${name}`,
+                                projectIds: nearby.map(p => p.id),
+                                intervalSeconds: 5,
+                                createdAt: new Date().toISOString(),
+                            });
                         } else {
                             onFitBounds?.(nearby);
                         }
@@ -119,11 +128,16 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
                 },
                 ...(devName && devName !== 'Exclusive' ? [{
                     label: `${devName} Tour`,
-                    icon: <Compass className="w-3.5 h-3.5" />,
+                    icon: <Play className="w-3.5 h-3.5" />,
                     onClick: () => {
-                        if (startCinematicTour && devPortfolio.length > 0) {
-                            const stops = devPortfolio.slice(0, 8).map(p => ({ lng: Number(p.longitude), lat: Number(p.latitude), name: p.name }));
-                            startCinematicTour(stops, 14);
+                        if (onLaunchPresentation && devPortfolio.length > 0) {
+                            onLaunchPresentation({
+                                id: `ai-dev-${Date.now()}`,
+                                title: `${devName} Showcase`,
+                                projectIds: devPortfolio.slice(0, 10).map(p => p.id),
+                                intervalSeconds: 5,
+                                createdAt: new Date().toISOString(),
+                            });
                         } else {
                             onFitBounds?.(devPortfolio);
                         }
@@ -133,6 +147,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
                     label: 'Landmark Tour',
                     icon: <LandmarkIcon className="w-3.5 h-3.5" />,
                     onClick: () => {
+                        // Landmarks are not Projects, so use cinematic tour fallback
                         if (startCinematicTour && nearbyLandmarks.length > 0) {
                             startCinematicTour(nearbyLandmarks.map(l => ({ lng: l.longitude, lat: l.latitude, name: l.name })), 15);
                         } else {
@@ -162,11 +177,16 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
             actions = [
                 {
                     label: 'Flyover Tour',
-                    icon: <Film className="w-3.5 h-3.5" />,
+                    icon: <Play className="w-3.5 h-3.5" />,
                     onClick: () => {
-                        if (startCinematicTour && communityProjects.length > 0) {
-                            const stops = communityProjects.slice(0, 10).map(p => ({ lng: Number(p.longitude), lat: Number(p.latitude), name: p.name }));
-                            startCinematicTour(stops, 14);
+                        if (onLaunchPresentation && communityProjects.length > 0) {
+                            onLaunchPresentation({
+                                id: `ai-community-${Date.now()}`,
+                                title: `${name} Tour`,
+                                projectIds: communityProjects.slice(0, 10).map(p => p.id),
+                                intervalSeconds: 5,
+                                createdAt: new Date().toISOString(),
+                            });
                         } else if (communityProjects.length > 0 && onFitBounds) {
                             onFitBounds(communityProjects);
                         }
