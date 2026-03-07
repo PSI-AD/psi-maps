@@ -481,6 +481,8 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
         mapStyle={mapStyle}
         setMapStyle={setMapStyle}
         footerTheme={props.mobileFooterTheme || 'glass'}
+        selectedProject={selectedProject}
+        allLandmarks={liveLandmarks}
       />
 
       {/* Fullscreen Image Lightbox — rendered at MainLayout level to cover full viewport */}

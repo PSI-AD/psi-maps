@@ -1,8 +1,9 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import SearchBar from './SearchBar';
 import { Project, Landmark } from '../types';
-import { Settings, Filter as FilterIcon, X, Pencil, Search, Map as MapIcon, Box, RefreshCw, Layers, ZoomIn, ZoomOut } from 'lucide-react';
+import { Settings, Filter as FilterIcon, X, Pencil, Search, Map as MapIcon, Box, RefreshCw, Layers, ZoomIn, ZoomOut, Play, Pause, Landmark as LandmarkIcon, MapPin, Navigation } from 'lucide-react';
 import { MapCommandCenter } from './MapCommandCenter';
+import { calculateDistance } from '../utils/geo';
 
 interface BottomControlBarProps {
     projects: Project[];
@@ -38,6 +39,8 @@ interface BottomControlBarProps {
     mapStyle?: string;
     setMapStyle?: (style: string) => void;
     footerTheme?: string;
+    selectedProject?: Project | null;
+    allLandmarks?: Landmark[];
 }
 
 const uaeEmirates = ['abu dhabi', 'dubai', 'sharjah', 'ajman', 'umm al quwain', 'ras al khaimah', 'fujairah'];
@@ -76,6 +79,8 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
     mapStyle = '',
     setMapStyle,
     footerTheme = 'glass',
+    selectedProject,
+    allLandmarks = [],
 }) => {
     // ── Theme map ──────────────────────────────────────────────────────────
     const THEMES: Record<string, string> = {
@@ -113,6 +118,52 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
             if (rotationAnimRef.current !== undefined) cancelAnimationFrame(rotationAnimRef.current);
         };
     }, [isQuickRotating, mapRef]);
+
+    // ── Global tour state — listens to FilteredProjectsCarousel broadcasts ──
+    const [isTourPlaying, setIsTourPlaying] = useState(false);
+    const [showTourPanel, setShowTourPanel] = useState(false);
+    const tourPanelTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const detail = (e as CustomEvent).detail;
+            setIsTourPlaying(!!detail?.active);
+        };
+        window.addEventListener('global-tour-changed', handler);
+        return () => window.removeEventListener('global-tour-changed', handler);
+    }, []);
+
+    // Compute nearby projects and landmarks for the currently selected project
+    const nearbyTourData = useMemo(() => {
+        if (!selectedProject || !selectedProject.latitude || !selectedProject.longitude) return null;
+        const lat = Number(selectedProject.latitude);
+        const lng = Number(selectedProject.longitude);
+        if (isNaN(lat) || isNaN(lng)) return null;
+
+        const nearbyProjects = projects
+            .filter(p => p.id !== selectedProject.id && p.latitude && p.longitude)
+            .map(p => ({ ...p, dist: calculateDistance(lat, lng, Number(p.latitude), Number(p.longitude)) }))
+            .sort((a, b) => a.dist - b.dist)
+            .slice(0, 15);
+
+        const nearbyLandmarksList = allLandmarks
+            .filter(l => l.latitude && l.longitude)
+            .map(l => ({ ...l, dist: calculateDistance(lat, lng, l.latitude, l.longitude) }))
+            .sort((a, b) => a.dist - b.dist)
+            .slice(0, 15);
+
+        return { nearbyProjects, nearbyLandmarks: nearbyLandmarksList };
+    }, [selectedProject, projects, allLandmarks]);
+
+    const hasTourOptions = !!nearbyTourData;
+
+    const handleTourPanelEnter = () => {
+        if (tourPanelTimer.current) clearTimeout(tourPanelTimer.current);
+        setShowTourPanel(true);
+    };
+    const handleTourPanelLeave = () => {
+        tourPanelTimer.current = setTimeout(() => setShowTourPanel(false), 300);
+    };
 
     // ── Desktop Map Command Center — hover + click to pin ───────────────
     const [isMapClicked, setIsMapClicked] = useState(false);
@@ -252,6 +303,119 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                         <span className="text-[9px] font-bold text-blue-600 uppercase tracking-[0.2em] mt-0.5">Premier</span>
                     </div>
                 </button>
+
+                {/* ── Global Play/Pause Button ── */}
+                <div
+                    className="relative shrink-0"
+                    onMouseEnter={handleTourPanelEnter}
+                    onMouseLeave={handleTourPanelLeave}
+                >
+                    <button
+                        onClick={() => {
+                            if (isTourPlaying) {
+                                window.dispatchEvent(new CustomEvent('global-tour-pause'));
+                            } else if (showTourPanel) {
+                                // Panel is open, clicking play starts nearby projects tour by default
+                                if (nearbyTourData?.nearbyProjects.length) {
+                                    window.dispatchEvent(new CustomEvent('global-tour-start', {
+                                        detail: { label: 'Nearby Projects', projects: nearbyTourData.nearbyProjects }
+                                    }));
+                                    setShowTourPanel(false);
+                                }
+                            }
+                        }}
+                        disabled={!hasTourOptions && !isTourPlaying}
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shrink-0 ${isTourPlaying
+                            ? 'bg-amber-500 text-white shadow-lg shadow-amber-200 hover:bg-amber-600 animate-pulse'
+                            : hasTourOptions
+                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 hover:bg-blue-700 hover:scale-105'
+                                : 'bg-slate-100 text-slate-300 cursor-not-allowed'
+                            }`}
+                        title={isTourPlaying ? 'Pause Tour' : hasTourOptions ? 'Start Tour' : 'Select a project first'}
+                    >
+                        {isTourPlaying ? <Pause className="w-4.5 h-4.5" /> : <Play className="w-4.5 h-4.5 ml-0.5" />}
+                    </button>
+
+                    {/* Tour Selection Panel — appears on hover */}
+                    {showTourPanel && hasTourOptions && !isTourPlaying && selectedProject && (
+                        <div className="absolute bottom-full left-0 mb-3 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden animate-in slide-in-from-bottom-2 fade-in duration-200 z-[7000]">
+                            {/* Header */}
+                            <div className="px-4 pt-4 pb-2 bg-gradient-to-r from-slate-900 to-slate-800">
+                                <p className="text-[9px] font-bold text-blue-400 uppercase tracking-[0.2em]">Explore Around</p>
+                                <h4 className="text-sm font-black text-white truncate mt-0.5">{selectedProject.name}</h4>
+                            </div>
+
+                            {/* Tour Options */}
+                            <div className="p-2 space-y-1">
+                                {/* Nearby Projects Tour */}
+                                <button
+                                    onClick={() => {
+                                        if (nearbyTourData?.nearbyProjects.length) {
+                                            window.dispatchEvent(new CustomEvent('global-tour-start', {
+                                                detail: { label: 'Nearby Projects', projects: nearbyTourData.nearbyProjects }
+                                            }));
+                                            setShowTourPanel(false);
+                                        }
+                                    }}
+                                    disabled={!nearbyTourData?.nearbyProjects.length}
+                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-blue-50 transition-all group text-left disabled:opacity-40"
+                                >
+                                    <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0 group-hover:bg-blue-200 transition-colors">
+                                        <MapPin className="w-4 h-4 text-blue-600" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-bold text-slate-800">Nearby Projects</p>
+                                        <p className="text-[10px] text-slate-400">{nearbyTourData?.nearbyProjects.length || 0} projects</p>
+                                    </div>
+                                </button>
+
+                                {/* Nearby Landmarks Tour */}
+                                <button
+                                    onClick={() => {
+                                        if (nearbyTourData?.nearbyLandmarks.length) {
+                                            // Trigger neighborhood tour via existing event
+                                            window.dispatchEvent(new CustomEvent('ai-open-neighborhood-tour'));
+                                            setShowTourPanel(false);
+                                        }
+                                    }}
+                                    disabled={!nearbyTourData?.nearbyLandmarks.length}
+                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-emerald-50 transition-all group text-left disabled:opacity-40"
+                                >
+                                    <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0 group-hover:bg-emerald-200 transition-colors">
+                                        <LandmarkIcon className="w-4 h-4 text-emerald-600" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-bold text-slate-800">Nearby Landmarks</p>
+                                        <p className="text-[10px] text-slate-400">{nearbyTourData?.nearbyLandmarks.length || 0} landmarks</p>
+                                    </div>
+                                </button>
+
+                                {/* Nearby Locations Tour */}
+                                <button
+                                    onClick={() => {
+                                        // Start a tour with both nearby projects + landmarks context
+                                        if (nearbyTourData?.nearbyProjects.length) {
+                                            window.dispatchEvent(new CustomEvent('global-tour-start', {
+                                                detail: { label: 'Nearby Locations', projects: nearbyTourData.nearbyProjects }
+                                            }));
+                                            setShowTourPanel(false);
+                                        }
+                                    }}
+                                    disabled={!nearbyTourData?.nearbyProjects.length}
+                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-purple-50 transition-all group text-left disabled:opacity-40"
+                                >
+                                    <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center shrink-0 group-hover:bg-purple-200 transition-colors">
+                                        <Navigation className="w-4 h-4 text-purple-600" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-bold text-slate-800">Nearby Locations</p>
+                                        <p className="text-[10px] text-slate-400">Explore the area</p>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
 
                 {/* ── Quick Map Tools (desktop only) ── */}
                 {mapRef && (

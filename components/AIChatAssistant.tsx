@@ -74,8 +74,19 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
         return () => window.removeEventListener('neighborhood-tour-changed', handler);
     }, []);
 
+    // Listen for global project tour state from FilteredProjectsCarousel
+    const [isGlobalTouring, setIsGlobalTouring] = useState(false);
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const detail = (e as CustomEvent).detail;
+            setIsGlobalTouring(!!detail?.active);
+        };
+        window.addEventListener('global-tour-changed', handler);
+        return () => window.removeEventListener('global-tour-changed', handler);
+    }, []);
+
     // Effective "any tour running" flag
-    const anyTourActive = isTourActive || isNeighborhoodTouring;
+    const anyTourActive = isTourActive || isNeighborhoodTouring || isGlobalTouring;
 
     const AUTO_DISMISS_MS = 8_000;
 
@@ -334,6 +345,8 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedProject?.id, selectedCommunity, selectedCity, selectedLandmark?.id, allProjects.length, anyTourActive]);
 
+    // HARD GUARD: If ANY tour is running, render absolutely nothing
+    if (anyTourActive) return null;
     if (!isOpen || !chatMessage) return null;
 
     return (

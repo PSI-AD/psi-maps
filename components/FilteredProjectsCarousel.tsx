@@ -70,6 +70,40 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
         return () => window.removeEventListener('ai-expand-results-panel', handler);
     }, []);
 
+    // Listen for global Play/Pause commands from the toolbar button
+    useEffect(() => {
+        const handlePause = () => {
+            setPlayingCommunity(null);
+            setPlayProgress(0);
+            activeTourRef.current = null;
+        };
+        const handleStart = (e: Event) => {
+            const detail = (e as CustomEvent).detail;
+            if (detail?.projects?.length) {
+                const label = detail.label || 'Nearby Tour';
+                activeTourRef.current = { community: label, projects: detail.projects };
+                setPlayingCommunity(label);
+                setPlayIndex(0);
+                setPlayProgress(0);
+                setIsCollapsed(false);
+                const first = detail.projects[0];
+                if (first) {
+                    onSelectRef.current(first);
+                    const lng = Number(first.longitude), lat = Number(first.latitude);
+                    if (!isNaN(lng) && !isNaN(lat) && lng !== 0 && lat !== 0) {
+                        onFlyToRef.current?.(lng, lat, 16);
+                    }
+                }
+            }
+        };
+        window.addEventListener('global-tour-pause', handlePause);
+        window.addEventListener('global-tour-start', handleStart);
+        return () => {
+            window.removeEventListener('global-tour-pause', handlePause);
+            window.removeEventListener('global-tour-start', handleStart);
+        };
+    }, []);
+
     // ── Nearest-neighbor spatial sort + group by community ──────────────────
     const groupedProjects = useMemo(() => {
         const groups: Record<string, Project[]> = {};
@@ -201,6 +235,13 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
         return () => clearInterval(ticker);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [playingCommunity]); // groupedProjects intentionally omitted — data accessed via activeTourRef
+
+    // ── Broadcast global tour state so AI chat and toolbar can react ─────
+    useEffect(() => {
+        window.dispatchEvent(new CustomEvent('global-tour-changed', {
+            detail: { active: !!playingCommunity, community: playingCommunity }
+        }));
+    }, [playingCommunity]);
 
     // ── Auto-scroll to selected project on click ──────────────────────────
     useEffect(() => {
