@@ -11,7 +11,12 @@ interface DrawControlProps {
   onReference?: (draw: any) => void;
 }
 
-const DrawControl = (props: DrawControlProps) => {
+const DrawControl = ({
+  onCreate = () => { },
+  onUpdate = () => { },
+  onDelete = () => { },
+  ...props
+}: DrawControlProps) => {
   const draw = useControl<any>(
     () => {
       try {
@@ -33,26 +38,20 @@ const DrawControl = (props: DrawControlProps) => {
       }
     },
     ({ map }) => {
-      if (props.onCreate) map.on('draw.create', props.onCreate);
-      if (props.onUpdate) map.on('draw.update', props.onUpdate);
-      if (props.onDelete) map.on('draw.delete', props.onDelete);
+      if (onCreate) map.on('draw.create', onCreate);
+      if (onUpdate) map.on('draw.update', onUpdate);
+      if (onDelete) map.on('draw.delete', onDelete);
       if (props.onReference) props.onReference(draw);
     },
     ({ map }) => {
-      if (props.onCreate) map.off('draw.create', props.onCreate);
-      if (props.onUpdate) map.off('draw.update', props.onUpdate);
-      if (props.onDelete) map.off('draw.delete', props.onDelete);
+      if (onCreate) map.off('draw.create', onCreate);
+      if (onUpdate) map.off('draw.update', onUpdate);
+      if (onDelete) map.off('draw.delete', onDelete);
     },
     { position: props.position }
   );
 
   return null;
-};
-
-DrawControl.defaultProps = {
-  onCreate: () => { },
-  onUpdate: () => { },
-  onDelete: () => { }
 };
 
 export default DrawControl;

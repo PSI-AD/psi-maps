@@ -47,6 +47,8 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
     const [isCollapsed, setIsCollapsed] = useState(false); // desktop slide-out toggle
     // Stable ref holds the active tour's project array — decoupled from render cycle
     const activeTourRef = useRef<{ community: string; projects: Project[] } | null>(null);
+    // Touch-tap tracker — MUST be before any early return to satisfy Rules of Hooks
+    const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
     // ── Nearest-neighbor spatial sort + group by community ──────────────────
     const groupedProjects = useMemo(() => {
@@ -252,8 +254,7 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
     const RING_C = 88;
     const ringOffset = RING_C - (RING_C * playProgress) / presentationTargetTicks;
 
-    // ── Touch-tap tracker — distinguish taps from scroll-swipes ───────────
-    const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+    // touchStartRef is declared at the top of the component (Rules of Hooks)
 
     // ── Single card renderer ────────────────────────────────────────────────
     const renderCard = (project: Project, idx: number) => {
