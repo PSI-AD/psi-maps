@@ -47,11 +47,21 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
     const [playingCommunity, setPlayingCommunity] = useState<string | null>(null);
     const [playIndex, setPlayIndex] = useState(0);
     const [playProgress, setPlayProgress] = useState(0);
-    const [isCollapsed, setIsCollapsed] = useState(false); // desktop slide-out toggle
+    const [isCollapsed, setIsCollapsed] = useState(true); // desktop: starts hidden, only arrow visible
     // Stable ref holds the active tour's project array — decoupled from render cycle
     const activeTourRef = useRef<{ community: string; projects: Project[] } | null>(null);
     // Touch-tap tracker — MUST be before any early return to satisfy Rules of Hooks
     const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+
+    // Auto-expand panel when AI chat disappears (was true → now false)
+    const prevAiChatRef = useRef(isAiChatOpen);
+    useEffect(() => {
+        if (prevAiChatRef.current && !isAiChatOpen) {
+            // AI chat just closed → expand the panel
+            setIsCollapsed(false);
+        }
+        prevAiChatRef.current = isAiChatOpen;
+    }, [isAiChatOpen]);
 
     // ── Nearest-neighbor spatial sort + group by community ──────────────────
     const groupedProjects = useMemo(() => {
@@ -385,11 +395,12 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
             absolute z-[4000] pointer-events-none
             bottom-[88px] left-0 w-full
             md:top-[56px] md:bottom-auto md:left-0 md:w-[360px]
-            md:max-h-[calc(100vh-200px)]
             flex flex-col overflow-hidden
             transition-all duration-700 ease-in-out
             ${(isCollapsed || isAiChatOpen) ? 'md:-translate-x-full' : 'md:translate-x-6'}
-        `}>
+        `}
+                style={{ maxHeight: 'calc(100vh - 200px)' }}
+            >
 
                 {/* ── Desktop panel header ── */}
                 <div className="hidden md:flex items-center justify-between px-5 py-3.5 bg-white/95 backdrop-blur-xl border border-slate-200/80 rounded-t-3xl pointer-events-auto shadow-lg shrink-0">
@@ -467,7 +478,6 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                         pb-3 pt-1 px-3
                         md:flex-col md:overflow-y-auto md:overflow-x-hidden
                         md:snap-none
-                        md:flex-1 md:min-h-0
                         md:px-0 md:pb-4 md:pt-0 md:gap-0
                         md:bg-white/90 md:backdrop-blur-xl
                         md:rounded-b-3xl
@@ -475,6 +485,7 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                         md:shadow-2xl md:shadow-slate-300/30
                         pointer-events-auto hide-scrollbar scroll-smooth
                     "
+                        style={{ maxHeight: '520px' }}
                     >
                         {displayGroups.map(([communityName, commProjects]) => {
                             const isPlaying = playingCommunity === communityName;
