@@ -18,6 +18,8 @@ import WelcomeBanner from './components/WelcomeBanner';
 import PropertyResultsList from './components/PropertyResultsList';
 import PresentationShowcase from './components/PresentationShowcase';
 import LandmarkInfoModal from './components/LandmarkInfoModal';
+import StreetViewPanel from './components/StreetViewPanel';
+import ARView from './components/ARView';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -94,6 +96,12 @@ const AppInner: React.FC = () => {
   } | null>(null);
   const activeRouteGeometry = activeRouteInfo?.geometry || null;
   const [activePresentation, setActivePresentation] = useState<ClientPresentation | null>(null);
+
+  // Street View panel state
+  const [streetViewData, setStreetViewData] = useState<{ lat: number; lng: number; name: string } | null>(null);
+
+  // AR Mode state
+  const [isAROpen, setIsAROpen] = useState(false);
   const [showWelcomeBanner, _setShowWelcomeBanner] = useState(() => {
     const saved = localStorage.getItem('psi_banner_enabled');
     return saved !== null ? saved === 'true' : true;
@@ -128,6 +136,25 @@ const AppInner: React.FC = () => {
       }
     });
     return () => unsub();
+  }, []);
+
+  // Listen for Street View open requests from sidebar
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.lat && detail?.lng) {
+        setStreetViewData({ lat: detail.lat, lng: detail.lng, name: detail.name || 'Location' });
+      }
+    };
+    window.addEventListener('open-street-view', handler);
+    return () => window.removeEventListener('open-street-view', handler);
+  }, []);
+
+  // Listen for AR mode toggle from Settings
+  useEffect(() => {
+    const handler = () => setIsAROpen(true);
+    window.addEventListener('open-ar-mode', handler);
+    return () => window.removeEventListener('open-ar-mode', handler);
   }, []);
 
   // Auto-infer city when a community is selected (prevents dropdown desync)
@@ -525,6 +552,28 @@ const AppInner: React.FC = () => {
         <LandmarkInfoModal
           landmark={infoLandmark}
           onClose={() => setInfoLandmark(null)}
+        />
+      )}
+
+      {/* Street View Split Screen Panel */}
+      {streetViewData && (
+        <StreetViewPanel
+          lat={streetViewData.lat}
+          lng={streetViewData.lng}
+          projectName={streetViewData.name}
+          onClose={() => setStreetViewData(null)}
+        />
+      )}
+
+      {/* AR Mode Overlay */}
+      {isAROpen && (
+        <ARView
+          projects={liveProjects}
+          onClose={() => setIsAROpen(false)}
+          onSelectProject={(p) => {
+            setIsAROpen(false);
+            handleMarkerClick(p.id);
+          }}
         />
       )}
     </MainLayout>

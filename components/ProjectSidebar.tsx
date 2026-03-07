@@ -1109,6 +1109,37 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
               )}
             </div>
 
+            {/* ── Street View Quick Action ── */}
+            {project.latitude && project.longitude && !isNaN(Number(project.latitude)) && !isNaN(Number(project.longitude)) && (
+              <button
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('open-street-view', {
+                    detail: {
+                      lat: Number(project.latitude),
+                      lng: Number(project.longitude),
+                      name: project.name
+                    }
+                  }));
+                }}
+                className="w-full rounded-xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-md transition-all group"
+              >
+                <div className="relative h-24 bg-slate-100">
+                  <img
+                    src={`https://maps.googleapis.com/maps/api/staticmap?center=${project.latitude},${project.longitude}&zoom=17&size=400x160&maptype=satellite&key=`}
+                    alt=""
+                    className="w-full h-full object-cover opacity-50 group-hover:opacity-70 transition-opacity"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-slate-900/20 flex items-center justify-center">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-md rounded-full border border-white/30">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
+                      <span className="text-xs font-black text-white uppercase tracking-wider">Open Street View</span>
+                    </div>
+                  </div>
+                </div>
+              </button>
+            )}
+
             <div id="sidebar-map-section" />
 
             {/* ── SECTION 3: About the Project ── */}

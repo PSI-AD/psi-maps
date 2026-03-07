@@ -825,6 +825,52 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                   <button className="mt-4 px-6 py-2.5 bg-blue-600 text-white font-bold rounded-lg text-sm hover:bg-blue-700">Save Global Settings</button>
                 </div>
 
+                {/* AR Mode Section */}
+                <div>
+                  <div className="mb-6 border-b border-slate-100 pb-4">
+                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">AR Explorer</h2>
+                    <p className="text-slate-500 text-sm">Point your phone at the skyline and discover properties around you in real-time.</p>
+                  </div>
+                  <div className="bg-gradient-to-br from-slate-900 to-blue-900 rounded-2xl p-6 text-white overflow-hidden relative">
+                    {/* Decorative grid */}
+                    <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.3) 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+                    <div className="relative z-10">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-12 h-12 rounded-xl bg-blue-500/30 backdrop-blur flex items-center justify-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-blue-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></svg>
+                        </div>
+                        <div>
+                          <p className="text-lg font-black">Augmented Reality Mode</p>
+                          <p className="text-blue-300 text-xs font-bold">Camera • GPS • Compass</p>
+                        </div>
+                      </div>
+                      <p className="text-blue-200/80 text-sm mb-5 leading-relaxed">
+                        Launch the AR camera to see floating project labels over real-world buildings.
+                        Shows project name, developer, price, and distance — all positioned using
+                        live GPS and compass data.
+                      </p>
+                      <div className="flex flex-wrap gap-2 mb-5">
+                        <span className="px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-bold">📍 GPS Location</span>
+                        <span className="px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-bold">🧭 Compass Heading</span>
+                        <span className="px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-bold">📷 Camera Feed</span>
+                        <span className="px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-bold">🏗️ 20 Nearby Projects</span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          window.dispatchEvent(new CustomEvent('open-ar-mode'));
+                          props.onClose();
+                        }}
+                        className="w-full py-3.5 bg-blue-500 hover:bg-blue-600 text-white font-black rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-blue-500/30 text-sm uppercase tracking-wider"
+                      >
+                        🔮 Launch AR Explorer
+                      </button>
+                      <p className="text-blue-400/50 text-[10px] text-center mt-3">
+                        Best on mobile devices with camera and GPS • Requires HTTPS
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Locations CMS (Cities & Countries) */}
                 <div>
                   <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
