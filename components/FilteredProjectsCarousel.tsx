@@ -363,9 +363,10 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
         <div className={`
             absolute z-[4000] pointer-events-none
             bottom-[88px] left-0 w-full
-            md:bottom-[96px] md:top-[80px] md:left-0 md:w-[360px]
+            md:bottom-[96px] md:top-[56px] md:left-0 md:w-[360px]
+            md:max-h-[calc(100vh-160px)]
             flex flex-col
-            transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]
+            transition-all duration-700 ease-in-out
             ${(isCollapsed || isAiChatOpen) ? 'md:-translate-x-full' : 'md:translate-x-6'}
         `}>
             {/* ── Desktop: Collapse toggle button — sticks out from right edge ── */}

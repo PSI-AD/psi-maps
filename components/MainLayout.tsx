@@ -206,8 +206,8 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
         {children}
       </div>
 
-      {/* Breadcrumbs Navigation — capped width on mobile, project name hidden on xs */}
-      <div className="absolute top-4 left-4 z-[4000] flex items-center gap-1.5 text-slate-800 text-sm font-bold bg-white/80 backdrop-blur-md px-4 py-2 rounded-full shadow-sm border border-slate-200 max-w-[calc(100vw-112px)] overflow-hidden">
+      {/* Breadcrumbs Navigation — aligned with the filter panel left edge */}
+      <div className="absolute top-[16px] left-6 z-[4000] flex items-center gap-1.5 text-slate-800 text-sm font-bold bg-white/80 backdrop-blur-md px-4 py-2 rounded-full shadow-sm border border-slate-200 max-w-[calc(100vw-112px)] overflow-hidden">
         <button onClick={() => { props.setSelectedCity(''); props.setSelectedCommunity(''); props.onCloseProject(); props.handleLocationSelect('city', '', props.liveProjects); }} className="hover:text-blue-600 transition-colors shrink-0">UAE</button>
         {props.selectedCity && (
           <>
@@ -232,7 +232,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
       {/* Analysis Sidebar */}
       {isAnalysisOpen && selectedProject && (
         <div
-          className="absolute top-0 right-0 bottom-[76px] w-full md:w-[380px] z-[5000] shadow-2xl bg-white transition-transform transform translate-x-0 border-l border-slate-200 overflow-hidden flex flex-col"
+          className="absolute top-0 right-0 bottom-[56px] w-full md:w-[380px] z-[5000] shadow-2xl bg-white transition-transform transform translate-x-0 border-l border-slate-200 overflow-hidden flex flex-col"
         >
           <Suspense fallback={
             <div className="h-full flex items-center justify-center bg-white">
