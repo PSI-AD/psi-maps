@@ -6,6 +6,7 @@ import BottomControlBar from './BottomControlBar';
 import FullscreenImageModal from './FullscreenImageModal';
 import NearbyPanel from './NearbyPanel';
 import FilteredProjectsCarousel from './FilteredProjectsCarousel';
+import AIChatAssistant from './AIChatAssistant';
 import { Loader2, Building, LayoutGrid, X, RotateCcw } from 'lucide-react';
 
 interface MainLayoutProps {
@@ -478,6 +479,9 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
       {fullscreenImage && (
         <FullscreenImageModal imageUrl={fullscreenImage} onClose={() => setFullscreenImage(null)} />
       )}
+
+      {/* AI Chat Assistant overlay */}
+      <AIChatAssistant />
     </div>
   );
 };
