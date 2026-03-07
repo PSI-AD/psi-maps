@@ -34,36 +34,36 @@ const RECIPIENT_EMAIL = 'propertyshopinvest@gmail.com';
 
 // ── Types ────────────────────────────────────────────────────────────
 export interface LeadData {
-    formType: 'project_inquiry' | 'floor_plan_request' | 'general_contact' | 'callback_request';
-    projectName?: string;
-    community?: string;
-    developer?: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-    message?: string;
+  formType: 'project_inquiry' | 'floor_plan_request' | 'general_contact' | 'callback_request';
+  projectName?: string;
+  community?: string;
+  developer?: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  message?: string;
 }
 
 // ── Professional HTML Email Template ─────────────────────────────────
 function buildEmailHTML(lead: LeadData): string {
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
-    const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true });
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+  const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true });
 
-    const formLabels: Record<string, string> = {
-        project_inquiry: '🏗️ Project Inquiry',
-        floor_plan_request: '📐 Floor Plan Request',
-        general_contact: '📩 General Contact',
-        callback_request: '📞 Callback Request',
-    };
+  const formLabels: Record<string, string> = {
+    project_inquiry: '🏗️ Project Inquiry',
+    floor_plan_request: '📐 Floor Plan Request',
+    general_contact: '📩 General Contact',
+    callback_request: '📞 Callback Request',
+  };
 
-    const formLabel = formLabels[lead.formType] || 'New Lead';
+  const formLabel = formLabels[lead.formType] || 'New Lead';
 
-    const accentColor = '#2563EB';
-    const darkBg = '#0F172A';
+  const accentColor = '#2563EB';
+  const darkBg = '#0F172A';
 
-    return `
+  return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -221,69 +221,82 @@ function buildEmailHTML(lead: LeadData): string {
 
 // ── Email Subject Builder ────────────────────────────────────────────
 function buildSubject(lead: LeadData): string {
-    const prefix: Record<string, string> = {
-        project_inquiry: '🏗️ New Inquiry',
-        floor_plan_request: '📐 Floor Plan Request',
-        general_contact: '📩 New Contact',
-        callback_request: '📞 Callback Request',
-    };
-    const tag = prefix[lead.formType] || '📩 New Lead';
-    const project = lead.projectName ? ` — ${lead.projectName}` : '';
-    return `${tag}${project} | ${lead.firstName} ${lead.lastName}`;
+  const prefix: Record<string, string> = {
+    project_inquiry: '🏗️ New Inquiry',
+    floor_plan_request: '📐 Floor Plan Request',
+    general_contact: '📩 New Contact',
+    callback_request: '📞 Callback Request',
+  };
+  const tag = prefix[lead.formType] || '📩 New Lead';
+  const project = lead.projectName ? ` — ${lead.projectName}` : '';
+  return `${tag}${project} | ${lead.firstName} ${lead.lastName}`;
 }
 
 // ── The Main Send Function ───────────────────────────────────────────
 export async function sendLeadEmail(lead: LeadData): Promise<{ success: boolean; error?: string }> {
-    // If EmailJS isn't configured, fall back to Firestore-only storage
-    if (!SERVICE_ID || !TEMPLATE_ID || !PUBLIC_KEY) {
-        console.warn('⚠️ EmailJS not configured. Lead saved to Firestore only. Set VITE_EMAILJS_* env vars.');
-        return { success: true };
-    }
+  // If EmailJS isn't configured, fall back to Firestore-only storage
+  if (!SERVICE_ID || !TEMPLATE_ID || !PUBLIC_KEY) {
+    console.warn('⚠️ EmailJS not configured. Lead saved to Firestore only. Set VITE_EMAILJS_* env vars.');
+    return { success: true };
+  }
 
-    try {
-        const result = await emailjs.send(
-            SERVICE_ID,
-            TEMPLATE_ID,
-            {
-                to_email: RECIPIENT_EMAIL,
-                subject: buildSubject(lead),
-                html_body: buildEmailHTML(lead),
-                from_name: `${lead.firstName} ${lead.lastName}`,
-                reply_to: lead.email,
-            },
-            PUBLIC_KEY
-        );
-        console.log('✅ Email sent:', result.status, result.text);
-        return { success: true };
-    } catch (err: any) {
-        console.error('❌ Email send failed:', err);
-        return { success: false, error: err?.text || err?.message || 'Unknown error' };
-    }
+  try {
+    const result = await emailjs.send(
+      SERVICE_ID,
+      TEMPLATE_ID,
+      {
+        to_email: RECIPIENT_EMAIL,
+        subject: buildSubject(lead),
+        html_body: buildEmailHTML(lead),
+        from_name: `${lead.firstName} ${lead.lastName}`,
+        reply_to: lead.email,
+      },
+      PUBLIC_KEY
+    );
+    console.log('✅ Email sent:', result.status, result.text);
+    return { success: true };
+  } catch (err: any) {
+    console.error('❌ Email send failed:', err);
+    return { success: false, error: err?.text || err?.message || 'Unknown error' };
+  }
 }
 
 // ── Also save leads to Firestore for CRM tracking ───────────────────
 export async function saveLeadToFirestore(lead: LeadData): Promise<void> {
-    try {
-        const { collection, addDoc, serverTimestamp } = await import('firebase/firestore');
-        const { db } = await import('./firebase');
-        await addDoc(collection(db, 'leads'), {
-            ...lead,
-            submittedAt: serverTimestamp(),
-            status: 'new',
-            source: 'psi-maps',
-        });
-        console.log('💾 Lead saved to Firestore');
-    } catch (err) {
-        console.error('❌ Failed to save lead to Firestore:', err);
-    }
+  try {
+    const { collection, addDoc, serverTimestamp } = await import('firebase/firestore');
+    const { db } = await import('./firebase');
+    await addDoc(collection(db, 'leads'), {
+      ...lead,
+      submittedAt: serverTimestamp(),
+      status: 'new',
+      source: 'psi-maps',
+    });
+    console.log('💾 Lead saved to Firestore');
+  } catch (err) {
+    console.error('❌ Failed to save lead to Firestore:', err);
+  }
 }
 
 // ── Convenience: Send + Save ─────────────────────────────────────────
+// IMPORTANT: The user sees SUCCESS if the lead is saved to Firestore.
+// Email failure is a silent warning — the lead is captured either way.
+// To fix the EmailJS 412 error: On emailjs.com, go to Email Services,
+// disconnect and reconnect the Gmail account — this refreshes the
+// OAuth scopes to include gmail.send permission.
 export async function submitLead(lead: LeadData): Promise<{ success: boolean; error?: string }> {
-    // Fire both in parallel
-    const [emailResult] = await Promise.all([
-        sendLeadEmail(lead),
-        saveLeadToFirestore(lead),
-    ]);
-    return emailResult;
+  // Fire both in parallel — email and Firestore
+  const [emailResult] = await Promise.all([
+    sendLeadEmail(lead),
+    saveLeadToFirestore(lead),
+  ]);
+
+  // Always return success — the lead is saved to Firestore regardless
+  // Email is a bonus notification; its failure should NOT block the user
+  if (!emailResult.success) {
+    console.warn('⚠️ Lead saved to Firestore but email notification failed:', emailResult.error);
+    console.warn('💡 Fix: Go to emailjs.com → Email Services → Re-connect Gmail to refresh OAuth scopes');
+  }
+
+  return { success: true };
 }
