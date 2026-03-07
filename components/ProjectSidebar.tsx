@@ -464,6 +464,26 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
     ? plainText.slice(0, DESCRIPTION_LIMIT)
     : rawDescription;
 
+  // Auto-format plain-text descriptions into readable paragraphs
+  const formatDescription = (html: string): string => {
+    // If it already has paragraph tags, return as-is
+    if (html.includes('<p>') || html.includes('<br')) return html;
+    // Strip tags, then split into paragraphs
+    const text = html.replace(/<[^>]*>/g, '').trim();
+    // Split on double newlines first
+    let blocks = text.split(/\n\s*\n/).filter(b => b.trim());
+    // If only one block, try splitting every 2-3 sentences
+    if (blocks.length <= 1) {
+      const sentences = text.split(/(?<=[.!?])\s+/).filter(s => s.trim());
+      blocks = [];
+      for (let i = 0; i < sentences.length; i += 3) {
+        blocks.push(sentences.slice(i, i + 3).join(' '));
+      }
+    }
+    return blocks.map(b => `<p>${b.trim()}</p>`).join('');
+  };
+  const formattedDescription = formatDescription(rawDescription);
+
   // Filter nearby landmarks by same community
   const communityLandmarks = nearbyLandmarks.filter(l =>
     !l.isHidden &&
@@ -894,7 +914,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
               )}
             </div>
 
-            {/* 4. Description */}
+            {/* ── SECTION 1: About the Project ── */}
             {rawDescription && (
               <div>
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
@@ -908,77 +928,12 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                     </button>
                   </div>
                 ) : (
-                  <div className="prose prose-sm text-slate-600 leading-relaxed max-w-none prose-p:mb-2 prose-strong:text-slate-900" dangerouslySetInnerHTML={{ __html: rawDescription }} />
+                  <div className="prose prose-sm text-slate-600 leading-relaxed max-w-none prose-p:mb-3 prose-strong:text-slate-900" dangerouslySetInnerHTML={{ __html: formattedDescription }} />
                 )}
               </div>
             )}
 
-            {/* 5. Lifestyle Amenities */}
-            {project.amenities && project.amenities.length > 0 && (
-              <div>
-                <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
-                  <LayoutTemplate className="w-4 h-4 mr-2 text-blue-600" />Lifestyle Amenities
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {project.amenities.map((amenity, idx) => (
-                    <div key={idx} className="px-3 py-2 bg-white text-slate-600 text-[11px] font-bold uppercase tracking-wider border border-slate-200 rounded-lg shadow-sm flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                      {amenity}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* 6. Drive-Time Isochrone */}
-            <div>
-              <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
-                <Clock className="w-4 h-4 mr-2 text-blue-600" />Commute & Drive-Time
-              </h3>
-              <div className="flex gap-2 p-1 bg-slate-100 rounded-xl mb-4">
-                {(['driving', 'walking'] as const).map(mode => (
-                  <button
-                    key={mode}
-                    onClick={() => setActiveIsochrone({ mode, minutes: isoMinutes })}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${isoMode === mode && activeIsochrone ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-900'}`}
-                  >
-                    {mode === 'driving' ? <Car className="w-4 h-4" /> : <Footprints className="w-4 h-4" />}
-                    {mode}
-                  </button>
-                ))}
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                  <span>5 min</span>
-                  <span className="text-blue-600 font-black">{isoMinutes} min</span>
-                  <span>30 min</span>
-                </div>
-                <input
-                  type="range" min={5} max={30} step={5}
-                  value={isoMinutes}
-                  onChange={e => setActiveIsochrone({ mode: isoMode, minutes: Number(e.target.value) })}
-                  className="w-full accent-blue-600 cursor-pointer"
-                />
-              </div>
-              {activeIsochrone && (
-                <button onClick={() => setActiveIsochrone(null)} className="mt-3 text-xs font-bold text-slate-400 hover:text-rose-500 transition-colors">
-                  ✕ Clear isochrone
-                </button>
-              )}
-              {/* Quick-action: 15-Min Drive Zone */}
-              <button
-                onClick={() => setActiveIsochrone({ mode: 'driving', minutes: 15 })}
-                className={`mt-3 w-full py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all border ${activeIsochrone?.mode === 'driving' && activeIsochrone?.minutes === 15
-                  ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                  : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-600 hover:text-white hover:border-blue-600'
-                  }`}
-              >
-                <Clock className="w-3.5 h-3.5" />
-                15-Min Drive Zone
-              </button>
-            </div>
-
-            {/* 7. Top 5 Nearby Amenities List */}
+            {/* ── SECTION 2: Nearby Amenities (Top 5 list) ── */}
             {nearbyAmenities.length > 0 && (
               <div>
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
@@ -1015,7 +970,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
               </div>
             )}
 
-            {/* 7. Nearby Amenities — opens the NearbyPanel */}
+            {/* View All Amenities button */}
             <button
               onClick={() => setShowNearbyPanel(true)}
               className="w-full mt-4 mb-2 py-3 bg-slate-50 border border-slate-200 hover:bg-blue-50 hover:border-blue-200 text-blue-700 rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2"
@@ -1024,9 +979,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
               View All Amenities
             </button>
 
-            <div id="sidebar-map-section" />
-
-            {/* 8. Custom Distance Calculator — live autocomplete + real Mapbox Directions route */}
+            {/* ── SECTION 3: Route & Drive Time ── */}
             <div className="relative mt-8 pt-6 border-t border-slate-100 pb-4">
               <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
                 <Car className="w-4 h-4 mr-2 text-blue-600" /> Route & Drive Time
@@ -1092,6 +1045,73 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                 </div>
               )}
             </div>
+
+            <div id="sidebar-map-section" />
+
+            {/* ── SECTION 4: Lifestyle Amenities ── */}
+            {project.amenities && project.amenities.length > 0 && (
+              <div>
+                <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
+                  <LayoutTemplate className="w-4 h-4 mr-2 text-blue-600" />Lifestyle Amenities
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {project.amenities.map((amenity, idx) => (
+                    <div key={idx} className="px-3 py-2 bg-white text-slate-600 text-[11px] font-bold uppercase tracking-wider border border-slate-200 rounded-lg shadow-sm flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                      {amenity}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── SECTION 5: Commute & Drive-Time Isochrone ── */}
+            <div>
+              <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
+                <Clock className="w-4 h-4 mr-2 text-blue-600" />Commute & Drive-Time
+              </h3>
+              <div className="flex gap-2 p-1 bg-slate-100 rounded-xl mb-4">
+                {(['driving', 'walking'] as const).map(mode => (
+                  <button
+                    key={mode}
+                    onClick={() => setActiveIsochrone({ mode, minutes: isoMinutes })}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${isoMode === mode && activeIsochrone ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-900'}`}
+                  >
+                    {mode === 'driving' ? <Car className="w-4 h-4" /> : <Footprints className="w-4 h-4" />}
+                    {mode}
+                  </button>
+                ))}
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  <span>5 min</span>
+                  <span className="text-blue-600 font-black">{isoMinutes} min</span>
+                  <span>30 min</span>
+                </div>
+                <input
+                  type="range" min={5} max={30} step={5}
+                  value={isoMinutes}
+                  onChange={e => setActiveIsochrone({ mode: isoMode, minutes: Number(e.target.value) })}
+                  className="w-full accent-blue-600 cursor-pointer"
+                />
+              </div>
+              {activeIsochrone && (
+                <button onClick={() => setActiveIsochrone(null)} className="mt-3 text-xs font-bold text-slate-400 hover:text-rose-500 transition-colors">
+                  ✕ Clear isochrone
+                </button>
+              )}
+              {/* Quick-action: 15-Min Drive Zone */}
+              <button
+                onClick={() => setActiveIsochrone({ mode: 'driving', minutes: 15 })}
+                className={`mt-3 w-full py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all border ${activeIsochrone?.mode === 'driving' && activeIsochrone?.minutes === 15
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                  : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-600 hover:text-white hover:border-blue-600'
+                  }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                15-Min Drive Zone
+              </button>
+            </div>
           </div>
 
           <div className="px-6 pb-8 pt-4 space-y-3">
@@ -1109,7 +1129,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
       </div>
 
       {/* Modals */}
-      {isTextModalOpen && (<TextModal text={rawDescription} onClose={() => setIsTextModalOpen(false)} />)}
+      {isTextModalOpen && (<TextModal text={formattedDescription} onClose={() => setIsTextModalOpen(false)} />)}
       {isInquireModalOpen && (
         <InquireModal projectName={project.name} onClose={() => setIsInquireModalOpen(false)} />
       )}
