@@ -198,7 +198,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
     } catch { return dateStr; }
   };
 
-  // ── Mapbox Geocoding API (replaces Google Places — no extra API key needed) ──
+  // ── Mapbox Search Box API v1 (better POI + place results than Geocoding v5) ──
+  // Session token groups suggest+retrieve calls for billing
+  const mapSearchSessionRef = useRef<string>(crypto.randomUUID());
+
   const fetchMapSuggestions = (query: string) => {
     setMapSearchQuery(query);
     if (mapSearchDebounceRef.current) clearTimeout(mapSearchDebounceRef.current);
@@ -207,42 +210,58 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
     mapSearchDebounceRef.current = setTimeout(async () => {
       try {
         const encoded = encodeURIComponent(query.trim());
-        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encoded}.json`
-          + `?access_token=${PUBLIC_MAPBOX_TOKEN}`
-          + `&country=ae`
-          + `&types=place,locality,neighborhood,poi,address`
-          + `&autocomplete=true`
-          + `&limit=7`
-          + `&language=en`;
+        // UAE bounding box for tight filtering
+        const bbox = '51.5,22.5,56.5,26.5';
+        const url = `https://api.mapbox.com/search/searchbox/v1/suggest`
+          + `?q=${encoded}`
+          + `&access_token=${PUBLIC_MAPBOX_TOKEN}`
+          + `&session_token=${mapSearchSessionRef.current}`
+          + `&country=AE`
+          + `&bbox=${bbox}`
+          + `&types=poi,place,neighborhood,locality,address,region`
+          + `&language=en`
+          + `&limit=7`;
         const res = await fetch(url);
         const data = await res.json();
         setMapSearchLoading(false);
-        if (data.features?.length) {
-          setMapSearchResults(data.features.map((f: any) => ({
-            id: f.id,
-            place_name: f.place_name,
-            text: f.text,
-            context_text: f.place_name.replace(f.text + ', ', ''),
-            center: f.center, // [lng, lat]
+        if (data.suggestions?.length) {
+          setMapSearchResults(data.suggestions.map((s: any) => ({
+            mapbox_id: s.mapbox_id,
+            name: s.name,
+            full_address: s.full_address || s.place_formatted || '',
+            feature_type: s.feature_type,
+            poi_category: s.poi_category,
           })));
         } else {
           setMapSearchResults([]);
         }
       } catch (err) {
-        console.error('Mapbox geocoding error:', err);
+        console.error('Mapbox Search Box error:', err);
         setMapSearchLoading(false);
         setMapSearchResults([]);
       }
     }, 200);
   };
 
-  const handleSelectSearchResult = (result: any) => {
-    setMapSearchQuery(result.place_name);
+  const handleSelectSearchResult = async (result: any) => {
+    setMapSearchQuery(result.name + (result.full_address ? ', ' + result.full_address : ''));
     setMapSearchResults([]);
-    if (result.center) {
-      const [lng, lat] = result.center;
-      setStagedProject(prev => prev ? { ...prev, latitude: lat, longitude: lng } : prev);
-      setMapModalViewState({ longitude: lng, latitude: lat, zoom: 16 });
+    try {
+      // Retrieve full feature with coordinates
+      const url = `https://api.mapbox.com/search/searchbox/v1/retrieve/${result.mapbox_id}`
+        + `?access_token=${PUBLIC_MAPBOX_TOKEN}`
+        + `&session_token=${mapSearchSessionRef.current}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.features?.[0]?.geometry?.coordinates) {
+        const [lng, lat] = data.features[0].geometry.coordinates;
+        setStagedProject(prev => prev ? { ...prev, latitude: lat, longitude: lng } : prev);
+        setMapModalViewState({ longitude: lng, latitude: lat, zoom: 16 });
+      }
+      // Generate new session token for next search
+      mapSearchSessionRef.current = crypto.randomUUID();
+    } catch (err) {
+      console.error('Mapbox retrieve error:', err);
     }
   };
 
@@ -1281,16 +1300,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                     {/* Results dropdown */}
                     {mapSearchResults.length > 0 && (
                       <div className="absolute top-full left-0 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-2xl overflow-hidden max-h-72 overflow-y-auto">
-                        {mapSearchResults.map((res: any) => (
+                        {mapSearchResults.map((res: any, i: number) => (
                           <button
-                            key={res.id}
+                            key={res.mapbox_id || i}
                             onClick={() => handleSelectSearchResult(res)}
                             className="w-full text-left px-4 py-3 hover:bg-blue-50 border-b border-slate-50 last:border-0 transition-colors group flex items-start gap-3"
                           >
                             <MapPin className="w-4 h-4 text-slate-400 group-hover:text-blue-500 mt-0.5 shrink-0" />
-                            <div className="min-w-0">
-                              <span className="font-bold text-slate-900 block truncate text-sm group-hover:text-blue-700">{res.text}</span>
-                              <span className="text-[11px] text-slate-400 truncate block">{res.context_text}</span>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-slate-900 truncate text-sm group-hover:text-blue-700">{res.name}</span>
+                                {res.feature_type && (
+                                  <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 shrink-0">
+                                    {res.feature_type === 'poi' ? 'Place' : res.feature_type}
+                                  </span>
+                                )}
+                              </div>
+                              {res.full_address && <span className="text-[11px] text-slate-400 truncate block">{res.full_address}</span>}
                             </div>
                           </button>
                         ))}

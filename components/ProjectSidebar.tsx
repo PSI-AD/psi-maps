@@ -302,7 +302,9 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
     setShowNeighborhoodList(true);
   };
 
-  // ---- Custom Distance Calculator: live debounced autocomplete (Mapbox Geocoding) ----
+  // ---- Custom Distance Calculator: Mapbox Search Box API v1 (POI + places) ----
+  const destSessionRef = useRef<string>(crypto.randomUUID());
+
   const fetchDestSuggestions = (query: string) => {
     setCustomDestQuery(query);
     if (destSearchRef.current) clearTimeout(destSearchRef.current);
@@ -319,28 +321,30 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
       try {
         const encoded = encodeURIComponent(query.trim());
         const proximity = `${Number(project.longitude)},${Number(project.latitude)}`;
-        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encoded}.json`
-          + `?access_token=${PUBLIC_MAPBOX_TOKEN}`
-          + `&country=ae`
-          + `&types=place,locality,neighborhood,poi,address`
-          + `&autocomplete=true`
-          + `&limit=5`
+        const bbox = '51.5,22.5,56.5,26.5';
+        const url = `https://api.mapbox.com/search/searchbox/v1/suggest`
+          + `?q=${encoded}`
+          + `&access_token=${PUBLIC_MAPBOX_TOKEN}`
+          + `&session_token=${destSessionRef.current}`
+          + `&country=AE`
+          + `&bbox=${bbox}`
           + `&proximity=${proximity}`
-          + `&language=en`;
+          + `&types=poi,place,neighborhood,locality,address`
+          + `&language=en`
+          + `&limit=5`;
         const res = await fetch(url);
         const data = await res.json();
-        if (data.features?.length) {
-          setDestSuggestions(data.features.map((f: any) => ({
-            id: f.id,
-            description: f.place_name,
-            text: f.text,
-            center: f.center, // [lng, lat]
+        if (data.suggestions?.length) {
+          setDestSuggestions(data.suggestions.map((s: any) => ({
+            mapbox_id: s.mapbox_id,
+            description: s.name + (s.full_address ? ', ' + s.full_address : (s.place_formatted || '')),
+            text: s.name,
           })));
         } else {
           setDestSuggestions([]);
         }
       } catch (err) {
-        console.error('Mapbox geocoding error:', err);
+        console.error('Mapbox Search Box error:', err);
         setDestSuggestions([]);
       }
       setIsSearchingDest(false);
@@ -374,14 +378,25 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
     setIsFetchingRoute(false);
   };
 
-  const handleSelectDest = (prediction: any) => {
+  const handleSelectDest = async (prediction: any) => {
     const label = prediction.description;
     setCustomDestResult({ name: label, roadKm: 0, driveMinutes: 0 });
     setCustomDestQuery(label);
     setDestSuggestions([]);
-    if (prediction.center) {
-      const [lng, lat] = prediction.center;
-      fetchRealRoute(lng, lat);
+    try {
+      // Retrieve coordinates from Search Box API
+      const url = `https://api.mapbox.com/search/searchbox/v1/retrieve/${prediction.mapbox_id}`
+        + `?access_token=${PUBLIC_MAPBOX_TOKEN}`
+        + `&session_token=${destSessionRef.current}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.features?.[0]?.geometry?.coordinates) {
+        const [lng, lat] = data.features[0].geometry.coordinates;
+        await fetchRealRoute(lng, lat);
+      }
+      destSessionRef.current = crypto.randomUUID();
+    } catch (err) {
+      console.error('Mapbox retrieve error:', err);
     }
   };
 
