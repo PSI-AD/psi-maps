@@ -429,6 +429,7 @@ const AppInner: React.FC = () => {
       onLaunchPresentation={(pres) => { setActivePresentation(pres); setIsAdminOpen(false); }}
       onExitPresentation={() => setActivePresentation(null)}
       onSelectLandmark={handleLandmarkClick}
+      selectedLandmarkForSearch={selectedLandmarkForSearch}
       mapRef={mapRef}
       activeRouteGeometry={activeRouteGeometry}
       onRouteReady={handleRouteReady}

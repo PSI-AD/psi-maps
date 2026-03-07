@@ -962,22 +962,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
               );
             })()}
 
-            {/* ── SECTION 1: About the Project ── */}
-            {rawDescription && (
-              <div>
-                <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
-                  <Activity className="w-4 h-4 mr-2 text-blue-600" />About The Project
-                </h3>
-                <div className="prose prose-sm text-slate-600 leading-relaxed max-w-none prose-p:mb-3 prose-strong:text-slate-900 line-clamp-4" dangerouslySetInnerHTML={{ __html: formattedDescription }} />
-                {plainText.length > 120 && (
-                  <button onClick={() => setIsTextModalOpen(true)} className="mt-2 text-blue-600 hover:text-blue-800 text-xs font-black uppercase tracking-widest transition-colors">
-                    Read More →
-                  </button>
-                )}
-              </div>
-            )}
-
-            {/* ── SECTION 2: Nearby Amenities (Top 5 list) ── */}
+            {/* ── SECTION 1: Nearby Amenities (Top 5 list) ── */}
             {nearbyAmenities.length > 0 && (
               <div>
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
@@ -1088,6 +1073,21 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
             </div>
 
             <div id="sidebar-map-section" />
+
+            {/* ── SECTION 3: About the Project ── */}
+            {rawDescription && (
+              <div>
+                <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
+                  <Activity className="w-4 h-4 mr-2 text-blue-600" />About The Project
+                </h3>
+                <div className="prose prose-sm text-slate-600 leading-relaxed max-w-none prose-p:mb-3 prose-strong:text-slate-900 line-clamp-4" dangerouslySetInnerHTML={{ __html: formattedDescription }} />
+                {plainText.length > 120 && (
+                  <button onClick={() => setIsTextModalOpen(true)} className="mt-2 text-blue-600 hover:text-blue-800 text-xs font-black uppercase tracking-widest transition-colors">
+                    Read More →
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* ── SECTION 4: Lifestyle Amenities ── */}
             {project.amenities && project.amenities.length > 0 && (

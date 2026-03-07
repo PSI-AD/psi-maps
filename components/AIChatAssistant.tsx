@@ -14,6 +14,10 @@ interface AIChatAssistantProps {
     selectedProject?: Project | null;
     selectedCommunity?: string;
     selectedCity?: string;
+    /** Currently selected landmark (for landmark chat) */
+    selectedLandmark?: Landmark | null;
+    /** True when any tour/presentation is running — disables chat completely */
+    isTourActive?: boolean;
     /** Filter the developer column to a specific developer */
     onFilterDeveloper?: (developer: string) => void;
     /** Fly the camera + filter to a specific community */
@@ -40,6 +44,8 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
     selectedProject,
     selectedCommunity,
     selectedCity,
+    selectedLandmark,
+    isTourActive = false,
     onFilterDeveloper,
     onFilterCommunity,
     onFitBounds,
@@ -57,7 +63,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
     const [chatMessage, setChatMessage] = useState<{ text: string; actions: ChatAction[] } | null>(null);
     const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const AUTO_DISMISS_MS = 10_000;
+    const AUTO_DISMISS_MS = 8_000;
 
     // Start / reset the 10-second auto-dismiss countdown
     const resetTimer = useCallback(() => {
@@ -242,6 +248,55 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
                     : []),
                 { label: 'No thanks', icon: <X className="w-3.5 h-3.5" />, isDismiss: true },
             ];
+        } else if (selectedLandmark) {
+            // Landmark selected — show landmark-specific actions
+            name = selectedLandmark.name || 'Landmark';
+            question = `What would you like to explore near ${name}?`;
+            const lLat = Number(selectedLandmark.latitude);
+            const lLng = Number(selectedLandmark.longitude);
+
+            // Nearby projects within proximity
+            const nearbyToLandmark = allProjects
+                .filter(p => p.latitude && p.longitude)
+                .map(p => ({ ...p, dist: calculateDistance(lLat, lLng, Number(p.latitude), Number(p.longitude)) }))
+                .sort((a, b) => a.dist - b.dist)
+                .slice(0, 5);
+
+            actions = [
+                {
+                    label: 'Nearby Projects',
+                    icon: <Map className="w-3.5 h-3.5" />,
+                    onClick: () => onFitBounds?.(nearbyToLandmark),
+                },
+                {
+                    label: 'Tour Projects',
+                    icon: <Play className="w-3.5 h-3.5" />,
+                    onClick: () => {
+                        if (onLaunchPresentation && nearbyToLandmark.length > 0) {
+                            onLaunchPresentation({
+                                id: `ai-landmark-${Date.now()}`,
+                                title: `Near ${name}`,
+                                projectIds: nearbyToLandmark.map(p => p.id),
+                                intervalSeconds: 5,
+                                createdAt: new Date().toISOString(),
+                            });
+                        }
+                    },
+                },
+                {
+                    label: 'Bird\'s Eye',
+                    icon: <Eye className="w-3.5 h-3.5" />,
+                    onClick: () => onFlyTo?.(lLng, lLat, 13),
+                },
+                { label: 'No thanks', icon: <X className="w-3.5 h-3.5" />, isDismiss: true },
+            ];
+        }
+
+        // ── TOUR GUARD: If a tour is running, suppress ALL chat ──
+        if (isTourActive) {
+            setIsOpen(false);
+            onOpenChange?.(false);
+            return;
         }
 
         if (name) {
@@ -263,7 +318,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
             onOpenChange?.(false);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedProject?.id, selectedCommunity, selectedCity, allProjects.length]);
+    }, [selectedProject?.id, selectedCommunity, selectedCity, selectedLandmark?.id, allProjects.length, isTourActive]);
 
     if (!isOpen || !chatMessage) return null;
 
