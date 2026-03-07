@@ -82,8 +82,6 @@ const PropertyResultsList: React.FC<PropertyResultsListProps> = ({
             <div className="overflow-y-auto max-h-[60vh] py-2">
                 {sortedProjects.map(project => {
                     const devNameLower = (project.developerName || '').toLowerCase();
-                    const matchedKey = Object.keys(DEV_DOMAINS).find(k => devNameLower.includes(k));
-                    const logoUrl = matchedKey ? `https://www.google.com/s2/favicons?domain=${DEV_DOMAINS[matchedKey]}&sz=128` : null;
 
                     return (
                         <button
@@ -105,17 +103,9 @@ const PropertyResultsList: React.FC<PropertyResultsListProps> = ({
                                 <h4 className="text-xs font-bold text-slate-900 truncate leading-tight">{project.name}</h4>
                                 <p className="text-[10px] text-slate-500 truncate">{project.community}</p>
                                 <div className="flex items-center gap-1.5 mt-1 min-w-0">
-                                    {logoUrl ? (
-                                        <img
-                                            src={logoUrl}
-                                            alt={project.developerName}
-                                            className="w-3.5 h-3.5 object-contain rounded-sm shrink-0"
-                                        />
-                                    ) : (
-                                        <div className="w-3.5 h-3.5 bg-blue-100 rounded-sm flex items-center justify-center shrink-0">
-                                            <span className="text-[7px] font-black text-blue-600">{project.developerName?.charAt(0) || 'D'}</span>
-                                        </div>
-                                    )}
+                                    <div className="w-3.5 h-3.5 bg-blue-100 rounded-sm flex items-center justify-center shrink-0">
+                                        <span className="text-[7px] font-black text-blue-600">{project.developerName?.charAt(0) || 'D'}</span>
+                                    </div>
                                     <p className="text-[9px] font-black text-blue-500 uppercase tracking-wide truncate">
                                         {project.developerName}
                                     </p>

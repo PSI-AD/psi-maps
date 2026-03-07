@@ -539,14 +539,19 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
             })}
 
             {/* Real traffic route — drawn when user uses the sidebar distance calculator */}
-            {activeRouteGeometry && (
+            {activeRouteGeometry && activeRouteGeometry.coordinates && activeRouteGeometry.coordinates.length > 0 && (
                 <Source
                     id="real-route"
                     type="geojson"
                     data={{
                         type: 'Feature',
                         properties: {},
-                        geometry: activeRouteGeometry,
+                        geometry: {
+                            ...activeRouteGeometry,
+                            coordinates: activeRouteGeometry.coordinates.filter((c: any) =>
+                                Array.isArray(c) && c.every((v: any) => typeof v === 'number' && !isNaN(v))
+                            ),
+                        },
                     }}
                 >
                     {/* Outer glow / casing */}

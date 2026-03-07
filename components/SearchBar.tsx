@@ -55,10 +55,8 @@ const DOMAIN_MAP: Record<string, string> = {
 
 const getDeveloperLogo = (name: string): string => {
     if (!name) return '';
-    const key = Object.keys(DOMAIN_MAP).find(k => name.toLowerCase().includes(k));
-    return key
-        ? `https://www.google.com/s2/favicons?domain=${DOMAIN_MAP[key]}&sz=128`
-        : `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0f172a&color=ffffff&size=64&bold=true&rounded=true`;
+    // Use ui-avatars for all — Google s2/favicons redirects to faviconV2 which 404s for many domains
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0f172a&color=ffffff&size=64&bold=true&rounded=true`;
 };
 
 const SearchBar: React.FC<SearchBarProps> = ({
