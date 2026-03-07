@@ -87,7 +87,12 @@ const AppInner: React.FC = () => {
   const [activeIsochrone, setActiveIsochrone] = useState<{ mode: 'driving' | 'walking'; minutes: number } | null>(null);
   const [showNearbyPanel, setShowNearbyPanel] = useState(false);
   const [selectedLandmarkForSearch, setSelectedLandmarkForSearch] = useState<Landmark | null>(null);
-  const [activeRouteGeometry, setActiveRouteGeometry] = useState<any | null>(null);
+  const [activeRouteInfo, setActiveRouteInfo] = useState<{
+    geometry: any;
+    startName: string; startLng: number; startLat: number;
+    destName: string; destLng: number; destLat: number;
+  } | null>(null);
+  const activeRouteGeometry = activeRouteInfo?.geometry || null;
   const [activePresentation, setActivePresentation] = useState<ClientPresentation | null>(null);
   const [showWelcomeBanner, _setShowWelcomeBanner] = useState(() => {
     const saved = localStorage.getItem('psi_banner_enabled');
@@ -137,8 +142,9 @@ const AppInner: React.FC = () => {
   }, [selectedCommunity, liveProjects, selectedCity, setSelectedCity]);
 
   // Handle route geometry from the sidebar's Directions call
-  const handleRouteReady = (geometry: any | null) => {
-    setActiveRouteGeometry(geometry);
+  const handleRouteReady = (routeInfo: { geometry: any; startName: string; startLng: number; startLat: number; destName: string; destLng: number; destLat: number } | null) => {
+    setActiveRouteInfo(routeInfo);
+    const geometry = routeInfo?.geometry;
     if (geometry && geometry.coordinates && geometry.coordinates.length >= 2) {
       const lngs = geometry.coordinates.map((c: number[]) => c[0]);
       const lats = geometry.coordinates.map((c: number[]) => c[1]);
@@ -474,6 +480,7 @@ const AppInner: React.FC = () => {
           selectedLandmarkForSearch={selectedLandmarkForSearch}
           hoveredProjectId={hoveredProjectId}
           activeRouteGeometry={activeRouteGeometry}
+          activeRouteInfo={activeRouteInfo}
           enableHeatmap={enableHeatmap}
           enableSunlight={enableSunlight}
           isLassoMode={isLassoMode}

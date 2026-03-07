@@ -47,7 +47,7 @@ interface ProjectSidebarProps {
   nearbyLandmarks: Landmark[];
   onFlyTo: (lng: number, lat: number, zoom?: number) => void;
   setShowNearbyPanel: (v: boolean) => void;
-  onRouteReady?: (geometry: any | null) => void;
+  onRouteReady?: (routeInfo: { geometry: any; startName: string; startLng: number; startLat: number; destName: string; destLng: number; destLat: number } | null) => void;
   mapRef?: React.MutableRefObject<any>;
   onSelectLandmark?: (landmark: Landmark) => void;
 }
@@ -381,7 +381,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   };
 
   // ---- Fetch real driving route via Mapbox Directions (traffic profile) ----
-  const fetchRealRoute = async (destLng: number, destLat: number): Promise<void> => {
+  const fetchRealRoute = async (destLng: number, destLat: number, destName: string): Promise<void> => {
     const startLng = Number(project.longitude);
     const startLat = Number(project.latitude);
     if (isNaN(startLng) || isNaN(startLat)) return;
@@ -398,8 +398,16 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
         const roadKm = parseFloat((route.distance / 1000).toFixed(1));
         const driveMinutes = Math.ceil(route.duration / 60);
         const geometry = route.geometry; // GeoJSON LineString
-        setCustomDestResult(prev => prev ? { ...prev, roadKm, driveMinutes } : { name: '', roadKm, driveMinutes });
-        onRouteReady?.(geometry);
+        setCustomDestResult(prev => prev ? { ...prev, roadKm, driveMinutes } : { name: destName, roadKm, driveMinutes });
+        onRouteReady?.({
+          geometry,
+          startName: project.name,
+          startLng,
+          startLat,
+          destName,
+          destLng,
+          destLat,
+        });
       }
     } catch (err) {
       console.error('Directions API error:', err);
@@ -421,7 +429,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
       const data = await res.json();
       if (data.features?.[0]?.geometry?.coordinates) {
         const [lng, lat] = data.features[0].geometry.coordinates;
-        await fetchRealRoute(lng, lat);
+        await fetchRealRoute(lng, lat, label);
       }
       destSessionRef.current = crypto.randomUUID();
     } catch (err) {

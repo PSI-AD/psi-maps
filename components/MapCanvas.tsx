@@ -37,6 +37,11 @@ interface MapCanvasProps {
     hoveredProjectId?: string | null;
     onBoundsChange?: (bounds: any) => void;
     activeRouteGeometry?: any | null;
+    activeRouteInfo?: {
+        geometry: any;
+        startName: string; startLng: number; startLat: number;
+        destName: string; destLng: number; destLat: number;
+    } | null;
     enableHeatmap?: boolean;
     enableSunlight?: boolean;
     isLassoMode?: boolean;
@@ -130,7 +135,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
     setHoveredProjectId, setHoveredLandmarkId,
     selectedLandmark, selectedProject, hoveredProject, projects = [], mapFeatures,
     activeBoundary, activeIsochrone, selectedLandmarkForSearch, hoveredProjectId, onBoundsChange,
-    activeRouteGeometry, enableHeatmap = false, enableSunlight = false,
+    activeRouteGeometry, activeRouteInfo, enableHeatmap = false, enableSunlight = false,
     isLassoMode = false, drawnCoordinates = [], setDrawnCoordinates,
     onLandmarkInfo,
     auditReviewProject,
@@ -452,95 +457,100 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                 </Source>
             )}
 
-            <Source id="projects" type="geojson" data={geoJsonData as any} cluster={true} clusterMaxZoom={14} clusterRadius={45}>
-                <Layer {...clusterLayer} />
-                <Layer {...clusterCountLayer} />
-                <Layer
-                    id="selected-point"
-                    type="circle"
-                    source="projects"
-                    filter={['==', ['get', 'id'], selectedProjectId || '']}
-                    paint={{
-                        'circle-color': '#d4af37', // Gold/Amber
-                        'circle-radius': 14,
-                        'circle-stroke-width': 3,
-                        'circle-stroke-color': '#ffffff',
-                        'circle-color-transition': { duration: 300 }
-                    }}
-                />
+            {/* Hide project dots and amenity markers during route display for clean view */}
+            {!activeRouteInfo && (
+                <>
+                    <Source id="projects" type="geojson" data={geoJsonData as any} cluster={true} clusterMaxZoom={14} clusterRadius={45}>
+                        <Layer {...clusterLayer} />
+                        <Layer {...clusterCountLayer} />
+                        <Layer
+                            id="selected-point"
+                            type="circle"
+                            source="projects"
+                            filter={['==', ['get', 'id'], selectedProjectId || '']}
+                            paint={{
+                                'circle-color': '#d4af37', // Gold/Amber
+                                'circle-radius': 14,
+                                'circle-stroke-width': 3,
+                                'circle-stroke-color': '#ffffff',
+                                'circle-color-transition': { duration: 300 }
+                            }}
+                        />
 
-                <Layer
-                    id="unclustered-point"
-                    type="circle"
-                    source="projects"
-                    filter={['!', ['has', 'point_count']]}
-                    paint={{
-                        'circle-color': '#2563eb', // Royal Blue
-                        'circle-radius': 8,
-                        'circle-stroke-width': 2,
-                        'circle-stroke-color': '#ffffff'
-                    }}
-                />
-                {/* Invisible hit-target layer — 35px radius makes pins tappable on mobile */}
-                <Layer
-                    id="unclustered-point-hit"
-                    type="circle"
-                    source="projects"
-                    filter={['!', ['has', 'point_count']]}
-                    paint={{
-                        'circle-color': '#000000',
-                        'circle-opacity': 0.01,
-                        'circle-radius': 35
-                    }}
-                />
-                {/* Project name labels — visible at zoom ≥ 13.5 */}
-                <Layer {...unclusteredLabelLayer} />
-            </Source>
+                        <Layer
+                            id="unclustered-point"
+                            type="circle"
+                            source="projects"
+                            filter={['!', ['has', 'point_count']]}
+                            paint={{
+                                'circle-color': '#2563eb', // Royal Blue
+                                'circle-radius': 8,
+                                'circle-stroke-width': 2,
+                                'circle-stroke-color': '#ffffff'
+                            }}
+                        />
+                        {/* Invisible hit-target layer — 35px radius makes pins tappable on mobile */}
+                        <Layer
+                            id="unclustered-point-hit"
+                            type="circle"
+                            source="projects"
+                            filter={['!', ['has', 'point_count']]}
+                            paint={{
+                                'circle-color': '#000000',
+                                'circle-opacity': 0.01,
+                                'circle-radius': 35
+                            }}
+                        />
+                        {/* Project name labels — visible at zoom ≥ 13.5 */}
+                        <Layer {...unclusteredLabelLayer} />
+                    </Source>
 
-            {/* Amenity markers — superclustered; deferred 800ms to unblock initial paint */}
-            {markersReady && clusters.map(cluster => {
-                const [longitude, latitude] = cluster.geometry.coordinates;
-                const { cluster: isCluster, point_count: pointCount } = cluster.properties;
+                    {/* Amenity markers — superclustered; deferred 800ms to unblock initial paint */}
+                    {markersReady && clusters.map(cluster => {
+                        const [longitude, latitude] = cluster.geometry.coordinates;
+                        const { cluster: isCluster, point_count: pointCount } = cluster.properties;
 
-                if (isCluster) {
-                    return (
-                        <Marker key={`cluster-${cluster.id}`} latitude={latitude} longitude={longitude}>
-                            <div
-                                className="w-10 h-10 bg-slate-900/90 backdrop-blur border-2 border-white rounded-full flex items-center justify-center text-white font-bold shadow-xl cursor-pointer hover:scale-110 transition-transform"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (!supercluster) return;
-                                    const expansionZoom = Math.min(supercluster.getClusterExpansionZoom(cluster.id as number), 20);
-                                    mapRef.current?.flyTo({ center: [longitude, latitude], zoom: expansionZoom, duration: 500 });
-                                }}
-                                onTouchEnd={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    if (!supercluster) return;
-                                    const expansionZoom = Math.min(supercluster.getClusterExpansionZoom(cluster.id as number), 20);
-                                    mapRef.current?.flyTo({ center: [longitude, latitude], zoom: expansionZoom, duration: 500 });
-                                }}
-                            >
-                                {pointCount}
-                            </div>
-                        </Marker>
-                    );
-                }
+                        if (isCluster) {
+                            return (
+                                <Marker key={`cluster-${cluster.id}`} latitude={latitude} longitude={longitude}>
+                                    <div
+                                        className="w-10 h-10 bg-slate-900/90 backdrop-blur border-2 border-white rounded-full flex items-center justify-center text-white font-bold shadow-xl cursor-pointer hover:scale-110 transition-transform"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (!supercluster) return;
+                                            const expansionZoom = Math.min(supercluster.getClusterExpansionZoom(cluster.id as number), 20);
+                                            mapRef.current?.flyTo({ center: [longitude, latitude], zoom: expansionZoom, duration: 500 });
+                                        }}
+                                        onTouchEnd={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            if (!supercluster) return;
+                                            const expansionZoom = Math.min(supercluster.getClusterExpansionZoom(cluster.id as number), 20);
+                                            mapRef.current?.flyTo({ center: [longitude, latitude], zoom: expansionZoom, duration: 500 });
+                                        }}
+                                    >
+                                        {pointCount}
+                                    </div>
+                                </Marker>
+                            );
+                        }
 
-                // If it's not a cluster, render the exact existing custom Landmark Marker here:
-                const landmark = cluster.properties.amenity;
-                return (
-                    <AmenityMarker
-                        key={`landmark-${landmark.id}`}
-                        amenity={landmark}
-                        isSelected={selectedLandmarkForSearch?.id === landmark.id}
-                        onClick={() => onLandmarkClick(landmark)}
-                        onMouseEnter={() => setHoveredLandmarkId(landmark.id)}
-                        onMouseLeave={() => setHoveredLandmarkId(null)}
-                        onInfo={onLandmarkInfo}
-                    />
-                );
-            })}
+                        // If it's not a cluster, render the exact existing custom Landmark Marker here:
+                        const landmark = cluster.properties.amenity;
+                        return (
+                            <AmenityMarker
+                                key={`landmark-${landmark.id}`}
+                                amenity={landmark}
+                                isSelected={selectedLandmarkForSearch?.id === landmark.id}
+                                onClick={() => onLandmarkClick(landmark)}
+                                onMouseEnter={() => setHoveredLandmarkId(landmark.id)}
+                                onMouseLeave={() => setHoveredLandmarkId(null)}
+                                onInfo={onLandmarkInfo}
+                            />
+                        );
+                    })}
+                </>
+            )}
 
             {/* Real traffic route — drawn when user uses the sidebar distance calculator */}
             {activeRouteGeometry && activeRouteGeometry.coordinates && activeRouteGeometry.coordinates.length > 0 && (
@@ -581,6 +591,36 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                         layout={{ 'line-cap': 'round', 'line-join': 'round' }}
                     />
                 </Source>
+            )}
+
+            {/* Route Endpoint Markers — prominent A/B pins with names, always visible */}
+            {activeRouteInfo && (
+                <>
+                    {/* Point A — Start (Project) */}
+                    <Marker longitude={activeRouteInfo.startLng} latitude={activeRouteInfo.startLat} anchor="bottom">
+                        <div className="flex flex-col items-center pointer-events-none" style={{ transform: 'translateY(-4px)' }}>
+                            <div className="px-3 py-1.5 bg-white rounded-full shadow-xl border-2 border-blue-600 mb-1 whitespace-nowrap max-w-[200px]">
+                                <span className="text-[11px] font-black text-blue-600 uppercase tracking-wide truncate block">A</span>
+                                <span className="text-[10px] font-bold text-slate-700 truncate block">{activeRouteInfo.startName}</span>
+                            </div>
+                            <div className="w-5 h-5 bg-blue-600 rounded-full border-3 border-white shadow-[0_0_0_3px_rgba(37,99,235,0.3),0_4px_12px_rgba(0,0,0,0.3)] flex items-center justify-center">
+                                <div className="w-2 h-2 bg-white rounded-full" />
+                            </div>
+                        </div>
+                    </Marker>
+                    {/* Point B — Destination */}
+                    <Marker longitude={activeRouteInfo.destLng} latitude={activeRouteInfo.destLat} anchor="bottom">
+                        <div className="flex flex-col items-center pointer-events-none" style={{ transform: 'translateY(-4px)' }}>
+                            <div className="px-3 py-1.5 bg-white rounded-full shadow-xl border-2 border-cyan-500 mb-1 whitespace-nowrap max-w-[200px]">
+                                <span className="text-[11px] font-black text-cyan-600 uppercase tracking-wide truncate block">B</span>
+                                <span className="text-[10px] font-bold text-slate-700 truncate block">{activeRouteInfo.destName}</span>
+                            </div>
+                            <div className="w-5 h-5 bg-cyan-500 rounded-full border-3 border-white shadow-[0_0_0_3px_rgba(0,194,255,0.3),0_4px_12px_rgba(0,0,0,0.3)] flex items-center justify-center">
+                                <div className="w-2 h-2 bg-white rounded-full" />
+                            </div>
+                        </div>
+                    </Marker>
+                </>
             )}
 
             {/* Dashed amber line from selected landmark to highlighted project */}
