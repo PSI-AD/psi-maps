@@ -47,19 +47,30 @@ const auditLocations = async () => {
         const projects = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         console.log(`✅ Found ${projects.length} projects to audit.\n`);
+        console.log('📌 Strategy: SAFE MODE — audit coordinates are stored as NEW fields.');
+        console.log('   Original mapLatitude/mapLongitude will NOT be modified.\n');
 
         let mismatchCount = 0;
+        let matchedCount = 0;
         let notFoundCount = 0;
         let skippedCount = 0;
-        const batch = db.batch();
+
+        // Firestore batch limit is 500 operations — we'll auto-flush
+        let batch = db.batch();
+        let batchCount = 0;
+
+        const flushBatch = async () => {
+            if (batchCount > 0) {
+                await batch.commit();
+                batch = db.batch();
+                batchCount = 0;
+            }
+        };
 
         for (let i = 0; i < projects.length; i++) {
             const p = projects[i];
 
             // 1. Try to get coordinates from multiple possible field names
-            //    CRM imports use mapLatitude/mapLongitude
-            //    Manual entries may use latitude/longitude
-            //    Some may have a nested coordinates object
             let lat = p.mapLatitude ?? p.latitude;
             let lng = p.mapLongitude ?? p.longitude;
 
@@ -78,7 +89,6 @@ const auditLocations = async () => {
                 continue;
             }
 
-            // Use the numeric values for the distance check
             const currentLat = numLat;
             const currentLng = numLng;
 
@@ -94,50 +104,60 @@ const auditLocations = async () => {
                 const data = await response.json();
 
                 if (data.features && data.features.length > 0) {
-                    // Mapbox returns coordinates as [longitude, latitude]
                     const [mbLng, mbLat] = data.features[0].center;
-
                     const distance = getDistanceInMeters(currentLat, currentLng, mbLat, mbLng);
 
                     if (distance > 100) {
                         console.log(`⚠️  Mismatch: ${projectName} — off by ${Math.round(distance)}m (community: ${p.community || 'N/A'})`);
                         mismatchCount++;
 
-                        const auditRef = db.collection('audit_locations').doc(p.id);
-                        batch.set(auditRef, {
-                            projectId: p.id,
-                            projectName: projectName,
-                            community: p.community || 'Unknown',
-                            currentCoordinates: { lat: currentLat, lng: currentLng },
-                            suggestedCoordinates: { lat: mbLat, lng: mbLng },
-                            distanceOffMeters: Math.round(distance),
-                            mapboxPlaceName: data.features[0].place_name,
-                            status: 'pending',
-                            createdAt: admin.firestore.FieldValue.serverTimestamp()
+                        // ── SAFE WRITE: Add audit fields to the PROJECT document itself ──
+                        // Original mapLatitude/mapLongitude remain UNTOUCHED
+                        const projectRef = db.collection('projects').doc(p.id);
+                        batch.update(projectRef, {
+                            auditLatitude: mbLat,
+                            auditLongitude: mbLng,
+                            auditDistanceMeters: Math.round(distance),
+                            auditMapboxPlaceName: data.features[0].place_name,
+                            auditStatus: 'pending',    // pending | approved | rejected
+                            auditedAt: admin.firestore.FieldValue.serverTimestamp(),
                         });
+                        batchCount++;
+
+                        // Firestore batch limit is 500 — flush before hitting it
+                        if (batchCount >= 490) {
+                            console.log('  💾 Flushing batch (490 writes)...');
+                            await flushBatch();
+                        }
+                    } else {
+                        matchedCount++;
                     }
                 } else {
                     notFoundCount++;
                 }
             } catch (err) {
-                console.error(`  Error checking ${p.name}:`, err.message);
+                console.error(`  Error checking ${projectName}:`, err.message);
             }
 
             await sleep(250); // Mapbox rate limit safety
             if ((i + 1) % 50 === 0) console.log(`  ... audited ${i + 1}/${projects.length} projects`);
         }
 
-        if (mismatchCount > 0) {
-            console.log(`\n💾 Saving ${mismatchCount} mismatches to 'audit_locations' collection...`);
-            await batch.commit();
-        }
+        // Flush remaining writes
+        await flushBatch();
 
         console.log('\n🎉 Audit Complete!');
         console.log(`  Total Projects: ${projects.length}`);
         console.log(`  Skipped (no coords): ${skippedCount}`);
-        console.log(`  Mismatches (>100m): ${mismatchCount}`);
-        console.log(`  Not Found by Mapbox: ${notFoundCount}`);
-        console.log(`  Matched OK: ${projects.length - skippedCount - mismatchCount - notFoundCount}`);
+        console.log(`  ✅ Matched OK (<100m): ${matchedCount}`);
+        console.log(`  ⚠️  Mismatches (>100m): ${mismatchCount}`);
+        console.log(`  ❌ Not Found by Mapbox: ${notFoundCount}`);
+        console.log('\n📌 Audit fields added to each mismatched project:');
+        console.log('   • auditLatitude / auditLongitude — suggested coordinates');
+        console.log('   • auditDistanceMeters — how far off the original was');
+        console.log('   • auditMapboxPlaceName — what Mapbox resolved');
+        console.log('   • auditStatus — "pending" (approve/reject manually)');
+        console.log('\n💡 Original mapLatitude/mapLongitude are UNTOUCHED.');
 
     } catch (error) {
         console.error('❌ Error running audit:', error);
