@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Project, Landmark } from '../types';
 import { distance as turfDistance } from '@turf/distance';
 import { X, Car, MapPin, Footprints } from 'lucide-react';
+import { LandmarkFactCard } from './LandmarkFactCard';
 
 interface NearbyPanelProps {
     project: Project;
@@ -111,31 +112,36 @@ const NearbyPanel: React.FC<NearbyPanelProps> = ({ project, landmarks, onClose }
                                 {items.map(item => {
                                     const style = categoryStyle[item.category?.toLowerCase?.()] ?? defaultStyle;
                                     return (
-                                        <div
-                                            key={item.id}
-                                            className="flex items-center justify-between px-5 py-3.5 bg-white rounded-xl border border-slate-100 gap-4 shadow-sm hover:shadow-md transition-shadow group"
-                                        >
-                                            {/* Brand logo / category chip */}
-                                            {(() => {
-                                                return (
-                                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 relative overflow-hidden ${style.bg} ${style.text}`}>
-                                                        <div className={`w-3 h-3 rounded-full ${style.dot}`} />
-                                                    </div>
-                                                );
-                                            })()}
+                                        <React.Fragment key={item.id}>
+                                            <div
+                                                className="flex items-center justify-between px-5 py-3.5 bg-white rounded-xl border border-slate-100 gap-4 shadow-sm hover:shadow-md transition-shadow group"
+                                            >
+                                                {/* Brand logo / category chip */}
+                                                {(() => {
+                                                    return (
+                                                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 relative overflow-hidden ${style.bg} ${style.text}`}>
+                                                            <div className={`w-3 h-3 rounded-full ${style.dot}`} />
+                                                        </div>
+                                                    );
+                                                })()}
 
-                                            {/* Name */}
-                                            <span className="font-black text-sm text-slate-800 flex-1 truncate group-hover:text-blue-600 transition-colors">
-                                                {item.name}
-                                            </span>
+                                                {/* Name */}
+                                                <span className="font-black text-sm text-slate-800 flex-1 truncate group-hover:text-blue-600 transition-colors">
+                                                    {item.name}
+                                                </span>
 
-                                            {/* Metrics */}
-                                            <RotatingMetric
-                                                distance={`${item.distance.toFixed(1)} km`}
-                                                drive={`${item.drivingTime} m`}
-                                                walk={`${item.walkingTime} m`}
-                                            />
-                                        </div>
+                                                {/* Metrics */}
+                                                <RotatingMetric
+                                                    distance={`${item.distance.toFixed(1)} km`}
+                                                    drive={`${item.drivingTime} m`}
+                                                    walk={`${item.walkingTime} m`}
+                                                />
+                                            </div>
+                                            {/* Fact card — only renders if landmark has facts */}
+                                            {item.facts && item.facts.length > 0 && (
+                                                <LandmarkFactCard landmark={item} />
+                                            )}
+                                        </React.Fragment>
                                     );
                                 })}
                             </div>
