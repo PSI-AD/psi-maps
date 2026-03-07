@@ -307,6 +307,7 @@ const AppInner: React.FC = () => {
   const handleMarkerClick = (id: string) => {
     setSelectedProjectId(id);
     setSelectedLandmarkId(null);
+    setActiveRouteInfo(null); // Clear any active route when switching projects
     // Open analysis panel on both desktop AND mobile
     setIsAnalysisOpen(true);
     const p = filteredProjects.find(pr => pr.id === id);
@@ -324,6 +325,7 @@ const AppInner: React.FC = () => {
     handleFlyTo(project.longitude, project.latitude, 16);
     setSelectedProjectId(project.id);
     setSelectedLandmarkId(null);
+    setActiveRouteInfo(null); // Clear any active route when searching
     setIsAnalysisOpen(true);
     // Sync Breadcrumbs on select
     setSelectedCity(project.city || '');
@@ -346,7 +348,7 @@ const AppInner: React.FC = () => {
 
   const handleMapClick = (e: any) => {
     if (e.originalEvent?.target === mapRef.current?.getMap().getCanvas()) {
-      setSelectedProjectId(null); setSelectedLandmarkId(null); setIsAnalysisOpen(false);
+      setSelectedProjectId(null); setSelectedLandmarkId(null); setIsAnalysisOpen(false); setActiveRouteInfo(null);
     }
   };
 
@@ -356,6 +358,7 @@ const AppInner: React.FC = () => {
     setActiveIsochrone(null);
     setShowNearbyPanel(false);
     setSelectedLandmarkForSearch(null);
+    setActiveRouteInfo(null); // Clear route when closing project sidebar
   };
 
   const handleFocusProjectFromReverseSearch = (id: string) => {
@@ -396,6 +399,7 @@ const AppInner: React.FC = () => {
     setPropertyType('All');
     handleFitBounds([], true);
     setSelectedLandmarkForSearch(null);
+    setActiveRouteInfo(null); // Clear route on global reset
   };
 
   const handleQuickFilter = (type: 'community' | 'developer', value: string) => {
@@ -490,6 +494,22 @@ const AppInner: React.FC = () => {
           auditReviewProject={showCoordReview ? auditReviewProject : null}
         />
       </ErrorBoundary>
+
+      {/* Floating "Exit Route" button — visible when a driving route is active */}
+      {activeRouteInfo && (
+        <button
+          onClick={() => {
+            setActiveRouteInfo(null);
+            // Reset pitch back to flat
+            mapRef.current?.getMap()?.easeTo({ pitch: 0, duration: 800 });
+          }}
+          className="fixed top-20 left-1/2 -translate-x-1/2 z-[6500] flex items-center gap-2 px-5 py-2.5 bg-slate-900/90 backdrop-blur-lg text-white rounded-full shadow-2xl border border-white/10 hover:bg-red-600 transition-all hover:scale-105 group"
+          title="Close driving route"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 group-hover:rotate-90 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+          <span className="text-xs font-bold uppercase tracking-wider">Exit Route</span>
+        </button>
+      )}
       {/* Reverse Search: floating nearby projects panel */}
       {selectedLandmarkForSearch && nearbyProjects.length > 0 && (
         <PropertyResultsList
