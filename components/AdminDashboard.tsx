@@ -198,34 +198,53 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
     } catch { return dateStr; }
   };
 
+  // Helper: wait for Google Maps API to be ready (polled)
+  const waitForGoogleMaps = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if ((window as any).google?.maps?.places) { resolve(true); return; }
+      let attempts = 0;
+      const check = setInterval(() => {
+        attempts++;
+        if ((window as any).google?.maps?.places) { clearInterval(check); resolve(true); }
+        else if (attempts > 40) { clearInterval(check); resolve(false); } // give up after ~4s
+      }, 100);
+    });
+  };
+
   const fetchMapSuggestions = (query: string) => {
     setMapSearchQuery(query);
     if (mapSearchDebounceRef.current) clearTimeout(mapSearchDebounceRef.current);
     if (!query.trim()) { setMapSearchResults([]); setMapSearchLoading(false); return; }
     setMapSearchLoading(true);
-    mapSearchDebounceRef.current = setTimeout(() => {
-      if ((window as any).google && (window as any).google.maps.places) {
-        const service = new (window as any).google.maps.places.AutocompleteService();
-        service.getPlacePredictions(
-          { input: query, componentRestrictions: { country: 'ae' } },
-          (predictions: any, status: any) => {
-            setMapSearchLoading(false);
-            if (status === (window as any).google.maps.places.PlacesServiceStatus.OK && predictions) {
-              setMapSearchResults(predictions);
-            } else {
-              console.error('Google Places API Error (AdminDashboard):', status);
-              setMapSearchResults([]);
-            }
-          }
-        );
-      } else {
-        console.error('Google Maps API script is missing or blocked.');
+    mapSearchDebounceRef.current = setTimeout(async () => {
+      const ready = await waitForGoogleMaps();
+      if (!ready) {
+        console.error('Google Maps Places API not available');
         setMapSearchLoading(false);
+        setMapSearchResults([{ place_id: '__error', description: 'Google Maps is still loading, please try again…', structured_formatting: { main_text: '⏳ Loading…' } }]);
+        return;
       }
-    }, 300);
+      const service = new (window as any).google.maps.places.AutocompleteService();
+      service.getPlacePredictions(
+        {
+          input: query,
+          componentRestrictions: { country: 'ae' },
+          types: ['geocode', 'establishment'],
+        },
+        (predictions: any, status: any) => {
+          setMapSearchLoading(false);
+          if (status === (window as any).google.maps.places.PlacesServiceStatus.OK && predictions) {
+            setMapSearchResults(predictions);
+          } else {
+            setMapSearchResults([]);
+          }
+        }
+      );
+    }, 200);
   };
 
   const handleSelectSearchResult = (prediction: any) => {
+    if (prediction.place_id === '__error') return; // skip the "still loading" placeholder
     setMapSearchQuery(prediction.description);
     setMapSearchResults([]);
     if ((window as any).google) {
@@ -1253,7 +1272,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                       placeholder="Search for a location (e.g. Dubai Mall, Saadiyat Island)…"
                       value={mapSearchQuery}
                       onChange={e => fetchMapSuggestions(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Escape') clearMapSearch(); }}
+                      onKeyDown={e => {
+                        if (e.key === 'Escape') clearMapSearch();
+                        if (e.key === 'Enter' && mapSearchResults.length > 0 && mapSearchResults[0].place_id !== '__error') {
+                          handleSelectSearchResult(mapSearchResults[0]);
+                        }
+                      }}
+                      autoFocus
                       className="w-full h-14 bg-white border border-slate-200 rounded-2xl pl-12 pr-10 text-base text-slate-800 font-bold outline-none focus:ring-4 focus:ring-blue-500/20 shadow-lg placeholder:font-normal placeholder:text-slate-400"
                     />
 
@@ -1275,10 +1300,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                           <button
                             key={res.place_id}
                             onClick={() => handleSelectSearchResult(res)}
-                            className="w-full text-left px-5 py-3.5 hover:bg-blue-50 border-b border-slate-50 last:border-0 transition-colors group"
+                            className="w-full text-left px-4 py-3 hover:bg-blue-50 border-b border-slate-50 last:border-0 transition-colors group flex items-start gap-3"
                           >
-                            <span className="font-black text-slate-900 block truncate text-sm group-hover:text-blue-700">{res.structured_formatting?.main_text || res.description.split(',')[0]}</span>
-                            <span className="text-[11px] text-slate-400 truncate block">{res.description}</span>
+                            <MapPin className="w-4 h-4 text-slate-400 group-hover:text-blue-500 mt-0.5 shrink-0" />
+                            <div className="min-w-0">
+                              <span className="font-bold text-slate-900 block truncate text-sm group-hover:text-blue-700">{res.structured_formatting?.main_text || res.description.split(',')[0]}</span>
+                              <span className="text-[11px] text-slate-400 truncate block">{res.structured_formatting?.secondary_text || res.description}</span>
+                            </div>
                           </button>
                         ))}
                       </div>
