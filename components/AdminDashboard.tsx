@@ -862,7 +862,24 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                     <button onClick={() => setStagedDeveloper(null)} className="absolute top-4 right-4 p-2 bg-white rounded-full text-slate-500 hover:text-slate-800"><X className="w-4 h-4" /></button>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <input type="text" placeholder="Developer Name" value={stagedDeveloper.name} onChange={e => setStagedDeveloper({ ...stagedDeveloper, name: e.target.value })} className="h-12 px-4 rounded-xl border border-blue-200" />
-                      <input type="text" placeholder="Logo URL" value={stagedDeveloper.logoUrl || ''} onChange={e => setStagedDeveloper({ ...stagedDeveloper, logoUrl: e.target.value })} className="h-12 px-4 rounded-xl border border-blue-200" />
+                      <div className="flex gap-2">
+                        <input type="text" placeholder="Logo URL (auto-detected or paste)" value={stagedDeveloper.logoUrl || ''} onChange={e => setStagedDeveloper({ ...stagedDeveloper, logoUrl: e.target.value })} className="h-12 px-4 rounded-xl border border-blue-200 flex-1" />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const nameLower = (stagedDeveloper.name || '').toLowerCase().replace(/\s+/g, '');
+                            const matchedKey = Object.keys(DEV_DOMAINS).find(k => nameLower.includes(k));
+                            if (matchedKey) {
+                              setStagedDeveloper({ ...stagedDeveloper, logoUrl: `https://www.google.com/s2/favicons?domain=${DEV_DOMAINS[matchedKey]}&sz=128` });
+                            } else {
+                              alert('Could not auto-detect logo. Please paste a URL manually.');
+                            }
+                          }}
+                          className="h-12 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors whitespace-nowrap"
+                        >
+                          🔍 Auto
+                        </button>
+                      </div>
                       <textarea placeholder="Description..." value={stagedDeveloper.description || ''} onChange={e => setStagedDeveloper({ ...stagedDeveloper, description: e.target.value })} className="h-24 px-4 py-3 rounded-xl border border-blue-200 md:col-span-2" />
                       <button onClick={async () => {
                         const payload = { ...stagedDeveloper };
@@ -881,7 +898,25 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                       <tbody className="divide-y divide-slate-50">
                         {liveDevelopers.map(dev => (
                           <tr key={dev.id} className={`hover:bg-slate-50 transition-all group ${dev.isHidden ? 'opacity-50' : ''}`}>
-                            <td className="p-4"><img src={dev.logoUrl} alt="" className="w-10 h-10 object-contain rounded bg-white border border-slate-100" onError={e => e.currentTarget.src = '/placeholder-image.png'} /></td>
+                            <td className="p-4">
+                              {dev.logoUrl ? (
+                                <img
+                                  src={dev.logoUrl}
+                                  alt=""
+                                  className="w-10 h-10 object-contain rounded-lg bg-white border border-slate-100"
+                                  onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling && ((e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex'); }}
+                                />
+                              ) : null}
+                              <div
+                                className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-black text-sm"
+                                style={{
+                                  display: dev.logoUrl ? 'none' : 'flex',
+                                  background: `hsl(${(dev.name || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 360}, 55%, 50%)`
+                                }}
+                              >
+                                {(dev.name || '??').split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()}
+                              </div>
+                            </td>
                             <td className="p-4 font-bold text-slate-800">{dev.name}</td>
                             <td className="p-4">
                               <span className={`text-[10px] font-black uppercase tracking-widest ${dev.isHidden ? 'text-rose-500' : 'text-emerald-600'}`}>
