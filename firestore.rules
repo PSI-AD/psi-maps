@@ -22,6 +22,9 @@ service cloud.firestore {
     match /locations_cities/{city} {
       allow read, write: if true;
     }
+    match /community_boundaries/{boundary} {
+      allow read, write: if true;
+    }
     match /{document=**} {
       allow read, write: if false;
     }
