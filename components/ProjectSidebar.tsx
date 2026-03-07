@@ -381,7 +381,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   const handleSelectDest = async (prediction: any) => {
     const label = prediction.description;
     setCustomDestResult({ name: label, roadKm: 0, driveMinutes: 0 });
-    setCustomDestQuery(label);
+    setCustomDestQuery('');
     setDestSuggestions([]);
     try {
       // Retrieve coordinates from Search Box API
