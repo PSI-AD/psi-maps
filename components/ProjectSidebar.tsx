@@ -302,7 +302,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
     setShowNeighborhoodList(true);
   };
 
-  // ---- Custom Distance Calculator: live debounced autocomplete ----
+  // ---- Custom Distance Calculator: live debounced autocomplete (Mapbox Geocoding) ----
   const fetchDestSuggestions = (query: string) => {
     setCustomDestQuery(query);
     if (destSearchRef.current) clearTimeout(destSearchRef.current);
@@ -315,26 +315,36 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
     }
     if (!project.latitude || !project.longitude) return;
     setIsSearchingDest(true);
-    destSearchRef.current = setTimeout(() => {
-      if ((window as any).google && (window as any).google.maps.places) {
-        const service = new (window as any).google.maps.places.AutocompleteService();
-        service.getPlacePredictions(
-          { input: query, componentRestrictions: { country: 'ae' } },
-          (predictions: any, status: any) => {
-            if (status === (window as any).google.maps.places.PlacesServiceStatus.OK && predictions) {
-              setDestSuggestions(predictions);
-            } else {
-              console.error('Google Places API Error (ProjectSidebar):', status);
-              setDestSuggestions([]);
-            }
-            setIsSearchingDest(false);
-          }
-        );
-      } else {
-        console.error('Google Maps API script is missing or blocked.');
-        setIsSearchingDest(false);
+    destSearchRef.current = setTimeout(async () => {
+      try {
+        const encoded = encodeURIComponent(query.trim());
+        const proximity = `${Number(project.longitude)},${Number(project.latitude)}`;
+        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encoded}.json`
+          + `?access_token=${PUBLIC_MAPBOX_TOKEN}`
+          + `&country=ae`
+          + `&types=place,locality,neighborhood,poi,address`
+          + `&autocomplete=true`
+          + `&limit=5`
+          + `&proximity=${proximity}`
+          + `&language=en`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.features?.length) {
+          setDestSuggestions(data.features.map((f: any) => ({
+            id: f.id,
+            description: f.place_name,
+            text: f.text,
+            center: f.center, // [lng, lat]
+          })));
+        } else {
+          setDestSuggestions([]);
+        }
+      } catch (err) {
+        console.error('Mapbox geocoding error:', err);
+        setDestSuggestions([]);
       }
-    }, 300);
+      setIsSearchingDest(false);
+    }, 200);
   };
 
   // ---- Fetch real driving route via Mapbox Directions (traffic profile) ----
@@ -369,14 +379,9 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
     setCustomDestResult({ name: label, roadKm: 0, driveMinutes: 0 });
     setCustomDestQuery(label);
     setDestSuggestions([]);
-    if ((window as any).google) {
-      const geocoder = new (window as any).google.maps.Geocoder();
-      geocoder.geocode({ placeId: prediction.place_id }, async (results: any, status: any) => {
-        if (status === 'OK' && results && results[0]) {
-          const loc = results[0].geometry.location;
-          await fetchRealRoute(loc.lng(), loc.lat());
-        }
-      });
+    if (prediction.center) {
+      const [lng, lat] = prediction.center;
+      fetchRealRoute(lng, lat);
     }
   };
 

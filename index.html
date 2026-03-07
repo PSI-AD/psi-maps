@@ -22,29 +22,7 @@
     <link rel="preconnect" href="https://events.mapbox.com" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="preconnect" href="https://maps.googleapis.com" />
-    <!-- Google Maps JS API with Places library — deferred with callback -->
-    <script>
-        // Flag set when Google Maps is fully ready
-        window.__googleMapsReady = false;
-        window.__initGoogleMaps = function () { window.__googleMapsReady = true; };
-        // Load after initial paint but don't wait for full window.load
-        // Using requestIdleCallback for fastest possible deferred load
-        (function () {
-            function loadGMaps() {
-                if (document.querySelector('script[src*="maps.googleapis.com"]')) return;
-                var s = document.createElement('script');
-                s.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyBq8z2RFkjxDe1Mk9-hkh5xGaAaFNnwRGI&libraries=places&callback=__initGoogleMaps';
-                s.async = true;
-                document.head.appendChild(s);
-            }
-            if ('requestIdleCallback' in window) {
-                requestIdleCallback(loadGMaps, { timeout: 2000 });
-            } else {
-                setTimeout(loadGMaps, 500);
-            }
-        })();
-    </script>
+    <!-- Google Maps removed — all geocoding migrated to Mapbox Geocoding API -->
 
     <style>
         body {

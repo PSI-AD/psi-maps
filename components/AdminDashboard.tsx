@@ -198,66 +198,51 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
     } catch { return dateStr; }
   };
 
-  // Helper: wait for Google Maps API to be ready (polled)
-  const waitForGoogleMaps = (): Promise<boolean> => {
-    return new Promise((resolve) => {
-      if ((window as any).google?.maps?.places) { resolve(true); return; }
-      let attempts = 0;
-      const check = setInterval(() => {
-        attempts++;
-        if ((window as any).google?.maps?.places) { clearInterval(check); resolve(true); }
-        else if (attempts > 40) { clearInterval(check); resolve(false); } // give up after ~4s
-      }, 100);
-    });
-  };
-
+  // ── Mapbox Geocoding API (replaces Google Places — no extra API key needed) ──
   const fetchMapSuggestions = (query: string) => {
     setMapSearchQuery(query);
     if (mapSearchDebounceRef.current) clearTimeout(mapSearchDebounceRef.current);
     if (!query.trim()) { setMapSearchResults([]); setMapSearchLoading(false); return; }
     setMapSearchLoading(true);
     mapSearchDebounceRef.current = setTimeout(async () => {
-      const ready = await waitForGoogleMaps();
-      if (!ready) {
-        console.error('Google Maps Places API not available');
+      try {
+        const encoded = encodeURIComponent(query.trim());
+        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encoded}.json`
+          + `?access_token=${PUBLIC_MAPBOX_TOKEN}`
+          + `&country=ae`
+          + `&types=place,locality,neighborhood,poi,address`
+          + `&autocomplete=true`
+          + `&limit=7`
+          + `&language=en`;
+        const res = await fetch(url);
+        const data = await res.json();
         setMapSearchLoading(false);
-        setMapSearchResults([{ place_id: '__error', description: 'Google Maps is still loading, please try again…', structured_formatting: { main_text: '⏳ Loading…' } }]);
-        return;
-      }
-      const service = new (window as any).google.maps.places.AutocompleteService();
-      service.getPlacePredictions(
-        {
-          input: query,
-          componentRestrictions: { country: 'ae' },
-          types: ['geocode', 'establishment'],
-        },
-        (predictions: any, status: any) => {
-          setMapSearchLoading(false);
-          if (status === (window as any).google.maps.places.PlacesServiceStatus.OK && predictions) {
-            setMapSearchResults(predictions);
-          } else {
-            setMapSearchResults([]);
-          }
+        if (data.features?.length) {
+          setMapSearchResults(data.features.map((f: any) => ({
+            id: f.id,
+            place_name: f.place_name,
+            text: f.text,
+            context_text: f.place_name.replace(f.text + ', ', ''),
+            center: f.center, // [lng, lat]
+          })));
+        } else {
+          setMapSearchResults([]);
         }
-      );
+      } catch (err) {
+        console.error('Mapbox geocoding error:', err);
+        setMapSearchLoading(false);
+        setMapSearchResults([]);
+      }
     }, 200);
   };
 
-  const handleSelectSearchResult = (prediction: any) => {
-    if (prediction.place_id === '__error') return; // skip the "still loading" placeholder
-    setMapSearchQuery(prediction.description);
+  const handleSelectSearchResult = (result: any) => {
+    setMapSearchQuery(result.place_name);
     setMapSearchResults([]);
-    if ((window as any).google) {
-      const geocoder = new (window as any).google.maps.Geocoder();
-      geocoder.geocode({ placeId: prediction.place_id }, (results: any, status: any) => {
-        if (status === 'OK' && results && results[0]) {
-          const loc = results[0].geometry.location;
-          const lng = loc.lng();
-          const lat = loc.lat();
-          setStagedProject(prev => prev ? { ...prev, latitude: lat, longitude: lng } : prev);
-          setMapModalViewState({ longitude: lng, latitude: lat, zoom: 16 });
-        }
-      });
+    if (result.center) {
+      const [lng, lat] = result.center;
+      setStagedProject(prev => prev ? { ...prev, latitude: lat, longitude: lng } : prev);
+      setMapModalViewState({ longitude: lng, latitude: lat, zoom: 16 });
     }
   };
 
@@ -1274,7 +1259,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                       onChange={e => fetchMapSuggestions(e.target.value)}
                       onKeyDown={e => {
                         if (e.key === 'Escape') clearMapSearch();
-                        if (e.key === 'Enter' && mapSearchResults.length > 0 && mapSearchResults[0].place_id !== '__error') {
+                        if (e.key === 'Enter' && mapSearchResults.length > 0) {
                           handleSelectSearchResult(mapSearchResults[0]);
                         }
                       }}
@@ -1298,14 +1283,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                       <div className="absolute top-full left-0 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-2xl overflow-hidden max-h-72 overflow-y-auto">
                         {mapSearchResults.map((res: any) => (
                           <button
-                            key={res.place_id}
+                            key={res.id}
                             onClick={() => handleSelectSearchResult(res)}
                             className="w-full text-left px-4 py-3 hover:bg-blue-50 border-b border-slate-50 last:border-0 transition-colors group flex items-start gap-3"
                           >
                             <MapPin className="w-4 h-4 text-slate-400 group-hover:text-blue-500 mt-0.5 shrink-0" />
                             <div className="min-w-0">
-                              <span className="font-bold text-slate-900 block truncate text-sm group-hover:text-blue-700">{res.structured_formatting?.main_text || res.description.split(',')[0]}</span>
-                              <span className="text-[11px] text-slate-400 truncate block">{res.structured_formatting?.secondary_text || res.description}</span>
+                              <span className="font-bold text-slate-900 block truncate text-sm group-hover:text-blue-700">{res.text}</span>
+                              <span className="text-[11px] text-slate-400 truncate block">{res.context_text}</span>
                             </div>
                           </button>
                         ))}
