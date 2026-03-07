@@ -455,7 +455,8 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                         pb-3 pt-1 px-3
                         md:flex-col md:overflow-y-auto md:overflow-x-hidden
                         md:snap-none
-                        md:px-0 md:pb-0 md:pt-0 md:gap-0
+                        md:flex-1 md:min-h-0
+                        md:px-0 md:pb-4 md:pt-0 md:gap-0
                         md:bg-white/90 md:backdrop-blur-xl
                         md:rounded-b-3xl
                         md:border-b md:border-x md:border-slate-200/80

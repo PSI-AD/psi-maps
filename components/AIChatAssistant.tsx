@@ -64,10 +64,9 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
         return () => { if (dismissTimer.current) clearTimeout(dismissTimer.current); };
     }, []);
 
-    // Notify parent when open state changes
-    useEffect(() => {
-        onOpenChange?.(isOpen && !!chatMessage);
-    }, [isOpen, chatMessage, onOpenChange]);
+    // Notify parent when open state changes — called directly, not via a separate effect
+    // (A separate useEffect on chatMessage caused infinite re-renders because chatMessage
+    //  is a new object on every render.)
 
     useEffect(() => {
         let name = '';
@@ -184,16 +183,22 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
             setChatMessage({ text: `For ${name}`, actions });
             setIsOpen(true);
             setIsFading(false);
+            onOpenChange?.(true);
             // kick off the auto-dismiss countdown
             if (dismissTimer.current) clearTimeout(dismissTimer.current);
             dismissTimer.current = setTimeout(() => {
                 setIsFading(true);
-                setTimeout(() => setIsOpen(false), 500);
+                setTimeout(() => {
+                    setIsOpen(false);
+                    onOpenChange?.(false);
+                }, 500);
             }, AUTO_DISMISS_MS);
         } else {
             setIsOpen(false);
+            onOpenChange?.(false);
         }
-    }, [selectedProject, selectedCommunity, selectedCity, allProjects]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedProject?.id, selectedCommunity, selectedCity, allProjects.length]);
 
     if (!isOpen || !chatMessage) return null;
 
@@ -242,6 +247,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
                         onClick={() => {
                             if (act.isDismiss) {
                                 setIsOpen(false);
+                                onOpenChange?.(false);
                             } else if (act.onClick) {
                                 // 1. Wipe the slate clean
                                 if (clearFilters) clearFilters();
@@ -250,6 +256,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
                                     act.onClick!();
                                 }, 50);
                                 setIsOpen(false);
+                                onOpenChange?.(false);
                             }
                         }}
                         className={`flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-bold tracking-wide rounded-full shadow-lg transition-all duration-200 border ${act.isDismiss
