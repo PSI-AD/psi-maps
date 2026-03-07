@@ -1,24 +1,32 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, X, Send, Navigation, Map, Eye, Compass } from 'lucide-react';
+import { Sparkles, X, Send, Navigation, Map, Eye, Compass, Volume2, VolumeX } from 'lucide-react';
+
+interface ChatAction {
+    label: string;
+    icon: React.ReactNode;
+    isDismiss?: boolean;
+}
 
 interface ChatMessage {
     role: 'ai' | 'user';
     text: string;
-    actions?: { label: string; icon: React.ReactNode }[];
+    actions?: ChatAction[];
 }
 
 const AIChatAssistant: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [inputValue, setInputValue] = useState('');
+    const [isAudioEnabled, setIsAudioEnabled] = useState(true);
     const [messages, setMessages] = useState<ChatMessage[]>([
         {
             role: 'ai',
-            text: 'Welcome to PSI Maps! I can guide you through available properties, distances, and surroundings. What would you like to explore?',
+            text: 'Welcome to PSI Maps! I can guide you through the area. What would you like to do?',
             actions: [
                 { label: 'Flyover Tour', icon: <Eye className="w-3 h-3" /> },
                 { label: 'Show Distances', icon: <Navigation className="w-3 h-3" /> },
                 { label: 'All Projects Here', icon: <Map className="w-3 h-3" /> },
                 { label: 'Nearby Areas', icon: <Compass className="w-3 h-3" /> },
+                { label: 'No thanks', icon: <X className="w-3 h-3" />, isDismiss: true },
             ],
         },
     ]);
@@ -43,18 +51,24 @@ const AIChatAssistant: React.FC = () => {
                 ...prev,
                 {
                     role: 'ai',
-                    text: "I'm currently in preview mode. Full AI capabilities are coming soon! In the meantime, you can use the map's built-in tools to explore properties, measure distances, and discover nearby amenities.",
+                    text: "I'm currently in preview mode. Full AI capabilities are coming soon! Use the map's built-in tools to explore properties and amenities.",
                     actions: [
                         { label: 'Show Distances', icon: <Navigation className="w-3 h-3" /> },
                         { label: 'Explore Map', icon: <Map className="w-3 h-3" /> },
+                        { label: 'No thanks', icon: <X className="w-3 h-3" />, isDismiss: true },
                     ],
                 },
             ]);
         }, 800);
     };
 
-    const handleActionClick = (label: string) => {
-        const userMsg: ChatMessage = { role: 'user', text: label };
+    const handleActionClick = (action: ChatAction) => {
+        if (action.isDismiss) {
+            setIsOpen(false);
+            return;
+        }
+
+        const userMsg: ChatMessage = { role: 'user', text: action.label };
         setMessages((prev) => [...prev, userMsg]);
 
         setTimeout(() => {
@@ -62,7 +76,11 @@ const AIChatAssistant: React.FC = () => {
                 ...prev,
                 {
                     role: 'ai',
-                    text: `The "${label}" feature is coming soon! Our AI assistant will be able to control the map, calculate routes, and provide intelligent property recommendations — all through natural conversation.`,
+                    text: `The "${action.label}" feature is coming soon! Our AI assistant will control the map, calculate routes, and provide intelligent recommendations — all through conversation.`,
+                    actions: [
+                        { label: 'Try Something Else', icon: <Sparkles className="w-3 h-3" /> },
+                        { label: 'No thanks', icon: <X className="w-3 h-3" />, isDismiss: true },
+                    ],
                 },
             ]);
         }, 600);
@@ -136,13 +154,26 @@ const AIChatAssistant: React.FC = () => {
                 {messages.map((msg, idx) => (
                     <div key={idx} className={`flex flex-col gap-2.5 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
                         <div className={`flex items-start gap-2.5 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                            {/* Avatar */}
+                            {/* Avatar + Audio Toggle (AI only) */}
                             {msg.role === 'ai' ? (
-                                <div
-                                    className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-                                    style={{ background: 'linear-gradient(135deg, #4f46e5, #6366f1)', boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)' }}
-                                >
-                                    <Sparkles className="w-4 h-4 text-indigo-100" />
+                                <div className="flex flex-col items-center gap-2 shrink-0">
+                                    <div
+                                        className="w-8 h-8 rounded-full flex items-center justify-center"
+                                        style={{ background: 'linear-gradient(135deg, #4f46e5, #6366f1)', boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)' }}
+                                    >
+                                        <Sparkles className="w-4 h-4 text-indigo-100" />
+                                    </div>
+                                    {/* Audio Toggle — show only on the first AI message */}
+                                    {idx === messages.filter(m => m.role === 'ai').length - 1 && (
+                                        <button
+                                            onClick={() => setIsAudioEnabled(!isAudioEnabled)}
+                                            className="p-1.5 rounded-full text-slate-400 hover:text-indigo-400 transition-all duration-200"
+                                            style={{ background: 'rgba(51, 65, 85, 0.5)' }}
+                                            title={isAudioEnabled ? 'Mute AI Voice' : 'Enable AI Voice'}
+                                        >
+                                            {isAudioEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+                                        </button>
+                                    )}
                                 </div>
                             ) : (
                                 <div
@@ -176,19 +207,26 @@ const AIChatAssistant: React.FC = () => {
                                 {msg.actions.map((act, i) => (
                                     <button
                                         key={i}
-                                        onClick={() => handleActionClick(act.label)}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-full transition-all duration-200 text-slate-300 hover:text-indigo-200"
+                                        onClick={() => handleActionClick(act)}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-full transition-all duration-200 border ${act.isDismiss
+                                                ? 'text-slate-400 hover:text-slate-200'
+                                                : 'text-slate-300 hover:text-indigo-200'
+                                            }`}
                                         style={{
-                                            background: 'rgba(51, 65, 85, 0.5)',
-                                            border: '1px solid rgba(100, 116, 139, 0.25)',
+                                            background: act.isDismiss ? 'transparent' : 'rgba(51, 65, 85, 0.5)',
+                                            border: act.isDismiss ? '1px solid rgba(100, 116, 139, 0.2)' : '1px solid rgba(100, 116, 139, 0.25)',
                                         }}
                                         onMouseEnter={(e) => {
-                                            e.currentTarget.style.background = 'rgba(79, 70, 229, 0.3)';
-                                            e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.4)';
+                                            if (act.isDismiss) {
+                                                e.currentTarget.style.background = 'rgba(51, 65, 85, 0.4)';
+                                            } else {
+                                                e.currentTarget.style.background = 'rgba(79, 70, 229, 0.3)';
+                                                e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.4)';
+                                            }
                                         }}
                                         onMouseLeave={(e) => {
-                                            e.currentTarget.style.background = 'rgba(51, 65, 85, 0.5)';
-                                            e.currentTarget.style.borderColor = 'rgba(100, 116, 139, 0.25)';
+                                            e.currentTarget.style.background = act.isDismiss ? 'transparent' : 'rgba(51, 65, 85, 0.5)';
+                                            e.currentTarget.style.borderColor = act.isDismiss ? 'rgba(100, 116, 139, 0.2)' : 'rgba(100, 116, 139, 0.25)';
                                         }}
                                     >
                                         {act.icon}

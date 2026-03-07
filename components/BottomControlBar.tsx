@@ -307,7 +307,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                                 {/* Invisible bridge */}
                                 <div className="absolute top-full right-0 w-full h-4 bg-transparent" />
 
-                                <div className="bg-white/95 backdrop-blur-xl shadow-2xl rounded-3xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-2 duration-200 border border-slate-200 w-[420px] max-h-[75vh]">
+                                <div className="bg-white/95 backdrop-blur-xl shadow-2xl rounded-3xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-2 duration-200 border border-slate-200 w-[420px] max-h-[calc(100vh-120px)]">
                                     {/* Scrollable body */}
                                     <div className="p-6 overflow-y-auto flex-1 custom-scrollbar space-y-6">
 
