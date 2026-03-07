@@ -568,23 +568,23 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                         },
                     }}
                 >
-                    {/* White outline casing */}
+                    {/* Dark navy outline casing — visible on water + land */}
                     <Layer
                         id="real-route-casing"
                         type="line"
                         paint={{
-                            'line-color': '#ffffff',
+                            'line-color': '#1a1a2e',
                             'line-width': 11,
-                            'line-opacity': 0.85,
+                            'line-opacity': 0.6,
                         }}
                         layout={{ 'line-cap': 'round', 'line-join': 'round' }}
                     />
-                    {/* Core route line — Electric Cyan */}
+                    {/* Core route line — Navigation Orange */}
                     <Layer
                         id="real-route-layer"
                         type="line"
                         paint={{
-                            'line-color': '#00C2FF',
+                            'line-color': '#FF6D00',
                             'line-width': 7,
                             'line-opacity': 0.95,
                         }}
@@ -611,11 +611,11 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                     {/* Point B — Destination */}
                     <Marker longitude={activeRouteInfo.destLng} latitude={activeRouteInfo.destLat} anchor="bottom">
                         <div className="flex flex-col items-center pointer-events-none" style={{ transform: 'translateY(-4px)' }}>
-                            <div className="px-3 py-1.5 bg-white rounded-full shadow-xl border-2 border-cyan-500 mb-1 whitespace-nowrap max-w-[200px]">
-                                <span className="text-[11px] font-black text-cyan-600 uppercase tracking-wide truncate block">B</span>
+                            <div className="px-3 py-1.5 bg-white rounded-full shadow-xl border-2 border-orange-500 mb-1 whitespace-nowrap max-w-[200px]">
+                                <span className="text-[11px] font-black text-orange-600 uppercase tracking-wide truncate block">B</span>
                                 <span className="text-[10px] font-bold text-slate-700 truncate block">{activeRouteInfo.destName}</span>
                             </div>
-                            <div className="w-5 h-5 bg-cyan-500 rounded-full border-3 border-white shadow-[0_0_0_3px_rgba(0,194,255,0.3),0_4px_12px_rgba(0,0,0,0.3)] flex items-center justify-center">
+                            <div className="w-5 h-5 bg-orange-500 rounded-full border-3 border-white shadow-[0_0_0_3px_rgba(255,109,0,0.3),0_4px_12px_rgba(0,0,0,0.3)] flex items-center justify-center">
                                 <div className="w-2 h-2 bg-white rounded-full" />
                             </div>
                         </div>
