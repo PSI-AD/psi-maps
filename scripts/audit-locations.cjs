@@ -56,11 +56,21 @@ const auditLocations = async () => {
         for (let i = 0; i < projects.length; i++) {
             const p = projects[i];
 
-            // Projects use top-level latitude/longitude fields
-            const lat = Number(p.latitude);
-            const lng = Number(p.longitude);
+            // 1. Check for root-level latitude/longitude
+            let lat = p.latitude;
+            let lng = p.longitude;
 
-            if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+            // 2. Fallback to nested coordinates object if root is missing
+            if ((lat === undefined || lng === undefined) && p.coordinates) {
+                lat = p.coordinates.lat;
+                lng = p.coordinates.lng;
+            }
+
+            lat = Number(lat);
+            lng = Number(lng);
+
+            // 3. Skip only if truly invalid or [0,0]
+            if (!lat || !lng || isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) {
                 skippedCount++;
                 continue;
             }

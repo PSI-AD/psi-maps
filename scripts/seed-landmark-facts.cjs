@@ -84,7 +84,7 @@ Generate 5 unique, interesting, non-generic facts about this landmark.`;
 
     try {
         const res = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_KEY}`,
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -93,7 +93,7 @@ Generate 5 unique, interesting, non-generic facts about this landmark.`;
                     contents: [{ parts: [{ text: userPrompt }] }],
                     generationConfig: {
                         temperature: 0.7,
-                        maxOutputTokens: 512,
+                        maxOutputTokens: 1024,
                     },
                 }),
             }
@@ -106,10 +106,12 @@ Generate 5 unique, interesting, non-generic facts about this landmark.`;
         }
 
         const data = await res.json();
-        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        // Gemini 2.5+ may return multiple parts (thinking + output). Check ALL parts.
+        const allParts = data?.candidates?.[0]?.content?.parts || [];
+        const allText = allParts.map(p => p.text || '').join('\n');
 
-        // Extract JSON array from the response (handle possible markdown wrappers)
-        const jsonMatch = text.match(/\[[\s\S]*?\]/);
+        // Extract JSON array from the full response text
+        const jsonMatch = allText.match(/\[[\s\S]*\]/);
         if (!jsonMatch) {
             console.error(`  ⚠️ Could not parse JSON from Gemini response for "${landmark.name}"`);
             return null;
