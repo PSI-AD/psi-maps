@@ -25,6 +25,8 @@ interface AIChatAssistantProps {
     allProjects?: Project[];
     /** Notify parent when open state changes */
     onOpenChange?: (isOpen: boolean) => void;
+    /** Reset all map filters before executing an action */
+    clearFilters?: () => void;
 }
 
 const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
@@ -37,6 +39,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
     onFlyTo,
     allProjects = [],
     onOpenChange,
+    clearFilters,
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [isFading, setIsFading] = useState(false);
@@ -240,7 +243,12 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
                             if (act.isDismiss) {
                                 setIsOpen(false);
                             } else if (act.onClick) {
-                                act.onClick();
+                                // 1. Wipe the slate clean
+                                if (clearFilters) clearFilters();
+                                // 2. Execute the new action after a tiny delay so state clears
+                                setTimeout(() => {
+                                    act.onClick!();
+                                }, 50);
                                 setIsOpen(false);
                             }
                         }}

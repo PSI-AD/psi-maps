@@ -551,6 +551,12 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
         onFitBounds={handleFitBounds}
         onFlyTo={(lng, lat, zoom) => onFlyTo?.(lng, lat, zoom || 14)}
         onOpenChange={setIsAiChatOpen}
+        clearFilters={() => {
+          setDeveloperFilter('All');
+          setStatusFilter('All');
+          setSelectedCity('');
+          setSelectedCommunity('');
+        }}
       />
     </div>
   );
