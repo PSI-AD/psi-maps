@@ -46,7 +46,7 @@ const auditLocations = async () => {
         const snapshot = await db.collection('projects').get();
         const projects = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        console.log(`✅ Found ${projects.length} projects to audit. Starting Mapbox API comparisons...\n`);
+        console.log(`✅ Found ${projects.length} projects to audit.\n`);
 
         let mismatchCount = 0;
         let notFoundCount = 0;
@@ -56,21 +56,21 @@ const auditLocations = async () => {
         for (let i = 0; i < projects.length; i++) {
             const p = projects[i];
 
-            // 1. Check for root-level latitude/longitude
+            // 1. DYNAMIC EXTRACTION: Look in root OR nested coordinates object
             let lat = p.latitude;
             let lng = p.longitude;
 
-            // 2. Fallback to nested coordinates object if root is missing
-            if ((lat === undefined || lng === undefined) && p.coordinates) {
+            if (p.coordinates && (lat === undefined || lng === undefined)) {
                 lat = p.coordinates.lat;
                 lng = p.coordinates.lng;
             }
 
-            lat = Number(lat);
-            lng = Number(lng);
+            // Convert to numbers
+            const numLat = Number(lat);
+            const numLng = Number(lng);
 
-            // 3. Skip only if truly invalid or [0,0]
-            if (!lat || !lng || isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) {
+            // 2. STRICTER CHECK: Skip if missing, NaN, OR set to 0 (which causes that 5000km error)
+            if (!lat || !lng || isNaN(numLat) || isNaN(numLng) || numLat === 0 || numLng === 0) {
                 skippedCount++;
                 continue;
             }
@@ -87,7 +87,7 @@ const auditLocations = async () => {
                     // Mapbox returns coordinates as [longitude, latitude]
                     const [mbLng, mbLat] = data.features[0].center;
 
-                    const distance = getDistanceInMeters(lat, lng, mbLat, mbLng);
+                    const distance = getDistanceInMeters(numLat, numLng, mbLat, mbLng);
 
                     if (distance > 100) {
                         console.log(`⚠️  Mismatch: ${p.name} — off by ${Math.round(distance)}m (community: ${p.community || 'N/A'})`);
@@ -98,7 +98,7 @@ const auditLocations = async () => {
                             projectId: p.id,
                             projectName: p.name,
                             community: p.community || 'Unknown',
-                            currentCoordinates: { lat, lng },
+                            currentCoordinates: { lat: numLat, lng: numLng },
                             suggestedCoordinates: { lat: mbLat, lng: mbLng },
                             distanceOffMeters: Math.round(distance),
                             mapboxPlaceName: data.features[0].place_name,
