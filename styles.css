@@ -36,3 +36,31 @@ body {
 .touch-action-manipulation {
     touch-action: manipulation;
 }
+
+/* ── AI Chat Assistant: shimmer/shiny sweep on action buttons ── */
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    100% {
+        transform: translateX(200%);
+    }
+}
+
+.shiny-effect {
+    position: relative;
+    overflow: hidden;
+}
+
+.shiny-effect::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transform: translateX(-100%);
+    animation: shimmer 2.5s infinite;
+}

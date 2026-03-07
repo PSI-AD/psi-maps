@@ -2,59 +2,166 @@ import React, { useState, useEffect } from 'react';
 import { Sparkles, X, Eye, Navigation, Map, Compass, Volume2, VolumeX, LocateFixed } from 'lucide-react';
 import { Project } from '../types';
 
+interface ChatAction {
+    label: string;
+    icon: React.ReactNode;
+    isDismiss?: boolean;
+    onClick?: () => void;
+}
+
 interface AIChatAssistantProps {
     selectedProject?: Project | null;
     selectedCommunity?: string;
     selectedCity?: string;
+    /** Filter the developer column to a specific developer */
+    onFilterDeveloper?: (developer: string) => void;
+    /** Fly the camera + filter to a specific community */
+    onFilterCommunity?: (community: string) => void;
+    /** Fly the camera to a list of projects */
+    onFitBounds?: (projects: Project[]) => void;
+    /** Fly the camera to a specific location */
+    onFlyTo?: (lng: number, lat: number, zoom?: number) => void;
+    /** All live projects — used to build filter subsets */
+    allProjects?: Project[];
 }
 
-const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ selectedProject, selectedCommunity, selectedCity }) => {
+const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
+    selectedProject,
+    selectedCommunity,
+    selectedCity,
+    onFilterDeveloper,
+    onFilterCommunity,
+    onFitBounds,
+    onFlyTo,
+    allProjects = [],
+}) => {
     const [isOpen, setIsOpen] = useState(false);
     const [isAudioEnabled, setIsAudioEnabled] = useState(false);
-    const [chatMessage, setChatMessage] = useState<{ text: string; actions: { label: string; icon: React.ReactNode; isDismiss?: boolean }[] } | null>(null);
+    const [chatMessage, setChatMessage] = useState<{ text: string; actions: ChatAction[] } | null>(null);
 
     useEffect(() => {
         let name = '';
-        let actions: { label: string; icon: React.ReactNode; isDismiss?: boolean }[] = [];
+        let actions: ChatAction[] = [];
 
         if (selectedProject) {
             name = selectedProject.name;
+            const devName = selectedProject.developerName || '';
+            const community = selectedProject.community || '';
+            const neighborProjects = allProjects.filter(
+                (p) => p.community?.toLowerCase() === community.toLowerCase() && p.id !== selectedProject.id
+            );
+
             actions = [
-                { label: 'Neighboring Projects', icon: <Map className="w-3.5 h-3.5" /> },
-                { label: '20-Min Walk Radius', icon: <Navigation className="w-3.5 h-3.5" /> },
-                { label: 'Developer Portfolio', icon: <Compass className="w-3.5 h-3.5" /> },
+                {
+                    label: 'Neighboring Projects',
+                    icon: <Map className="w-3.5 h-3.5" />,
+                    onClick: () => {
+                        if (neighborProjects.length > 0 && onFitBounds) {
+                            onFitBounds(neighborProjects);
+                        } else if (community && onFilterCommunity) {
+                            onFilterCommunity(community);
+                        }
+                    },
+                },
+                {
+                    label: '20-Min Walk Radius',
+                    icon: <Navigation className="w-3.5 h-3.5" />,
+                    onClick: () => {
+                        if (onFlyTo && selectedProject.latitude && selectedProject.longitude) {
+                            onFlyTo(Number(selectedProject.longitude), Number(selectedProject.latitude), 15);
+                        }
+                    },
+                },
+                ...(devName
+                    ? [
+                        {
+                            label: 'Developer Portfolio',
+                            icon: <Compass className="w-3.5 h-3.5" />,
+                            onClick: () => onFilterDeveloper?.(devName),
+                        } as ChatAction,
+                    ]
+                    : []),
                 { label: 'No thanks', icon: <X className="w-3.5 h-3.5" />, isDismiss: true },
             ];
         } else if (selectedCommunity) {
             name = selectedCommunity;
+            const communityProjects = allProjects.filter(
+                (p) => p.community?.toLowerCase() === selectedCommunity.toLowerCase()
+            );
+
             actions = [
-                { label: 'Flyover Tour', icon: <Eye className="w-3.5 h-3.5" /> },
-                { label: 'Show Distances', icon: <Navigation className="w-3.5 h-3.5" /> },
-                { label: 'All Projects Here', icon: <LocateFixed className="w-3.5 h-3.5" /> },
+                {
+                    label: 'Flyover Tour',
+                    icon: <Eye className="w-3.5 h-3.5" />,
+                    onClick: () => {
+                        if (communityProjects.length > 0 && onFitBounds) {
+                            onFitBounds(communityProjects);
+                        }
+                    },
+                },
+                {
+                    label: 'Show Distances',
+                    icon: <Navigation className="w-3.5 h-3.5" />,
+                    onClick: () => {
+                        if (communityProjects[0] && onFlyTo) {
+                            onFlyTo(Number(communityProjects[0].longitude), Number(communityProjects[0].latitude), 14);
+                        }
+                    },
+                },
+                {
+                    label: 'All Projects Here',
+                    icon: <LocateFixed className="w-3.5 h-3.5" />,
+                    onClick: () => onFilterCommunity?.(selectedCommunity),
+                },
                 { label: 'No thanks', icon: <X className="w-3.5 h-3.5" />, isDismiss: true },
             ];
         } else if (selectedCity) {
             name = selectedCity;
+            const cityProjects = allProjects.filter(
+                (p) => p.city?.toLowerCase() === selectedCity.toLowerCase()
+            );
+            // Get unique communities
+            const communities = [...new Set(cityProjects.map((p) => p.community).filter(Boolean))];
+
             actions = [
-                { label: 'Top Communities', icon: <Map className="w-3.5 h-3.5" /> },
-                { label: 'Show Distances', icon: <Navigation className="w-3.5 h-3.5" /> },
+                {
+                    label: 'Top Communities',
+                    icon: <Map className="w-3.5 h-3.5" />,
+                    onClick: () => {
+                        if (cityProjects.length > 0 && onFitBounds) {
+                            onFitBounds(cityProjects);
+                        }
+                    },
+                },
+                ...(communities.length > 0
+                    ? [
+                        {
+                            label: `${communities.length} Areas`,
+                            icon: <LocateFixed className="w-3.5 h-3.5" />,
+                            onClick: () => {
+                                if (communities[0] && onFilterCommunity) {
+                                    onFilterCommunity(communities[0]);
+                                }
+                            },
+                        } as ChatAction,
+                    ]
+                    : []),
                 { label: 'No thanks', icon: <X className="w-3.5 h-3.5" />, isDismiss: true },
             ];
         }
 
         if (name) {
-            setChatMessage({ text: `Here are the options for ${name}:`, actions });
+            setChatMessage({ text: `For ${name}`, actions });
             setIsOpen(true);
         } else {
             setIsOpen(false);
         }
-    }, [selectedProject, selectedCommunity, selectedCity]);
+    }, [selectedProject, selectedCommunity, selectedCity, allProjects]);
 
     if (!isOpen || !chatMessage) return null;
 
     return (
         <div className="fixed bottom-[110px] left-4 md:left-6 z-[6000] max-w-[380px] flex flex-col items-start gap-3 pointer-events-none animate-in fade-in slide-in-from-bottom-4 duration-300">
-
             {/* AI Chat Bubble */}
             <div className="flex items-start gap-3 pointer-events-auto">
                 <div className="flex flex-col items-center gap-1.5 shrink-0">
@@ -86,10 +193,17 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ selectedProject, sele
                 {chatMessage.actions.map((act, i) => (
                     <button
                         key={i}
-                        onClick={() => (act.isDismiss ? setIsOpen(false) : undefined)}
+                        onClick={() => {
+                            if (act.isDismiss) {
+                                setIsOpen(false);
+                            } else if (act.onClick) {
+                                act.onClick();
+                                setIsOpen(false);
+                            }
+                        }}
                         className={`flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-bold tracking-wide rounded-full shadow-lg transition-all duration-200 border ${act.isDismiss
                                 ? 'bg-white/90 backdrop-blur-md border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                                : 'text-indigo-50 hover:scale-105'
+                                : 'shiny-effect text-indigo-50 hover:scale-105'
                             }`}
                         style={
                             act.isDismiss

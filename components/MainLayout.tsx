@@ -485,6 +485,17 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
         selectedProject={selectedProject}
         selectedCommunity={selectedCommunity}
         selectedCity={selectedCity}
+        allProjects={liveProjects}
+        onFilterDeveloper={(dev) => {
+          setDeveloperFilter(dev);
+          handleFitBounds(liveProjects.filter(p => p.developerName === dev));
+        }}
+        onFilterCommunity={(comm) => {
+          setSelectedCommunity(comm);
+          handleFitBounds(liveProjects.filter(p => p.community?.toLowerCase() === comm.toLowerCase()));
+        }}
+        onFitBounds={handleFitBounds}
+        onFlyTo={(lng, lat, zoom) => onFlyTo?.(lng, lat, zoom || 14)}
       />
     </div>
   );
