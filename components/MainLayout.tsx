@@ -157,6 +157,8 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
     return () => { if (sidebarTimer.current) clearTimeout(sidebarTimer.current); };
   }, [isAnalysisOpen, selectedProject, startSidebarTimer]);
 
+  const [isAiChatOpen, setIsAiChatOpen] = useState(false);
+
   // Carousel + chip animation logic
   const isAnyFilterActive = Boolean(
     (developerFilter && developerFilter !== 'All') ||
@@ -486,6 +488,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
             props.setSelectedCommunity('');
             props.handleLocationSelect('city', '', props.liveProjects);
           }}
+          isAiChatOpen={isAiChatOpen}
         />
       </div>
 
@@ -547,6 +550,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
         }}
         onFitBounds={handleFitBounds}
         onFlyTo={(lng, lat, zoom) => onFlyTo?.(lng, lat, zoom || 14)}
+        onOpenChange={setIsAiChatOpen}
       />
     </div>
   );

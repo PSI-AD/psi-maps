@@ -23,6 +23,8 @@ interface AIChatAssistantProps {
     onFlyTo?: (lng: number, lat: number, zoom?: number) => void;
     /** All live projects — used to build filter subsets */
     allProjects?: Project[];
+    /** Notify parent when open state changes */
+    onOpenChange?: (isOpen: boolean) => void;
 }
 
 const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
@@ -34,6 +36,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
     onFitBounds,
     onFlyTo,
     allProjects = [],
+    onOpenChange,
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [isFading, setIsFading] = useState(false);
@@ -57,6 +60,11 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
     useEffect(() => {
         return () => { if (dismissTimer.current) clearTimeout(dismissTimer.current); };
     }, []);
+
+    // Notify parent when open state changes
+    useEffect(() => {
+        onOpenChange?.(isOpen && !!chatMessage);
+    }, [isOpen, chatMessage, onOpenChange]);
 
     useEffect(() => {
         let name = '';

@@ -17,6 +17,8 @@ interface FilteredProjectsCarouselProps {
     activePresentation?: ClientPresentation | null;
     presentationProjects?: Project[] | null;
     onExitPresentation?: () => void;
+    /** Whether the AI chat assistant is currently visible */
+    isAiChatOpen?: boolean;
 }
 
 const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
@@ -31,6 +33,7 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
     activePresentation,
     presentationProjects,
     onExitPresentation,
+    isAiChatOpen = false,
 }) => {
     const scrollRef = useRef<HTMLDivElement>(null);
     const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -359,11 +362,12 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
     return (
         <div className={`
             absolute z-[4000] pointer-events-none
-            bottom-[88px] left-0 w-full
-            md:bottom-[96px] md:top-[80px] md:left-0 md:w-[360px]
+            left-0 w-full
+            md:top-[80px] md:left-0 md:w-[360px]
             flex flex-col
-            transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]
+            transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]
             ${isCollapsed ? 'md:-translate-x-full' : 'md:translate-x-6'}
+            ${isAiChatOpen ? 'bottom-[220px] md:bottom-[280px]' : 'bottom-[88px] md:bottom-[96px]'}
         `}>
             {/* ── Desktop: Collapse toggle button — sticks out from right edge ── */}
             <button
@@ -451,8 +455,7 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                         pb-3 pt-1 px-3
                         md:flex-col md:overflow-y-auto md:overflow-x-hidden
                         md:snap-none
-                        md:h-full md:max-h-full
-                        md:px-0 md:pb-[200px] md:pt-0 md:gap-0
+                        md:px-0 md:pb-0 md:pt-0 md:gap-0
                         md:bg-white/90 md:backdrop-blur-xl
                         md:rounded-b-3xl
                         md:border-b md:border-x md:border-slate-200/80
