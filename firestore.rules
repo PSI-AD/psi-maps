@@ -25,6 +25,15 @@ service cloud.firestore {
     match /community_boundaries/{boundary} {
       allow read, write: if true;
     }
+    match /leads/{document} {
+      allow read, write: if true;
+    }
+    match /reports/{document} {
+      allow read, write: if true;
+    }
+    match /mail/{document} {
+      allow read, write: if true;
+    }
     match /{document=**} {
       allow read, write: if false;
     }

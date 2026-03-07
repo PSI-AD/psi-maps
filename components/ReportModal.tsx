@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { X, Flag } from 'lucide-react';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../utils/firebase';
+import { X, Flag, Loader2, CheckCircle } from 'lucide-react';
+import { submitLead } from '../utils/emailService';
 import { Project } from '../types';
 
 interface Props {
@@ -22,47 +21,33 @@ const ReportModal: React.FC<Props> = ({ project, onClose }) => {
     const [reason, setReason] = useState(REASONS[0]);
     const [details, setDetails] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitted, setSubmitted] = useState(false);
+    const [submitError, setSubmitError] = useState('');
 
     const handleSubmit = async () => {
         setIsSubmitting(true);
+        setSubmitError('');
         try {
-            await addDoc(collection(db, 'mail'), {
-                to: 'propertyshopinvest@gmail.com',
-                message: {
-                    subject: `🚩 Project Report: ${project.name}`,
-                    html: `
-                        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
-                            <div style="background:#1e293b;padding:20px;text-align:center;">
-                                <h2 style="color:#fff;margin:0;">PSI MAPS</h2>
-                                <p style="color:#94a3b8;margin:4px 0 0;">Internal Moderation Alert</p>
-                            </div>
-                            <div style="padding:30px;background:#fff;">
-                                <h3 style="color:#0f172a;border-bottom:2px solid #f1f5f9;padding-bottom:10px;">
-                                    Flagged Project: ${project.name}
-                                </h3>
-                                <p><strong>Issue Category:</strong> <span style="color:#ef4444;">${reason}</span></p>
-                                <p><strong>Developer:</strong> ${project.developerName}</p>
-                                <p><strong>Location:</strong> ${[project.community, project.city].filter(Boolean).join(', ')}</p>
-                                <p><strong>User Comments:</strong></p>
-                                <div style="background:#f8fafc;padding:15px;border-left:4px solid #ef4444;color:#475569;">
-                                    ${details || 'No additional details provided.'}
-                                </div>
-                            </div>
-                            <div style="background:#f1f5f9;padding:15px;text-align:center;font-size:12px;color:#64748b;">
-                                &copy; 2026 Property Shop Investment. All rights reserved.
-                            </div>
-                        </div>
-                    `,
-                },
-                projectRef: project.id,
-                status: 'pending',
-                createdAt: serverTimestamp(),
+            const result = await submitLead({
+                formType: 'general_contact',
+                projectName: project.name,
+                community: project.community,
+                developer: project.developerName,
+                firstName: 'Report',
+                lastName: reason,
+                email: 'report@psi-maps.com',
+                phone: '',
+                message: `🚩 ISSUE REPORT — ${reason}\n\nProject: ${project.name}\nDeveloper: ${project.developerName || 'N/A'}\nLocation: ${[project.community, project.city].filter(Boolean).join(', ')}\n\nDetails:\n${details || 'No additional details provided.'}`,
             });
-            alert('Report submitted successfully. The team has been notified.');
-            onClose();
+
+            if (result.success) {
+                setSubmitted(true);
+            } else {
+                setSubmitError(result.error || 'Failed to submit. Please try again.');
+            }
         } catch (error) {
             console.error('Error submitting report:', error);
-            alert('Failed to submit report. Please try again.');
+            setSubmitError('Failed to submit report. Please try again.');
         } finally {
             setIsSubmitting(false);
         }
@@ -88,38 +73,66 @@ const ReportModal: React.FC<Props> = ({ project, onClose }) => {
 
                 {/* Body */}
                 <div className="p-6 space-y-4">
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                            Issue Type
-                        </label>
-                        <select
-                            value={reason}
-                            onChange={e => setReason(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-blue-500 transition-colors"
-                        >
-                            {REASONS.map(r => <option key={r} value={r}>{r}</option>)}
-                        </select>
-                    </div>
+                    {submitted ? (
+                        <div className="text-center py-6">
+                            <div className="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <CheckCircle className="w-7 h-7 text-emerald-600" />
+                            </div>
+                            <h4 className="text-lg font-black text-slate-900 mb-2">Report Submitted</h4>
+                            <p className="text-sm text-slate-500">
+                                Thank you! Our team has been notified about <strong>{project.name}</strong>.
+                            </p>
+                            <button
+                                onClick={onClose}
+                                className="mt-5 w-full py-3.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-black uppercase text-xs tracking-widest transition-all"
+                            >
+                                Done
+                            </button>
+                        </div>
+                    ) : (
+                        <>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                                    Issue Type
+                                </label>
+                                <select
+                                    value={reason}
+                                    onChange={e => setReason(e.target.value)}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-blue-500 transition-colors"
+                                >
+                                    {REASONS.map(r => <option key={r} value={r}>{r}</option>)}
+                                </select>
+                            </div>
 
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                            Additional Details
-                        </label>
-                        <textarea
-                            value={details}
-                            onChange={e => setDetails(e.target.value)}
-                            placeholder="Please explain what needs to be fixed…"
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm text-slate-700 outline-none focus:border-blue-500 transition-colors min-h-[120px] resize-none"
-                        />
-                    </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                                    Additional Details
+                                </label>
+                                <textarea
+                                    value={details}
+                                    onChange={e => setDetails(e.target.value)}
+                                    placeholder="Please explain what needs to be fixed…"
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm text-slate-700 outline-none focus:border-blue-500 transition-colors min-h-[120px] resize-none"
+                                />
+                            </div>
 
-                    <button
-                        onClick={handleSubmit}
-                        disabled={isSubmitting}
-                        className="w-full py-3.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-black uppercase text-sm tracking-widest shadow-md transition-colors disabled:opacity-50"
-                    >
-                        {isSubmitting ? 'Sending…' : 'Submit Report'}
-                    </button>
+                            {submitError && (
+                                <p className="text-sm text-rose-500 font-bold text-center">{submitError}</p>
+                            )}
+
+                            <button
+                                onClick={handleSubmit}
+                                disabled={isSubmitting}
+                                className="w-full py-3.5 bg-orange-600 hover:bg-orange-700 disabled:bg-orange-400 text-white rounded-xl font-black uppercase text-sm tracking-widest shadow-md transition-colors disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                {isSubmitting ? (
+                                    <><Loader2 className="w-4 h-4 animate-spin" /> Sending…</>
+                                ) : (
+                                    'Submit Report'
+                                )}
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
         </div>
