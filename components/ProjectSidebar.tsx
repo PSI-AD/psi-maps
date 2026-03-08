@@ -1109,35 +1109,30 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
               )}
             </div>
 
-            {/* ── Street View Quick Action ── */}
+            {/* ── Street View & Google Maps Quick Actions ── */}
             {project.latitude && project.longitude && !isNaN(Number(project.latitude)) && !isNaN(Number(project.longitude)) && (
-              <button
-                onClick={() => {
-                  window.dispatchEvent(new CustomEvent('open-street-view', {
-                    detail: {
-                      lat: Number(project.latitude),
-                      lng: Number(project.longitude),
-                      name: project.name
-                    }
-                  }));
-                }}
-                className="w-full rounded-xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-md transition-all group"
-              >
-                <div className="relative h-24 bg-slate-100">
-                  <img
-                    src={`https://maps.googleapis.com/maps/api/staticmap?center=${project.latitude},${project.longitude}&zoom=17&size=400x160&maptype=satellite&key=`}
-                    alt=""
-                    className="w-full h-full object-cover opacity-50 group-hover:opacity-70 transition-opacity"
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-slate-900/20 flex items-center justify-center">
-                    <div className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-md rounded-full border border-white/30">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
-                      <span className="text-xs font-black text-white uppercase tracking-wider">Open Street View</span>
-                    </div>
-                  </div>
-                </div>
-              </button>
+              <div className="flex gap-2">
+                {/* Google Street View — opens full immersive experience */}
+                <a
+                  href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${project.latitude},${project.longitude}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all group shadow-sm"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 2v20" /><path d="M2 12h20" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10" /><path d="M12 2a15.3 15.3 0 0 0-4 10 15.3 15.3 0 0 0 4 10" /></svg>
+                  <span className="text-xs font-black uppercase tracking-wider">Street View</span>
+                </a>
+                {/* Google Maps — opens map centered on project */}
+                <a
+                  href={`https://www.google.com/maps?q=${project.latitude},${project.longitude}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all group shadow-sm"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
+                  <span className="text-xs font-black uppercase tracking-wider">Google Maps</span>
+                </a>
+              </div>
             )}
 
             <div id="sidebar-map-section" />

@@ -9,11 +9,11 @@ interface Props {
 }
 
 const REASONS = [
-    'Incorrect Price',
-    'Incorrect Location / Map Pin',
+    'Suggestion',
+    'Wrong Price',
+    'Wrong Picture',
+    'Wrong Location',
     'Wrong Developer or Status',
-    'Outdated Images',
-    'Suggestions',
     'Other',
 ];
 
@@ -38,6 +38,7 @@ const ReportModal: React.FC<Props> = ({ project, onClose }) => {
                 email: 'report@psi-maps.com',
                 phone: '',
                 message: `🚩 ISSUE REPORT — ${reason}\n\nProject: ${project.name}\nDeveloper: ${project.developerName || 'N/A'}\nLocation: ${[project.community, project.city].filter(Boolean).join(', ')}\n\nDetails:\n${details || 'No additional details provided.'}`,
+                sourceUrl: window.location.href,
             });
 
             if (result.success) {

@@ -1,427 +1,333 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Sparkles, X, Eye, Navigation, Map, Compass, Volume2, VolumeX, LocateFixed, Landmark as LandmarkIcon, Film, Play } from 'lucide-react';
-import { Project, Landmark, ClientPresentation } from '../types';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Sparkles, X, MapPin, Play, Building, Landmark as LandmarkIcon, Globe } from 'lucide-react';
+import { Project, Landmark } from '../types';
 import { calculateDistance } from '../utils/geo';
 
-interface ChatAction {
+// ── Types ────────────────────────────────────────────────────────────────
+interface AIChatAction {
     label: string;
+    sublabel?: string;
     icon: React.ReactNode;
-    isDismiss?: boolean;
-    onClick?: () => void;
+    color: string; // gradient or solid bg class
+    onClick: () => void;
 }
 
 interface AIChatAssistantProps {
     selectedProject?: Project | null;
-    selectedCommunity?: string;
-    selectedCity?: string;
-    /** Currently selected landmark (for landmark chat) */
-    selectedLandmark?: Landmark | null;
-    /** True when any tour/presentation is running — disables chat completely */
+    /** True when any tour/presentation is running — disables chat */
     isTourActive?: boolean;
-    /** Filter the developer column to a specific developer */
-    onFilterDeveloper?: (developer: string) => void;
-    /** Fly the camera + filter to a specific community */
-    onFilterCommunity?: (community: string) => void;
-    /** Fly the camera to a list of projects */
-    onFitBounds?: (projects: Project[]) => void;
-    /** Fly the camera to a specific location */
-    onFlyTo?: (lng: number, lat: number, zoom?: number) => void;
-    /** All live projects — used to build filter subsets */
+    /** All live projects — used to compute nearby, developer, and city subsets */
     allProjects?: Project[];
-    /** All landmarks — used for Nearby Landmarks tour */
+    /** All landmarks — used for Nearby Landmarks count check */
     allLandmarks?: Landmark[];
     /** Notify parent when open state changes */
     onOpenChange?: (isOpen: boolean) => void;
     /** Reset all map filters before executing an action */
     clearFilters?: () => void;
-    /** Cinematic sequential tour through stops (fallback for non-project entities) */
-    startCinematicTour?: (stops: { lng: number; lat: number; name?: string }[], zoom?: number) => void;
-    /** Launch a presentation (existing Play button engine) */
-    onLaunchPresentation?: (pres: ClientPresentation) => void;
 }
 
+// ── Component ────────────────────────────────────────────────────────────
 const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
     selectedProject,
-    selectedCommunity,
-    selectedCity,
-    selectedLandmark,
     isTourActive = false,
-    onFilterDeveloper,
-    onFilterCommunity,
-    onFitBounds,
-    onFlyTo,
     allProjects = [],
     allLandmarks = [],
     onOpenChange,
     clearFilters,
-    startCinematicTour,
-    onLaunchPresentation,
 }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const [isChatMinimized, setIsChatMinimized] = useState(false);
     const [isFading, setIsFading] = useState(false);
-    const [isAudioEnabled, setIsAudioEnabled] = useState(false);
-    const [chatMessage, setChatMessage] = useState<{ text: string; actions: ChatAction[] } | null>(null);
     const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Listen for global tour state changes
     const [isNeighborhoodTouring, setIsNeighborhoodTouring] = useState(false);
-
-    // Listen for neighborhood tour start/stop from ProjectSidebar
-    useEffect(() => {
-        const handler = (e: Event) => {
-            const detail = (e as CustomEvent).detail;
-            setIsNeighborhoodTouring(!!detail?.active);
-        };
-        window.addEventListener('neighborhood-tour-changed', handler);
-        return () => window.removeEventListener('neighborhood-tour-changed', handler);
-    }, []);
-
-    // Listen for global project tour state from FilteredProjectsCarousel
     const [isGlobalTouring, setIsGlobalTouring] = useState(false);
+
     useEffect(() => {
-        const handler = (e: Event) => {
-            const detail = (e as CustomEvent).detail;
-            setIsGlobalTouring(!!detail?.active);
+        const onNeighborhood = (e: Event) => setIsNeighborhoodTouring(!!(e as CustomEvent).detail?.active);
+        const onGlobal = (e: Event) => setIsGlobalTouring(!!(e as CustomEvent).detail?.active);
+        window.addEventListener('neighborhood-tour-changed', onNeighborhood);
+        window.addEventListener('global-tour-changed', onGlobal);
+        return () => {
+            window.removeEventListener('neighborhood-tour-changed', onNeighborhood);
+            window.removeEventListener('global-tour-changed', onGlobal);
         };
-        window.addEventListener('global-tour-changed', handler);
-        return () => window.removeEventListener('global-tour-changed', handler);
     }, []);
 
-    // Effective "any tour running" flag
     const anyTourActive = isTourActive || isNeighborhoodTouring || isGlobalTouring;
 
-    const AUTO_DISMISS_MS = 8_000;
+    const AUTO_DISMISS_MS = 12_000;
 
-    // Start / reset the 10-second auto-dismiss countdown
     const resetTimer = useCallback(() => {
         setIsFading(false);
         if (dismissTimer.current) clearTimeout(dismissTimer.current);
         dismissTimer.current = setTimeout(() => {
-            setIsFading(true); // start fade-out
-            setTimeout(() => setIsOpen(false), 500); // unmount after animation
+            setIsFading(true);
+            setTimeout(() => {
+                setIsOpen(false);
+                setIsChatMinimized(true);
+                onOpenChange?.(false);
+            }, 500);
         }, AUTO_DISMISS_MS);
-    }, []);
+    }, [onOpenChange]);
 
-    // Clear timer on unmount
     useEffect(() => {
         return () => { if (dismissTimer.current) clearTimeout(dismissTimer.current); };
     }, []);
 
-    // Notify parent when open state changes — called directly, not via a separate effect
-    // (A separate useEffect on chatMessage caused infinite re-renders because chatMessage
-    //  is a new object on every render.)
+    // ── Compute "remote control" actions based on selected project ────────
+    const actions = useMemo<AIChatAction[]>(() => {
+        if (!selectedProject) return [];
 
-    useEffect(() => {
-        let name = '';
-        let question = '';
-        let actions: ChatAction[] = [];
+        const lat = Number(selectedProject.latitude);
+        const lng = Number(selectedProject.longitude);
+        const devName = selectedProject.developerName || '';
+        const community = selectedProject.community || '';
+        const city = selectedProject.city || '';
+        const result: AIChatAction[] = [];
 
-        if (selectedProject) {
-            name = selectedProject.name;
-            question = `What would you like to explore about ${name}?`;
-
-            const lat = Number(selectedProject.latitude);
-            const lng = Number(selectedProject.longitude);
-            const devName = selectedProject.developerName || '';
-
-            // 1️⃣ Nearby Projects Tour — 15 closest by distance
-            const nearby = allProjects
-                .filter(p => p.id !== selectedProject.id && p.latitude && p.longitude)
-                .map(p => ({ ...p, dist: calculateDistance(lat, lng, Number(p.latitude), Number(p.longitude)) }))
-                .sort((a, b) => a.dist - b.dist)
-                .slice(0, 15);
-
-            // 2️⃣ Developer Portfolio Tour
-            const devPortfolio = allProjects.filter(p => p.developerName === devName && p.id !== selectedProject.id);
-
-            // 3️⃣ Nearby Landmarks Tour — 15 closest
-            const nearbyLandmarks = allLandmarks
-                .filter(l => l.latitude && l.longitude)
-                .map(l => ({ ...l, dist: calculateDistance(lat, lng, l.latitude, l.longitude) }))
-                .sort((a, b) => a.dist - b.dist)
-                .slice(0, 15);
-
-            actions = [
-                {
-                    label: 'Tour Nearby',
-                    icon: <Play className="w-3.5 h-3.5" />,
-                    onClick: () => {
-                        if (onLaunchPresentation && nearby.length > 0) {
-                            // Force results panel to expand so STOP button is visible
-                            window.dispatchEvent(new CustomEvent('ai-expand-results-panel'));
-                            onLaunchPresentation({
-                                id: `ai-nearby-${Date.now()}`,
-                                title: `Nearby ${name}`,
-                                projectIds: nearby.map(p => p.id),
-                                intervalSeconds: 5,
-                                createdAt: new Date().toISOString(),
-                            });
-                        } else {
-                            onFitBounds?.(nearby);
-                        }
-                    },
+        // 1. Nearby Projects — filter by same community
+        const communityProjects = allProjects.filter(
+            p => p.id !== selectedProject.id &&
+                p.community?.toLowerCase() === community.toLowerCase() &&
+                p.latitude && p.longitude
+        );
+        if (communityProjects.length > 0) {
+            result.push({
+                label: 'Nearby Projects',
+                sublabel: `${communityProjects.length} in ${community}`,
+                icon: <MapPin className="w-4 h-4" />,
+                color: 'from-blue-500 to-blue-600',
+                onClick: () => {
+                    // Same as pressing the Community Play Button
+                    window.dispatchEvent(new CustomEvent('ai-expand-results-panel'));
+                    window.dispatchEvent(new CustomEvent('global-tour-start', {
+                        detail: { label: community, projects: communityProjects }
+                    }));
                 },
-                ...(devName && devName !== 'Exclusive' ? [{
-                    label: `${devName} Tour`,
-                    icon: <Play className="w-3.5 h-3.5" />,
-                    onClick: () => {
-                        if (onLaunchPresentation && devPortfolio.length > 0) {
-                            window.dispatchEvent(new CustomEvent('ai-expand-results-panel'));
-                            onLaunchPresentation({
-                                id: `ai-dev-${Date.now()}`,
-                                title: `${devName} Showcase`,
-                                projectIds: devPortfolio.slice(0, 10).map(p => p.id),
-                                intervalSeconds: 5,
-                                createdAt: new Date().toISOString(),
-                            });
-                        } else {
-                            onFitBounds?.(devPortfolio);
-                        }
-                    },
-                } as ChatAction] : []),
-                {
-                    label: 'Landmark Tour',
-                    icon: <LandmarkIcon className="w-3.5 h-3.5" />,
-                    onClick: () => {
-                        // Open the Neighborhood panel and start the landmark tour
-                        window.dispatchEvent(new CustomEvent('ai-open-neighborhood-tour'));
-                    },
-                },
-                {
-                    label: 'Bird\'s Eye',
-                    icon: <Eye className="w-3.5 h-3.5" />,
-                    onClick: () => onFlyTo?.(lng, lat, 12),
-                },
-                {
-                    label: 'Explore Area',
-                    icon: <Navigation className="w-3.5 h-3.5" />,
-                    onClick: () => onFlyTo?.(lng, lat, 15),
-                },
-                { label: 'No thanks', icon: <X className="w-3.5 h-3.5" />, isDismiss: true },
-            ];
-        } else if (selectedCommunity) {
-            name = selectedCommunity;
-            question = `What would you like to explore in ${name}?`;
-            const communityProjects = allProjects.filter(
-                (p) => p.community?.toLowerCase() === selectedCommunity.toLowerCase()
-            );
-
-            actions = [
-                {
-                    label: 'Flyover Tour',
-                    icon: <Play className="w-3.5 h-3.5" />,
-                    onClick: () => {
-                        if (onLaunchPresentation && communityProjects.length > 0) {
-                            window.dispatchEvent(new CustomEvent('ai-expand-results-panel'));
-                            onLaunchPresentation({
-                                id: `ai-community-${Date.now()}`,
-                                title: `${name} Tour`,
-                                projectIds: communityProjects.slice(0, 10).map(p => p.id),
-                                intervalSeconds: 5,
-                                createdAt: new Date().toISOString(),
-                            });
-                        } else if (communityProjects.length > 0 && onFitBounds) {
-                            onFitBounds(communityProjects);
-                        }
-                    },
-                },
-                {
-                    label: 'Show Distances',
-                    icon: <Navigation className="w-3.5 h-3.5" />,
-                    onClick: () => {
-                        if (communityProjects[0] && onFlyTo) {
-                            onFlyTo(Number(communityProjects[0].longitude), Number(communityProjects[0].latitude), 14);
-                        }
-                    },
-                },
-                {
-                    label: 'All Projects Here',
-                    icon: <LocateFixed className="w-3.5 h-3.5" />,
-                    onClick: () => onFilterCommunity?.(selectedCommunity),
-                },
-                { label: 'No thanks', icon: <X className="w-3.5 h-3.5" />, isDismiss: true },
-            ];
-        } else if (selectedCity) {
-            name = selectedCity;
-            question = `What would you like to discover in ${name}?`;
-            const cityProjects = allProjects.filter(
-                (p) => p.city?.toLowerCase() === selectedCity.toLowerCase()
-            );
-            // Get unique communities
-            const communities = [...new Set(cityProjects.map((p) => p.community).filter(Boolean))];
-
-            actions = [
-                {
-                    label: 'Top Communities',
-                    icon: <Map className="w-3.5 h-3.5" />,
-                    onClick: () => {
-                        if (cityProjects.length > 0 && onFitBounds) {
-                            onFitBounds(cityProjects);
-                        }
-                    },
-                },
-                ...(communities.length > 0
-                    ? [
-                        {
-                            label: `${communities.length} Areas`,
-                            icon: <LocateFixed className="w-3.5 h-3.5" />,
-                            onClick: () => {
-                                if (communities[0] && onFilterCommunity) {
-                                    onFilterCommunity(communities[0]);
-                                }
-                            },
-                        } as ChatAction,
-                    ]
-                    : []),
-                { label: 'No thanks', icon: <X className="w-3.5 h-3.5" />, isDismiss: true },
-            ];
-        } else if (selectedLandmark) {
-            // Landmark selected — show landmark-specific actions
-            name = selectedLandmark.name || 'Landmark';
-            question = `What would you like to explore near ${name}?`;
-            const lLat = Number(selectedLandmark.latitude);
-            const lLng = Number(selectedLandmark.longitude);
-
-            // Nearby projects within proximity
-            const nearbyToLandmark = allProjects
-                .filter(p => p.latitude && p.longitude)
-                .map(p => ({ ...p, dist: calculateDistance(lLat, lLng, Number(p.latitude), Number(p.longitude)) }))
-                .sort((a, b) => a.dist - b.dist)
-                .slice(0, 15);
-
-            actions = [
-                {
-                    label: 'Nearby Projects',
-                    icon: <Map className="w-3.5 h-3.5" />,
-                    onClick: () => onFitBounds?.(nearbyToLandmark),
-                },
-                {
-                    label: 'Tour Projects',
-                    icon: <Play className="w-3.5 h-3.5" />,
-                    onClick: () => {
-                        if (onLaunchPresentation && nearbyToLandmark.length > 0) {
-                            onLaunchPresentation({
-                                id: `ai-landmark-${Date.now()}`,
-                                title: `Near ${name}`,
-                                projectIds: nearbyToLandmark.map(p => p.id),
-                                intervalSeconds: 5,
-                                createdAt: new Date().toISOString(),
-                            });
-                        }
-                    },
-                },
-                {
-                    label: 'Bird\'s Eye',
-                    icon: <Eye className="w-3.5 h-3.5" />,
-                    onClick: () => onFlyTo?.(lLng, lLat, 13),
-                },
-                { label: 'No thanks', icon: <X className="w-3.5 h-3.5" />, isDismiss: true },
-            ];
+            });
         }
 
-        // ── TOUR GUARD: If ANY tour is running, suppress ALL chat ──
+        // 2. Nearby Landmarks — check if landmarks exist near the project
+        const nearbyLandmarks = allLandmarks
+            .filter(l => l.latitude && l.longitude && !l.isHidden)
+            .map(l => ({
+                ...l,
+                dist: calculateDistance(lat, lng, Number(l.latitude), Number(l.longitude))
+            }))
+            .sort((a, b) => a.dist - b.dist)
+            .slice(0, 15);
+
+        if (nearbyLandmarks.length > 0) {
+            result.push({
+                label: 'Nearby Landmarks',
+                sublabel: `${nearbyLandmarks.length} places`,
+                icon: <LandmarkIcon className="w-4 h-4" />,
+                color: 'from-emerald-500 to-emerald-600',
+                onClick: () => {
+                    // Same as pressing Explore Neighborhood → Play
+                    window.dispatchEvent(new CustomEvent('ai-open-neighborhood-tour'));
+                },
+            });
+        }
+
+        // 3. Projects by the Same Developer
+        if (devName && devName !== 'Exclusive' && devName !== 'Unknown Developer') {
+            const devProjects = allProjects.filter(
+                p => p.id !== selectedProject.id &&
+                    p.developerName === devName &&
+                    p.latitude && p.longitude
+            );
+            if (devProjects.length > 0) {
+                result.push({
+                    label: `Projects by ${devName}`,
+                    sublabel: `${devProjects.length} project${devProjects.length === 1 ? '' : 's'}`,
+                    icon: <Building className="w-4 h-4" />,
+                    color: 'from-violet-500 to-purple-600',
+                    onClick: () => {
+                        // Community Play Button with developer filter
+                        window.dispatchEvent(new CustomEvent('ai-expand-results-panel'));
+                        window.dispatchEvent(new CustomEvent('global-tour-start', {
+                            detail: { label: `${devName} Showcase`, projects: devProjects.slice(0, 15) }
+                        }));
+                    },
+                });
+            }
+        }
+
+        // 4. Projects in the same City
+        if (city) {
+            const cityProjects = allProjects.filter(
+                p => p.id !== selectedProject.id &&
+                    p.city?.toLowerCase() === city.toLowerCase() &&
+                    p.latitude && p.longitude
+            );
+            if (cityProjects.length > 0) {
+                result.push({
+                    label: `Projects in ${city.charAt(0).toUpperCase() + city.slice(1)}`,
+                    sublabel: `${cityProjects.length} project${cityProjects.length === 1 ? '' : 's'}`,
+                    icon: <Globe className="w-4 h-4" />,
+                    color: 'from-amber-500 to-orange-500',
+                    onClick: () => {
+                        // Community Play Button with city filter
+                        window.dispatchEvent(new CustomEvent('ai-expand-results-panel'));
+                        window.dispatchEvent(new CustomEvent('global-tour-start', {
+                            detail: { label: `${city} Tour`, projects: cityProjects.slice(0, 15) }
+                        }));
+                    },
+                });
+            }
+        }
+
+        return result;
+    }, [selectedProject?.id, allProjects, allLandmarks]);
+
+    // ── Open chat whenever a project is selected (and actions exist) ──────
+    useEffect(() => {
         if (anyTourActive) {
             setIsOpen(false);
             onOpenChange?.(false);
             return;
         }
 
-        if (name) {
-            setChatMessage({ text: question || `What would you like to explore about ${name}?`, actions });
+        if (selectedProject && actions.length > 0) {
             setIsOpen(true);
+            setIsChatMinimized(false);
             setIsFading(false);
             onOpenChange?.(true);
-            // kick off the auto-dismiss countdown
+            // Start auto-dismiss timer
             if (dismissTimer.current) clearTimeout(dismissTimer.current);
             dismissTimer.current = setTimeout(() => {
                 setIsFading(true);
                 setTimeout(() => {
                     setIsOpen(false);
+                    setIsChatMinimized(true);
                     onOpenChange?.(false);
                 }, 500);
             }, AUTO_DISMISS_MS);
         } else {
             setIsOpen(false);
+            setIsChatMinimized(false);
             onOpenChange?.(false);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedProject?.id, selectedCommunity, selectedCity, selectedLandmark?.id, allProjects.length, anyTourActive]);
+    }, [selectedProject?.id, actions.length, anyTourActive]);
 
-    // HARD GUARD: If ANY tour is running, render absolutely nothing
+    // ── HARD GUARD: No rendering during tours ────────────────────────────
     if (anyTourActive) return null;
-    if (!isOpen || !chatMessage) return null;
+
+    // ── Floating re-open button (when chat is minimized) ─────────────────
+    if (isChatMinimized && selectedProject && actions.length > 0) {
+        return (
+            <button
+                onClick={() => {
+                    setIsChatMinimized(false);
+                    setIsOpen(true);
+                    setIsFading(false);
+                    onOpenChange?.(true);
+                    resetTimer();
+                }}
+                className="fixed bottom-[110px] left-4 md:left-6 z-[6000] w-12 h-12 rounded-2xl flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-95 group"
+                style={{
+                    background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #818cf8 100%)',
+                    boxShadow: '0 6px 24px rgba(79, 70, 229, 0.4)',
+                }}
+                title="Reopen AI suggestions"
+                aria-label="Open AI chat assistant"
+            >
+                <Sparkles className="w-5 h-5 text-white group-hover:animate-pulse" />
+                {/* Notification dot */}
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 rounded-full border-2 border-white flex items-center justify-center">
+                    <span className="text-[8px] font-black text-white">{actions.length}</span>
+                </span>
+            </button>
+        );
+    }
+
+    if (!isOpen || actions.length === 0) return null;
 
     return (
         <div
             className="fixed bottom-[110px] left-4 md:left-6 z-[6000] max-w-[380px] flex flex-col items-start gap-3 pointer-events-none"
             style={{
                 opacity: isFading ? 0 : 1,
-                transform: isFading ? 'translateY(12px)' : 'translateY(0)',
+                transform: isFading ? 'translateY(12px) scale(0.96)' : 'translateY(0) scale(1)',
                 transition: 'opacity 0.5s ease, transform 0.5s ease',
             }}
             onMouseEnter={resetTimer}
             onClick={resetTimer}
         >
-            {/* AI Chat Bubble */}
+            {/* ── AI Chat Bubble ──────────────────────────────────────────── */}
             <div className="flex items-start gap-3 pointer-events-auto">
+                {/* AI Avatar */}
                 <div className="flex flex-col items-center gap-1.5 shrink-0">
                     <div
-                        className="w-9 h-9 rounded-full flex items-center justify-center"
+                        className="w-10 h-10 rounded-2xl flex items-center justify-center relative overflow-hidden"
                         style={{
-                            background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
-                            boxShadow: '0 4px 16px rgba(79, 70, 229, 0.35)',
+                            background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #818cf8 100%)',
+                            boxShadow: '0 4px 20px rgba(79, 70, 229, 0.35)',
                         }}
                     >
-                        <Sparkles className="w-4 h-4 text-indigo-100" />
+                        <Sparkles className="w-5 h-5 text-indigo-100" />
+                        {/* Subtle pulse ring */}
+                        <div className="absolute inset-0 rounded-2xl animate-ping opacity-20 bg-indigo-400" style={{ animationDuration: '3s' }} />
                     </div>
-                    <button
-                        onClick={() => setIsAudioEnabled(!isAudioEnabled)}
-                        className="p-1.5 bg-white/90 backdrop-blur-md hover:bg-white rounded-full text-slate-500 hover:text-indigo-600 shadow-sm transition-colors border border-slate-200/60"
-                        title={isAudioEnabled ? 'Mute Voice' : 'Enable Voice'}
-                    >
-                        {isAudioEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
-                    </button>
                 </div>
 
-                <div className="bg-white/90 backdrop-blur-md border border-slate-200/60 rounded-2xl rounded-tl-none px-4 py-3 text-sm text-slate-800 font-semibold shadow-xl">
-                    {chatMessage.text}
+                {/* Message */}
+                <div className="bg-white/95 backdrop-blur-xl border border-slate-200/60 rounded-2xl rounded-tl-none px-4 py-3 shadow-xl max-w-[300px]">
+                    <p className="text-[13px] font-bold text-slate-800 leading-relaxed">
+                        What would you like to explore about{' '}
+                        <span className="text-indigo-600 font-black">{selectedProject?.name}</span>?
+                    </p>
+                    {/* Close */}
+                    <button
+                        onClick={() => { setIsOpen(false); setIsChatMinimized(true); onOpenChange?.(false); }}
+                        className="absolute -top-2 -right-2 w-6 h-6 bg-white rounded-full border border-slate-200 shadow-sm flex items-center justify-center text-slate-400 hover:text-slate-700 hover:scale-110 transition-all"
+                        aria-label="Dismiss AI chat"
+                    >
+                        <X className="w-3.5 h-3.5" />
+                    </button>
                 </div>
             </div>
 
-            {/* Action Chips */}
-            <div className="flex flex-wrap gap-2 pl-[48px] pointer-events-auto">
-                {chatMessage.actions.map((act, i) => (
+            {/* ── Action Buttons ───────────────────────────────────────── */}
+            <div className="flex flex-col gap-2 pl-[52px] pointer-events-auto w-full max-w-[320px]">
+                {actions.map((act, i) => (
                     <button
                         key={i}
                         onClick={() => {
-                            if (act.isDismiss) {
-                                setIsOpen(false);
-                                onOpenChange?.(false);
-                            } else if (act.onClick) {
-                                // 1. Wipe the slate clean
-                                if (clearFilters) clearFilters();
-                                // 2. Execute the new action after a tiny delay so state clears
-                                setTimeout(() => {
-                                    act.onClick!();
-                                }, 50);
-                                setIsOpen(false);
-                                onOpenChange?.(false);
-                            }
+                            // 1. Clear existing filters
+                            if (clearFilters) clearFilters();
+                            // 2. Trigger the existing system button after state clears
+                            setTimeout(() => act.onClick(), 50);
+                            // 3. Close the chat
+                            setIsOpen(false);
+                            setIsChatMinimized(false);
+                            onOpenChange?.(false);
                         }}
-                        className={`flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-bold tracking-wide rounded-full shadow-lg transition-all duration-200 border ${act.isDismiss
-                            ? 'bg-white/90 backdrop-blur-md border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                            : 'shiny-effect text-indigo-50 hover:scale-105'
-                            }`}
-                        style={
-                            act.isDismiss
-                                ? undefined
-                                : {
-                                    background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
-                                    border: '1px solid rgba(99, 102, 241, 0.6)',
-                                    boxShadow: '0 4px 12px rgba(79, 70, 229, 0.25)',
-                                }
-                        }
+                        className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl bg-white/95 backdrop-blur-xl border border-slate-200/60 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 group text-left"
                     >
-                        {act.icon}
-                        {act.label}
+                        {/* Icon pill */}
+                        <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${act.color} flex items-center justify-center shrink-0 shadow-md group-hover:shadow-lg transition-shadow`}>
+                            <span className="text-white">{act.icon}</span>
+                        </div>
+
+                        {/* Text */}
+                        <div className="flex-1 min-w-0">
+                            <span className="text-sm font-black text-slate-800 tracking-tight block truncate">
+                                {act.label}
+                            </span>
+                            {act.sublabel && (
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                    {act.sublabel}
+                                </span>
+                            )}
+                        </div>
+
+                        {/* Play indicator */}
+                        <Play className="w-4 h-4 text-slate-300 group-hover:text-indigo-500 transition-colors shrink-0 fill-current" />
                     </button>
                 ))}
             </div>

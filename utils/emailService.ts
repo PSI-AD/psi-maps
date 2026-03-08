@@ -43,6 +43,7 @@ export interface LeadData {
   email: string;
   phone: string;
   message?: string;
+  sourceUrl?: string;
 }
 
 // ── Professional HTML Email Template ─────────────────────────────────
@@ -205,6 +206,7 @@ function buildEmailHTML(lead: LeadData): string {
                   </td>
                   <td align="right" style="vertical-align:top;">
                     <div style="color:#94a3b8;font-size:10px;font-weight:600;">Source: PSI Maps Platform</div>
+                    ${lead.sourceUrl ? `<div style="color:#cbd5e1;font-size:9px;margin-top:2px;"><a href="${lead.sourceUrl}" style="color:#94a3b8;text-decoration:none;">📍 ${lead.sourceUrl}</a></div>` : ''}
                   </td>
                 </tr>
               </table>
@@ -264,15 +266,26 @@ export async function sendLeadEmail(lead: LeadData): Promise<{ success: boolean;
 // ── Also save leads to Firestore for CRM tracking ───────────────────
 export async function saveLeadToFirestore(lead: LeadData): Promise<void> {
   try {
-    const { collection, addDoc, serverTimestamp } = await import('firebase/firestore');
+    const { collection, doc, setDoc, serverTimestamp } = await import('firebase/firestore');
     const { db } = await import('./firebase');
-    await addDoc(collection(db, 'leads'), {
+
+    // Build a human-readable document ID: FirstName-LastName_YYYY-MM-DD_XXXXX
+    const now = new Date();
+    const datePart = now.toISOString().slice(0, 10); // YYYY-MM-DD
+    const codePart = Math.random().toString(36).substring(2, 7).toUpperCase(); // 5-char code
+    const namePart = `${lead.firstName}-${lead.lastName}`
+      .replace(/[^a-zA-Z0-9-]/g, '')
+      .substring(0, 40) || 'Unknown';
+    const docId = `${namePart}_${datePart}_${codePart}`;
+
+    await setDoc(doc(collection(db, 'leads'), docId), {
       ...lead,
       submittedAt: serverTimestamp(),
       status: 'new',
       source: 'psi-maps',
+      sourceUrl: lead.sourceUrl || window.location.href,
     });
-    console.log('💾 Lead saved to Firestore');
+    console.log(`💾 Lead saved to Firestore as: ${docId}`);
   } catch (err) {
     console.error('❌ Failed to save lead to Firestore:', err);
   }

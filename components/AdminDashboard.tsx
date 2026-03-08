@@ -5,7 +5,7 @@ import { db } from '../utils/firebase';
 import { doc, setDoc, addDoc, collection, deleteDoc, writeBatch, updateDoc, getDocs, onSnapshot } from 'firebase/firestore';
 import { generateCleanId } from '../utils/helpers';
 import { fetchAndSaveBoundary } from '../utils/boundaryService';
-import { Database, RefreshCw, Plus, Edit2, Trash2, MapPin, Search, Eye, EyeOff, ImageIcon, Zap, Check, Sliders, MonitorPlay } from 'lucide-react';
+import { Database, RefreshCw, Plus, Edit2, Trash2, MapPin, Search, Eye, EyeOff, ImageIcon, Zap, Check, Sliders, MonitorPlay, Users, ExternalLink } from 'lucide-react';
 import { optimizeAndUploadImage } from '../utils/imageOptimizer';
 import Map, { Marker, NavigationControl } from 'react-map-gl';
 import PresentationManager from './PresentationManager';
@@ -108,7 +108,7 @@ interface AdminDashboardProps {
 }
 
 
-type TabType = 'general' | 'presentations' | 'developers' | 'communities' | 'nearbys' | 'settings';
+type TabType = 'general' | 'presentations' | 'developers' | 'communities' | 'nearbys' | 'leads' | 'settings';
 
 const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
   const { onClose, liveProjects, setLiveProjects, liveLandmarks, setLiveLandmarks, setMapFeatures } = props;
@@ -160,6 +160,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
   const [liveCities, setLiveCities] = useState<any[]>([]);
   const [stagedCity, setStagedCity] = useState<any | null>(null);
 
+  // ── Leads state ────────────────────────────────────────────────────
+  const [liveLeads, setLiveLeads] = useState<any[]>([]);
+  const [leadsTypeFilter, setLeadsTypeFilter] = useState<string>('All');
+  const [leadsSearchTerm, setLeadsSearchTerm] = useState('');
+
   useEffect(() => {
     if (!db) {
       console.error("Firebase db is not initialized.");
@@ -190,11 +195,26 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
       console.error("Error fetching cities:", error);
     });
 
+    // Real-time listener for Leads
+    const unsubLeads = onSnapshot(collection(db, 'leads'), (snapshot) => {
+      const leads = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      // Sort by submittedAt descending (newest first)
+      leads.sort((a: any, b: any) => {
+        const aTime = a.submittedAt?.toMillis?.() || 0;
+        const bTime = b.submittedAt?.toMillis?.() || 0;
+        return bTime - aTime;
+      });
+      setLiveLeads(leads);
+    }, (error) => {
+      console.error("Error fetching leads:", error);
+    });
+
     // Cleanup listeners on unmount
     return () => {
       unsubDevelopers();
       unsubCommunities();
       unsubCities();
+      unsubLeads();
     };
   }, []);
 
@@ -538,7 +558,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
         <div className="w-full max-w-7xl">
           {/* Main Tab Navigation */}
           <div className="flex gap-4 mb-8 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm sticky top-0 z-[11000] overflow-x-auto hide-scrollbar w-full">
-            {(['general', 'presentations', 'developers', 'communities', 'nearbys', 'settings'] as TabType[]).map((tab) => (
+            {(['general', 'presentations', 'developers', 'communities', 'nearbys', 'leads', 'settings'] as TabType[]).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -550,12 +570,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                 {tab === 'nearbys' && <MapPin className="w-4 h-4" />}
                 {tab === 'developers' && <Database className="w-4 h-4" />}
                 {tab === 'communities' && <MapPin className="w-4 h-4" />}
+                {tab === 'leads' && <Users className="w-4 h-4" />}
                 {tab === 'general' ? 'Projects'
                   : tab === 'presentations' ? 'Presentations'
                     : tab === 'developers' ? 'Developers'
                       : tab === 'communities' ? 'Communities'
                         : tab === 'nearbys' ? 'Nearbys'
-                          : 'Settings'}
+                          : tab === 'leads' ? 'Leads'
+                            : 'Settings'}
               </button>
             ))}
           </div>
@@ -939,6 +961,168 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
               </section>
             )}
 
+            {activeTab === 'leads' && (() => {
+              const FORM_TYPE_LABELS: Record<string, string> = {
+                project_inquiry: '🏗️ Project Inquiry',
+                floor_plan_request: '📐 Floor Plan',
+                general_contact: '📩 Contact / Report',
+                callback_request: '📞 Callback',
+              };
+              const filteredLeads = liveLeads.filter(lead => {
+                if (leadsTypeFilter !== 'All' && lead.formType !== leadsTypeFilter) return false;
+                if (leadsSearchTerm) {
+                  const term = leadsSearchTerm.toLowerCase();
+                  const name = `${lead.firstName || ''} ${lead.lastName || ''}`.toLowerCase();
+                  const email = (lead.email || '').toLowerCase();
+                  const project = (lead.projectName || '').toLowerCase();
+                  if (!name.includes(term) && !email.includes(term) && !project.includes(term)) return false;
+                }
+                return true;
+              });
+              return (
+                <section className="animate-in fade-in duration-300">
+                  {/* Header */}
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 w-full">
+                    <div>
+                      <h2 className="text-2xl font-black text-slate-900 tracking-tight">Lead Board</h2>
+                      <p className="text-slate-500 font-medium text-sm">All incoming leads from forms, reports, and inquiries — tracked with source URLs.</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="px-4 py-2 bg-blue-50 border border-blue-200 rounded-xl text-sm font-black text-blue-700">
+                        {liveLeads.length} Total Leads
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Filters Row */}
+                  <div className="flex flex-wrap gap-3 mb-6">
+                    {['All', 'project_inquiry', 'general_contact', 'floor_plan_request', 'callback_request'].map(type => (
+                      <button
+                        key={type}
+                        onClick={() => setLeadsTypeFilter(type)}
+                        className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border ${leadsTypeFilter === type
+                            ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-200'
+                            : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-600'
+                          }`}
+                      >
+                        {type === 'All' ? 'All' : FORM_TYPE_LABELS[type] || type}
+                      </button>
+                    ))}
+                    <div className="ml-auto">
+                      <input
+                        type="text"
+                        placeholder="Search by name, email, or project..."
+                        value={leadsSearchTerm}
+                        onChange={e => setLeadsSearchTerm(e.target.value)}
+                        className="h-10 px-4 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none focus:ring-4 focus:ring-blue-100 w-64"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Leads Table */}
+                  <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+                    <div className="w-full overflow-x-auto hide-scrollbar">
+                      <table className="w-full text-left min-w-[900px]">
+                        <thead className="bg-slate-50 border-b border-slate-100">
+                          <tr>
+                            <th className="px-5 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Name</th>
+                            <th className="px-5 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Email</th>
+                            <th className="px-5 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Phone</th>
+                            <th className="px-5 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Type</th>
+                            <th className="px-5 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Project</th>
+                            <th className="px-5 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Source</th>
+                            <th className="px-5 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Date</th>
+                            <th className="px-5 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                          {filteredLeads.map((lead: any) => {
+                            const dateObj = lead.submittedAt?.toDate?.();
+                            const dateStr = dateObj ? dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+                            const timeStr = dateObj ? dateObj.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
+                            const isReport = lead.firstName === 'Report';
+                            return (
+                              <tr key={lead.id} className="hover:bg-slate-50 transition-all group">
+                                <td className="px-5 py-4">
+                                  <div className="font-bold text-slate-900">
+                                    {isReport ? `🚩 ${lead.lastName}` : `${lead.firstName} ${lead.lastName}`}
+                                  </div>
+                                </td>
+                                <td className="px-5 py-4">
+                                  {lead.email && lead.email !== 'report@psi-maps.com' ? (
+                                    <a href={`mailto:${lead.email}`} className="text-sm text-blue-600 hover:underline font-medium">{lead.email}</a>
+                                  ) : (
+                                    <span className="text-sm text-slate-400">—</span>
+                                  )}
+                                </td>
+                                <td className="px-5 py-4">
+                                  {lead.phone ? (
+                                    <a href={`tel:${lead.phone}`} className="text-sm text-blue-600 hover:underline font-medium">{lead.phone}</a>
+                                  ) : (
+                                    <span className="text-sm text-slate-400">—</span>
+                                  )}
+                                </td>
+                                <td className="px-5 py-4">
+                                  <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${lead.formType === 'project_inquiry' ? 'bg-blue-50 text-blue-700'
+                                      : lead.formType === 'general_contact' ? 'bg-amber-50 text-amber-700'
+                                        : lead.formType === 'floor_plan_request' ? 'bg-purple-50 text-purple-700'
+                                          : 'bg-emerald-50 text-emerald-700'
+                                    }`}>
+                                    {FORM_TYPE_LABELS[lead.formType] || lead.formType}
+                                  </span>
+                                </td>
+                                <td className="px-5 py-4 text-sm font-medium text-slate-700">
+                                  {lead.projectName || '—'}
+                                </td>
+                                <td className="px-5 py-4">
+                                  {lead.sourceUrl ? (
+                                    <a
+                                      href={lead.sourceUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 px-2.5 py-1 rounded-lg max-w-[180px] truncate"
+                                      title={lead.sourceUrl}
+                                    >
+                                      <ExternalLink className="w-3 h-3 shrink-0" />
+                                      {(() => {
+                                        try {
+                                          const u = new URL(lead.sourceUrl);
+                                          return u.pathname === '/' ? 'Homepage' : decodeURIComponent(u.pathname).replace(/^\//, '');
+                                        } catch { return 'Link'; }
+                                      })()}
+                                    </a>
+                                  ) : (
+                                    <span className="text-[10px] text-slate-400">Map</span>
+                                  )}
+                                </td>
+                                <td className="px-5 py-4">
+                                  <div className="text-sm font-medium text-slate-700">{dateStr}</div>
+                                  {timeStr && <div className="text-[10px] text-slate-400">{timeStr}</div>}
+                                </td>
+                                <td className="px-5 py-4">
+                                  <span className={`text-[10px] font-black uppercase tracking-widest ${lead.status === 'new' ? 'text-emerald-600' : 'text-slate-400'
+                                    }`}>
+                                    {lead.status || 'new'}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                          {filteredLeads.length === 0 && (
+                            <tr>
+                              <td colSpan={8} className="px-6 py-16 text-center">
+                                <div className="text-slate-400 font-medium">No leads match the current filters.</div>
+                                <div className="text-slate-300 text-sm mt-1">Leads will appear here when users submit forms on the map.</div>
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </section>
+              );
+            })()}
 
             {activeTab === 'presentations' && (
               <section className="animate-in fade-in duration-300">

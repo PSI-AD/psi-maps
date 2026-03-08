@@ -493,24 +493,9 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
       {/* AI Chat Assistant overlay */}
       <AIChatAssistant
         selectedProject={selectedProject}
-        selectedCommunity={selectedCommunity}
-        selectedCity={selectedCity}
-        selectedLandmark={props.selectedLandmarkForSearch}
         isTourActive={!!props.activePresentation}
         allProjects={liveProjects}
         allLandmarks={liveLandmarks}
-        onFilterDeveloper={(dev) => {
-          setDeveloperFilter(dev);
-          handleFitBounds(liveProjects.filter(p => p.developerName === dev));
-        }}
-        onFilterCommunity={(comm) => {
-          setSelectedCommunity(comm);
-          handleFitBounds(liveProjects.filter(p => p.community?.toLowerCase() === comm.toLowerCase()));
-        }}
-        onFitBounds={handleFitBounds}
-        onFlyTo={(lng, lat, zoom) => onFlyTo?.(lng, lat, zoom || 14)}
-        startCinematicTour={props.startCinematicTour}
-        onLaunchPresentation={props.onLaunchPresentation}
         onOpenChange={setIsAiChatOpen}
         clearFilters={() => {
           setDeveloperFilter('All');

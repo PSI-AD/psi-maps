@@ -60,6 +60,7 @@ const InquireModal: React.FC<InquireModalProps> = ({ projectName, community, dev
             lastName,
             email,
             phone: `${countryCode}${phone}`,
+            sourceUrl: window.location.href,
         });
 
         setIsSubmitting(false);
@@ -122,6 +123,8 @@ const InquireModal: React.FC<InquireModalProps> = ({ projectName, community, dev
                             <div className="flex-1">
                                 <input
                                     type="text"
+                                    name="given-name"
+                                    autoComplete="given-name"
                                     placeholder="First Name"
                                     value={firstName}
                                     onChange={e => setFirstName(e.target.value)}
@@ -132,6 +135,8 @@ const InquireModal: React.FC<InquireModalProps> = ({ projectName, community, dev
                             <div className="flex-1">
                                 <input
                                     type="text"
+                                    name="family-name"
+                                    autoComplete="family-name"
                                     placeholder="Last Name"
                                     value={lastName}
                                     onChange={e => setLastName(e.target.value)}
@@ -145,6 +150,8 @@ const InquireModal: React.FC<InquireModalProps> = ({ projectName, community, dev
                         <div className="mb-4">
                             <input
                                 type="email"
+                                name="email"
+                                autoComplete="email"
                                 placeholder="Email Address"
                                 value={email}
                                 onChange={e => setEmail(e.target.value)}
@@ -170,6 +177,8 @@ const InquireModal: React.FC<InquireModalProps> = ({ projectName, community, dev
                                 </div>
                                 <input
                                     type="tel"
+                                    name="tel-national"
+                                    autoComplete="tel-national"
                                     placeholder="5X XXX XXXX"
                                     value={phone}
                                     onChange={e => setPhone(e.target.value.replace(/\D/g, ''))}
