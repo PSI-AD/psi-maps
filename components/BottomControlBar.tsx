@@ -528,18 +528,24 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                             onSelectProject={onSelectProject}
                             onSelectLandmark={onSelectLandmark}
                             onSelectDeveloper={(dev) => {
+                                // Clean slate: stop tours, reset other filters
+                                window.dispatchEvent(new CustomEvent('global-tour-pause'));
+                                setStatusFilter('All');
+                                setSelectedCommunity('');
                                 setDeveloperFilter(dev);
                                 handleFitBounds(projects.filter(p => p.developerName === dev));
                             }}
                             onSelectLocation={(name, type) => {
+                                // Clean slate: stop tours before switching context
+                                window.dispatchEvent(new CustomEvent('global-tour-pause'));
+                                setDeveloperFilter('All');
+                                setStatusFilter('All');
                                 if (type === 'city') {
                                     setSelectedCity(name.toLowerCase());
                                     setSelectedCommunity('');
-                                    setDeveloperFilter('All');
                                     handleFitBounds(projects.filter(p => p.city?.toLowerCase() === name.toLowerCase()));
                                 } else if (type === 'community') {
                                     setSelectedCommunity(name);
-                                    setDeveloperFilter('All');
                                     // Auto-link: set the city from the first project in this community
                                     const proj = projects.find(p => p.community?.toLowerCase() === name.toLowerCase());
                                     if (proj?.city) setSelectedCity(proj.city.toLowerCase());

@@ -151,6 +151,18 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
     return () => window.removeEventListener('ai-apply-filters', handler);
   }, [setDeveloperFilter, setStatusFilter, setSelectedCommunity, setSelectedCity]);
 
+  // Auto-expand sidebar when AI triggers a neighborhood tour or results panel
+  useEffect(() => {
+    const onNeighborhoodTour = () => setIsAnalysisOpen(true);
+    const onExpandResults = () => setIsAnalysisOpen(true);
+    window.addEventListener('ai-open-neighborhood-tour', onNeighborhoodTour);
+    window.addEventListener('ai-expand-results-panel', onExpandResults);
+    return () => {
+      window.removeEventListener('ai-open-neighborhood-tour', onNeighborhoodTour);
+      window.removeEventListener('ai-expand-results-panel', onExpandResults);
+    };
+  }, [setIsAnalysisOpen]);
+
   // Carousel + chip animation logic
   const isAnyFilterActive = Boolean(
     (developerFilter && developerFilter !== 'All') ||
@@ -169,7 +181,23 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
   const handleSearchSelect = (project: Project) => {
     if (!project) return;
 
-    // Sync breadcrumbs
+    // ── CLEAN SLATE: aggressively clear previous state ───────────────
+    // 1. Stop any active tours
+    window.dispatchEvent(new CustomEvent('global-tour-pause'));
+
+    // 2. Clear all filters (developer, status, property type)
+    setDeveloperFilter('All');
+    setStatusFilter('All');
+    if (props.setPropertyType) props.setPropertyType('All');
+
+    // 3. Close nearby panel, clear isochrone/route
+    if (props.setShowNearbyPanel) props.setShowNearbyPanel(false);
+    if (props.setActiveIsochrone) props.setActiveIsochrone(null);
+
+    // 4. Clear old landmark selection
+    if ((props as any).setSelectedLandmarkForSearch) (props as any).setSelectedLandmarkForSearch(null);
+
+    // ── SET NEW: breadcrumbs + selection ─────────────────────────────
     setSelectedCity(project.city || '');
     setSelectedCommunity(project.community || '');
     onProjectClick(project.id);

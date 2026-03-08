@@ -512,6 +512,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
 
     // ── Auto-open panel when context changes (NEVER during tour) ─────────
     useEffect(() => {
+        // Double-check: state-based guard + ref-based guard (catches race conditions)
         if (anyTourActive || tourActiveRef.current) {
             setIsOpen(false);
             onOpenChange?.(false);
@@ -519,13 +520,20 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
         }
 
         if (context && actions.length > 0) {
+            // One more synchronous check right before opening
+            if (tourActiveRef.current) return;
             setIsOpen(true);
             setIsFading(false);
             onOpenChange?.(true);
             if (dismissTimer.current) clearTimeout(dismissTimer.current);
             dismissTimer.current = setTimeout(() => {
+                // Re-verify: don't dismiss if hovering
+                if (isHoveringRef.current) return;
+                // Re-verify: don't pop open during a tour that started after the timer was set
+                if (tourActiveRef.current) return;
                 setIsFading(true);
                 setTimeout(() => {
+                    if (isHoveringRef.current || tourActiveRef.current) return;
                     setIsOpen(false);
                     onOpenChange?.(false);
                 }, 500);
