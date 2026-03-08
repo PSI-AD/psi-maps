@@ -507,6 +507,12 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
           setSelectedCity('');
           setSelectedCommunity('');
         }}
+        onApplyFilters={(filters) => {
+          if (filters.developer) setDeveloperFilter(filters.developer);
+          if (filters.status) setStatusFilter(filters.status);
+          if (filters.community) setSelectedCommunity(filters.community);
+          if (filters.city) setSelectedCity(filters.city);
+        }}
       />
     </div>
   );

@@ -119,18 +119,33 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
         };
     }, [isQuickRotating, mapRef]);
 
-    // ── Global tour state — listens to FilteredProjectsCarousel broadcasts ──
+    // ── Global tour state — listens to FilteredProjectsCarousel AND neighborhood tour broadcasts ──
     const [isTourPlaying, setIsTourPlaying] = useState(false);
     const [showTourPanel, setShowTourPanel] = useState(false);
     const tourPanelTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
-        const handler = (e: Event) => {
+        const onGlobalTour = (e: Event) => {
             const detail = (e as CustomEvent).detail;
             setIsTourPlaying(!!detail?.active);
         };
-        window.addEventListener('global-tour-changed', handler);
-        return () => window.removeEventListener('global-tour-changed', handler);
+        const onNeighborhoodTour = (e: Event) => {
+            const detail = (e as CustomEvent).detail;
+            if (detail?.active) {
+                setIsTourPlaying(true);
+            }
+            // When neighborhood tour stops, only reset if no global tour is still running
+            if (!detail?.active) {
+                // Will be corrected by the next global-tour-changed if a global tour is still running
+                setIsTourPlaying(false);
+            }
+        };
+        window.addEventListener('global-tour-changed', onGlobalTour);
+        window.addEventListener('neighborhood-tour-changed', onNeighborhoodTour);
+        return () => {
+            window.removeEventListener('global-tour-changed', onGlobalTour);
+            window.removeEventListener('neighborhood-tour-changed', onNeighborhoodTour);
+        };
     }, []);
 
     // Compute nearby projects and landmarks for the currently selected project

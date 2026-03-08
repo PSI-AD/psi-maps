@@ -847,6 +847,41 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                   <button className="mt-4 px-6 py-2.5 bg-blue-600 text-white font-bold rounded-lg text-sm hover:bg-blue-700">Save Global Settings</button>
                 </div>
 
+                {/* AI Chat Style Section */}
+                <div>
+                  <div className="mb-6 border-b border-slate-100 pb-4">
+                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">AI Chat Style</h2>
+                    <p className="text-slate-500 text-sm">Choose which AI chat design is active on the map.</p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      { id: 'classic' as const, label: 'Style 1 – Classic', desc: 'Card panel with header and structured layout' },
+                      { id: 'modern' as const, label: 'Style 2 – Modern', desc: 'Floating bubble with glassmorphism action cards' },
+                    ].map(style => {
+                      const current = (() => { try { return localStorage.getItem('psi_ai_chat_style') || 'modern'; } catch { return 'modern'; } })();
+                      const isActive = current === style.id;
+                      return (
+                        <button
+                          key={style.id}
+                          onClick={() => {
+                            localStorage.setItem('psi_ai_chat_style', style.id);
+                            window.dispatchEvent(new CustomEvent('ai-chat-style-changed', { detail: { style: style.id } }));
+                          }}
+                          className={`p-5 border-2 rounded-2xl text-left transition-all ${isActive
+                            ? 'border-blue-500 bg-blue-50 shadow-md'
+                            : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'
+                            }`}
+                        >
+                          <p className={`font-black text-base ${isActive ? 'text-blue-700' : 'text-slate-800'}`}>{style.label}</p>
+                          <p className="text-sm text-slate-500 mt-1">{style.desc}</p>
+                          {isActive && (
+                            <span className="inline-block mt-3 px-3 py-1 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-full">Active</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
                 {/* AR Mode Section */}
                 <div>
                   <div className="mb-6 border-b border-slate-100 pb-4">
@@ -1001,8 +1036,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                         key={type}
                         onClick={() => setLeadsTypeFilter(type)}
                         className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border ${leadsTypeFilter === type
-                            ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-200'
-                            : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-600'
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-200'
+                          : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-600'
                           }`}
                       >
                         {type === 'All' ? 'All' : FORM_TYPE_LABELS[type] || type}
@@ -1064,9 +1099,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                                 </td>
                                 <td className="px-5 py-4">
                                   <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${lead.formType === 'project_inquiry' ? 'bg-blue-50 text-blue-700'
-                                      : lead.formType === 'general_contact' ? 'bg-amber-50 text-amber-700'
-                                        : lead.formType === 'floor_plan_request' ? 'bg-purple-50 text-purple-700'
-                                          : 'bg-emerald-50 text-emerald-700'
+                                    : lead.formType === 'general_contact' ? 'bg-amber-50 text-amber-700'
+                                      : lead.formType === 'floor_plan_request' ? 'bg-purple-50 text-purple-700'
+                                        : 'bg-emerald-50 text-emerald-700'
                                     }`}>
                                     {FORM_TYPE_LABELS[lead.formType] || lead.formType}
                                   </span>
