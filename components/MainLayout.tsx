@@ -179,11 +179,11 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
     : 'bottom-[88px]';
 
   // ── Lightweight project focus — for tour playback & carousel clicks ──
-  // Does NOT stop tours, clear filters, or do clean slate. Just focuses the project.
+  // Does NOT stop tours, clear filters, or change city/community breadcrumbs.
+  // IMPORTANT: setSelectedCity/setSelectedCommunity are FILTER values that
+  // drive filteredProjects. Changing them mid-tour would narrow the list.
   const handleProjectFocus = (project: Project) => {
     if (!project) return;
-    setSelectedCity(project.city || '');
-    setSelectedCommunity(project.community || '');
     onProjectClick(project.id);
     setIsAnalysisOpen(true);
     const lat = Number(project.latitude);

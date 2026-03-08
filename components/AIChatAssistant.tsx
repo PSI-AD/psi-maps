@@ -296,7 +296,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
                         sublabel: `${devProjects.length} project${devProjects.length === 1 ? '' : 's'}`,
                         icon: <Building className="w-4 h-4" />,
                         color: 'from-violet-500 to-purple-600',
-                        onClick: () => startTourWithFilters(`${devName} Showcase`, devProjects.slice(0, 15), { developer: devName }),
+                        onClick: () => startTourWithFilters(`${devName} Showcase`, devProjects, { developer: devName }),
                     });
                 }
             }
@@ -395,7 +395,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
                     sublabel: `${devProjects.length} project${devProjects.length === 1 ? '' : 's'}`,
                     icon: <Building className="w-4 h-4" />,
                     color: 'from-violet-500 to-purple-600',
-                    onClick: () => startTourWithFilters(`${selectedDeveloper} Showcase`, devProjects.slice(0, 15), { developer: selectedDeveloper }),
+                    onClick: () => startTourWithFilters(`${selectedDeveloper} Showcase`, devProjects, { developer: selectedDeveloper }),
                 });
             }
 
