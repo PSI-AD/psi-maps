@@ -178,14 +178,29 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
     ? 'bottom-[245px] md:bottom-[96px]'
     : 'bottom-[88px]';
 
+  // ── Lightweight project focus — for tour playback & carousel clicks ──
+  // Does NOT stop tours, clear filters, or do clean slate. Just focuses the project.
+  const handleProjectFocus = (project: Project) => {
+    if (!project) return;
+    setSelectedCity(project.city || '');
+    setSelectedCommunity(project.community || '');
+    onProjectClick(project.id);
+    setIsAnalysisOpen(true);
+    const lat = Number(project.latitude);
+    const lng = Number(project.longitude);
+    if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+      onFlyTo(lng, lat, 16);
+    }
+  };
+
+  // ── Full clean-slate search — for user-initiated searches only ────
   const handleSearchSelect = (project: Project) => {
     if (!project) return;
 
-    // ── CLEAN SLATE: aggressively clear previous state ───────────────
     // 1. Stop any active tours
     window.dispatchEvent(new CustomEvent('global-tour-pause'));
 
-    // 2. Clear all filters (developer, status, property type)
+    // 2. Clear all filters
     setDeveloperFilter('All');
     setStatusFilter('All');
     if (props.setPropertyType) props.setPropertyType('All');
@@ -194,21 +209,11 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
     if (props.setShowNearbyPanel) props.setShowNearbyPanel(false);
     if (props.setActiveIsochrone) props.setActiveIsochrone(null);
 
-    // 4. Clear old landmark selection
+    // 4. Clear old landmark selection 
     if ((props as any).setSelectedLandmarkForSearch) (props as any).setSelectedLandmarkForSearch(null);
 
-    // ── SET NEW: breadcrumbs + selection ─────────────────────────────
-    setSelectedCity(project.city || '');
-    setSelectedCommunity(project.community || '');
-    onProjectClick(project.id);
-    setIsAnalysisOpen(true);
-
-    // Fly directly to the property with cinematic tilt
-    const lat = Number(project.latitude);
-    const lng = Number(project.longitude);
-    if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
-      onFlyTo(lng, lat, 16);
-    }
+    // 5. Focus the project
+    handleProjectFocus(project);
   };
 
   return (
@@ -477,7 +482,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
       <div className={selectedProject && isAnalysisOpen ? 'hidden md:block' : 'block'}>
         <FilteredProjectsCarousel
           projects={props.filteredProjects}
-          onSelectProject={handleSearchSelect}
+          onSelectProject={handleProjectFocus}
           isVisible={showCarousel}
           selectedProjectId={selectedProject?.id}
           hoveredProjectId={hoveredProjectId}

@@ -178,13 +178,15 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
         const community = selectedProject.community || '';
         const devName = (selectedProject as any).developerName || '';
 
-        // Helper: apply filters and start tour atomically
+        // Helper: start tour first (sets activeTourRef), THEN apply filters.
+        // This order prevents the "stop tour on projects change" effect from killing the tour.
         const startWithFilters = (label: string, tourProjects: Project[], filters: { developer?: string; status?: string; community?: string; city?: string } = {}) => {
-            // Apply filters so chips reflect the selection
-            window.dispatchEvent(new CustomEvent('ai-apply-filters', { detail: filters }));
+            // 1. Start the tour FIRST — this sets activeTourRef.current in the carousel
+            window.dispatchEvent(new CustomEvent('global-tour-start', { detail: { label, projects: tourProjects } }));
+            // 2. THEN apply filters so chips reflect the selection (activeTourRef protects tour from being stopped)
             setTimeout(() => {
-                window.dispatchEvent(new CustomEvent('global-tour-start', { detail: { label, projects: tourProjects } }));
-            }, 60);
+                window.dispatchEvent(new CustomEvent('ai-apply-filters', { detail: filters }));
+            }, 30);
             setShowTourPanel(false);
         };
 
@@ -240,7 +242,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
             });
         }
 
-        // Developer projects
+        // Developer projects — ALL projects by this developer (no slice cap)
         if (devName && devName !== 'Exclusive' && devName !== 'Unknown') {
             const devProjects = projects.filter(
                 p => p.id !== selectedProject.id && (p as any).developerName === devName && p.latitude && p.longitude
@@ -251,7 +253,8 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                     sublabel: `${devProjects.length} project${devProjects.length === 1 ? '' : 's'}`,
                     icon: <Navigation className="w-4 h-4 text-violet-600" />,
                     color: 'bg-violet-100',
-                    onClick: () => startWithFilters(`${devName} Showcase`, devProjects.slice(0, 15), { developer: devName }),
+                    // Developer tour: clear community filter so ALL dev projects show, not just current community
+                    onClick: () => startWithFilters(`${devName} Showcase`, devProjects, { developer: devName }),
                 });
             }
         }

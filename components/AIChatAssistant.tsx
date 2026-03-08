@@ -225,18 +225,18 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
         filters: { developer?: string; status?: string; community?: string; city?: string } = {},
         expandPanel: boolean = true,
     ) => {
-        // Atomic filter application: sets specified values, resets others to default
-        if (onApplyFilters) onApplyFilters(filters);
-
-        // Small delay for React to process filter state before starting tour
+        // 1. Expand panel immediately
+        if (expandPanel) {
+            window.dispatchEvent(new CustomEvent('ai-expand-results-panel'));
+        }
+        // 2. Start tour FIRST — sets activeTourRef.current in the carousel (protects from stop-on-change)
+        window.dispatchEvent(new CustomEvent('global-tour-start', {
+            detail: { label, projects }
+        }));
+        // 3. THEN apply filters so chips reflect the selection
         setTimeout(() => {
-            if (expandPanel) {
-                window.dispatchEvent(new CustomEvent('ai-expand-results-panel'));
-            }
-            window.dispatchEvent(new CustomEvent('global-tour-start', {
-                detail: { label, projects }
-            }));
-        }, 60);
+            if (onApplyFilters) onApplyFilters(filters);
+        }, 30);
     }, [onApplyFilters]);
 
     // ── Compute remote-control actions ───────────────────────────────────

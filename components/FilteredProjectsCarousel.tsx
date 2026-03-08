@@ -574,7 +574,7 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                                         onClick={(e) => { e.stopPropagation(); togglePlay(communityName, commProjects); }}
                                         aria-label={isPlaying ? `Stop tour for ${communityName}` : `Start tour for ${communityName}`}
                                         className={`px-2.5 py-1 rounded-md text-[8px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 shrink-0 ${isPlaying
-                                            ? 'bg-rose-500 text-white shadow-md hover:bg-rose-600'
+                                            ? 'bg-amber-500 text-white shadow-md hover:bg-amber-600'
                                             : 'bg-blue-600 text-white shadow-sm hover:bg-blue-700'
                                             }`}
                                     >
