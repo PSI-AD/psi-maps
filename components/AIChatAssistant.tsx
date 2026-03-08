@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Sparkles, X, MapPin, Play, Building, Landmark as LandmarkIcon, Globe, CheckCircle, Hammer, MessageSquare, Search } from 'lucide-react';
+import { Sparkles, X, MapPin, Play, Building, Landmark as LandmarkIcon, Globe, CheckCircle, Hammer, MessageSquare, Search, User, Phone, Send } from 'lucide-react';
 import { Project, Landmark } from '../types';
 import { calculateDistance } from '../utils/geo';
+import { submitLead } from '../utils/emailService';
 
 // ── Types ────────────────────────────────────────────────────────────────
 interface AIChatAction {
@@ -61,6 +62,38 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
     const [isFading, setIsFading] = useState(false);
     const [chatStyle, setChatStyle] = useState<ChatStyle>(getSavedStyle);
     const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // ── Lead capture mini-form ────────────────────────────────────────────
+    const [showLeadForm, setShowLeadForm] = useState(false);
+    const [leadName, setLeadName] = useState('');
+    const [leadPhone, setLeadPhone] = useState('');
+    const [leadSubmitted, setLeadSubmitted] = useState(false);
+    const [leadSubmitting, setLeadSubmitting] = useState(false);
+
+    const handleLeadSubmit = async () => {
+        if (!leadName.trim() || !leadPhone.trim()) return;
+        setLeadSubmitting(true);
+        try {
+            await submitLead({
+                formType: 'project_inquiry',
+                firstName: leadName.trim().split(' ')[0] || leadName.trim(),
+                lastName: leadName.trim().split(' ').slice(1).join(' ') || '',
+                phone: leadPhone.trim(),
+                email: '',
+                projectName: selectedProject?.name || contextName || 'Map Inquiry',
+                community: selectedProject?.community || '',
+                developer: (selectedProject as any)?.developerName || '',
+                message: `Quick lead from AI Chat — Context: ${contextName}`,
+                sourceUrl: typeof window !== 'undefined' ? window.location.href : '',
+            });
+            setLeadSubmitted(true);
+        } catch {
+            // Still mark as submitted so user isn't stuck
+            setLeadSubmitted(true);
+        } finally {
+            setLeadSubmitting(false);
+        }
+    };
 
     // ── ROBUST tour guard ────────────────────────────────────────────────
     const tourActiveRef = useRef(false);
@@ -646,6 +679,51 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
                                 <Play className="w-3.5 h-3.5 text-slate-300 group-hover:text-indigo-500 transition-colors shrink-0 fill-current" />
                             </button>
                         ))}
+                    </div>
+                    {/* Lead capture mini-form */}
+                    <div className="px-4 pt-2 pb-4 border-t border-slate-100">
+                        {leadSubmitted ? (
+                            <div className="flex items-center gap-2 text-emerald-600 text-xs font-bold py-2">
+                                <CheckCircle className="w-4 h-4" />
+                                <span>Thanks! We'll reach out shortly.</span>
+                            </div>
+                        ) : showLeadForm ? (
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                    <div className="relative flex-1">
+                                        <User className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-300" />
+                                        <input
+                                            type="text" placeholder="Your name"
+                                            value={leadName} onChange={e => setLeadName(e.target.value)}
+                                            className="w-full pl-8 pr-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-200"
+                                        />
+                                    </div>
+                                    <div className="relative flex-1">
+                                        <Phone className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-300" />
+                                        <input
+                                            type="tel" placeholder="Phone"
+                                            value={leadPhone} onChange={e => setLeadPhone(e.target.value)}
+                                            className="w-full pl-8 pr-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-200"
+                                        />
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={handleLeadSubmit}
+                                    disabled={leadSubmitting || !leadName.trim() || !leadPhone.trim()}
+                                    className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black uppercase tracking-widest rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                    {leadSubmitting ? <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Send className="w-3 h-3" />}
+                                    <span>Send</span>
+                                </button>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={() => { setShowLeadForm(true); resetTimer(); }}
+                                className="text-[10px] font-bold text-indigo-500 hover:text-indigo-700 transition-colors uppercase tracking-widest py-1"
+                            >
+                                📩 Interested? Get notified
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
