@@ -258,7 +258,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
             );
             if (communityProjects.length > 0) {
                 result.push({
-                    label: `Projects in ${community}`,
+                    label: `${community} Projects`,
                     sublabel: `${communityProjects.length} nearby`,
                     icon: <MapPin className="w-4 h-4" />,
                     color: 'from-blue-500 to-blue-600',
@@ -292,7 +292,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
                 );
                 if (devProjects.length > 0) {
                     result.push({
-                        label: `Projects by ${devName}`,
+                        label: `${devName} Projects`,
                         sublabel: `${devProjects.length} project${devProjects.length === 1 ? '' : 's'}`,
                         icon: <Building className="w-4 h-4" />,
                         color: 'from-violet-500 to-purple-600',
@@ -305,7 +305,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
             const offPlanNearby = communityProjects.filter(p => p.status?.toLowerCase() === 'off-plan');
             if (offPlanNearby.length > 0) {
                 result.push({
-                    label: 'Off-Plan Projects',
+                    label: `Off-Plan in ${community}`,
                     sublabel: `${offPlanNearby.length} in ${community}`,
                     icon: <Hammer className="w-4 h-4" />,
                     color: 'from-amber-500 to-orange-500',
@@ -317,7 +317,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
             const completedNearby = communityProjects.filter(p => p.status?.toLowerCase() === 'completed');
             if (completedNearby.length > 0) {
                 result.push({
-                    label: 'Completed Projects',
+                    label: `Completed in ${community}`,
                     sublabel: `${completedNearby.length} in ${community}`,
                     icon: <CheckCircle className="w-4 h-4" />,
                     color: 'from-teal-500 to-emerald-600',
@@ -334,7 +334,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
 
             if (commProjects.length > 0) {
                 result.push({
-                    label: `Projects in ${selectedCommunity}`,
+                    label: `${selectedCommunity} Projects`,
                     sublabel: `${commProjects.length} project${commProjects.length === 1 ? '' : 's'}`,
                     icon: <MapPin className="w-4 h-4" />,
                     color: 'from-blue-500 to-blue-600',
@@ -352,7 +352,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
             Object.entries(devCounts).sort((a, b) => b[1] - a[1]).slice(0, 3).forEach(([devName, count]) => {
                 const devProjects = commProjects.filter(p => p.developerName === devName);
                 result.push({
-                    label: `Projects by ${devName}`,
+                    label: `${devName} Projects`,
                     sublabel: `${count} project${count === 1 ? '' : 's'}`,
                     icon: <Building className="w-4 h-4" />,
                     color: 'from-violet-500 to-purple-600',
@@ -363,7 +363,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
             const offPlan = commProjects.filter(p => p.status?.toLowerCase() === 'off-plan');
             if (offPlan.length > 0) {
                 result.push({
-                    label: 'Off-Plan Projects',
+                    label: `Off-Plan in ${selectedCommunity}`,
                     sublabel: `${offPlan.length} project${offPlan.length === 1 ? '' : 's'}`,
                     icon: <Hammer className="w-4 h-4" />,
                     color: 'from-amber-500 to-orange-500',
@@ -374,7 +374,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
             const completed = commProjects.filter(p => p.status?.toLowerCase() === 'completed');
             if (completed.length > 0) {
                 result.push({
-                    label: 'Completed Projects',
+                    label: `Completed in ${selectedCommunity}`,
                     sublabel: `${completed.length} project${completed.length === 1 ? '' : 's'}`,
                     icon: <CheckCircle className="w-4 h-4" />,
                     color: 'from-teal-500 to-emerald-600',
@@ -415,7 +415,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
             const offPlan = devProjects.filter(p => p.status?.toLowerCase() === 'off-plan');
             if (offPlan.length > 0) {
                 result.push({
-                    label: `Off-Plan ${selectedDeveloper}`,
+                    label: `Off-Plan by ${selectedDeveloper}`,
                     sublabel: `${offPlan.length} project${offPlan.length === 1 ? '' : 's'}`,
                     icon: <Hammer className="w-4 h-4" />,
                     color: 'from-amber-500 to-orange-500',
@@ -426,7 +426,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
             const completed = devProjects.filter(p => p.status?.toLowerCase() === 'completed');
             if (completed.length > 0) {
                 result.push({
-                    label: `Completed ${selectedDeveloper}`,
+                    label: `Completed by ${selectedDeveloper}`,
                     sublabel: `${completed.length} project${completed.length === 1 ? '' : 's'}`,
                     icon: <CheckCircle className="w-4 h-4" />,
                     color: 'from-teal-500 to-emerald-600',
@@ -449,7 +449,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
 
             if (nearbyProjects.length > 0) {
                 result.push({
-                    label: `Projects Near ${landmarkName}`,
+                    label: `${landmarkName} Nearby`,
                     sublabel: `${nearbyProjects.length} nearby`,
                     icon: <MapPin className="w-4 h-4" />,
                     color: 'from-blue-500 to-blue-600',
@@ -460,7 +460,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
             const offPlanNearby = nearbyProjects.filter(p => p.status?.toLowerCase() === 'off-plan');
             if (offPlanNearby.length > 0) {
                 result.push({
-                    label: `Off-Plan Near ${landmarkName}`,
+                    label: `Off-Plan near ${landmarkName}`,
                     sublabel: `${offPlanNearby.length} project${offPlanNearby.length === 1 ? '' : 's'}`,
                     icon: <Hammer className="w-4 h-4" />,
                     color: 'from-amber-500 to-orange-500',
@@ -471,7 +471,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
             const completedNearby = nearbyProjects.filter(p => p.status?.toLowerCase() === 'completed');
             if (completedNearby.length > 0) {
                 result.push({
-                    label: `Completed Near ${landmarkName}`,
+                    label: `Completed near ${landmarkName}`,
                     sublabel: `${completedNearby.length} project${completedNearby.length === 1 ? '' : 's'}`,
                     icon: <CheckCircle className="w-4 h-4" />,
                     color: 'from-teal-500 to-emerald-600',
@@ -488,7 +488,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
             Object.entries(devCounts).sort((a, b) => b[1] - a[1]).slice(0, 3).forEach(([devName, count]) => {
                 const devNearby = nearbyProjects.filter(p => p.developerName === devName);
                 result.push({
-                    label: `${devName} Near ${landmarkName}`,
+                    label: `${devName} near ${landmarkName}`,
                     sublabel: `${count} project${count === 1 ? '' : 's'}`,
                     icon: <Building className="w-4 h-4" />,
                     color: 'from-violet-500 to-purple-600',

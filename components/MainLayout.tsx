@@ -138,6 +138,19 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
     return () => window.removeEventListener('open-favorites-panel', handler);
   }, []);
 
+  // Listen for Play button filter sync (ai-apply-filters)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const filters = (e as CustomEvent).detail || {};
+      setDeveloperFilter(filters.developer || 'All');
+      setStatusFilter(filters.status || 'All');
+      setSelectedCommunity(filters.community || '');
+      setSelectedCity(filters.city || '');
+    };
+    window.addEventListener('ai-apply-filters', handler);
+    return () => window.removeEventListener('ai-apply-filters', handler);
+  }, [setDeveloperFilter, setStatusFilter, setSelectedCommunity, setSelectedCity]);
+
   // Carousel + chip animation logic
   const isAnyFilterActive = Boolean(
     (developerFilter && developerFilter !== 'All') ||

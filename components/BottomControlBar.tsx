@@ -178,6 +178,16 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
         const community = selectedProject.community || '';
         const devName = (selectedProject as any).developerName || '';
 
+        // Helper: apply filters and start tour atomically
+        const startWithFilters = (label: string, tourProjects: Project[], filters: { developer?: string; status?: string; community?: string; city?: string } = {}) => {
+            // Apply filters so chips reflect the selection
+            window.dispatchEvent(new CustomEvent('ai-apply-filters', { detail: filters }));
+            setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('global-tour-start', { detail: { label, projects: tourProjects } }));
+            }, 60);
+            setShowTourPanel(false);
+        };
+
         // Community projects
         if (community) {
             const commProjects = projects.filter(
@@ -185,42 +195,33 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
             );
             if (commProjects.length > 0) {
                 results.push({
-                    label: `Projects in ${community}`,
+                    label: `${community} Projects`,
                     sublabel: `${commProjects.length} nearby`,
                     icon: <MapPin className="w-4 h-4 text-blue-600" />,
                     color: 'bg-blue-100',
-                    onClick: () => {
-                        window.dispatchEvent(new CustomEvent('global-tour-start', { detail: { label: community, projects: commProjects } }));
-                        setShowTourPanel(false);
-                    },
+                    onClick: () => startWithFilters(community, commProjects, { community }),
                 });
             }
 
             const offPlan = commProjects.filter(p => p.status?.toLowerCase() === 'off-plan');
             if (offPlan.length > 0) {
                 results.push({
-                    label: 'Off-Plan Projects',
+                    label: `Off-Plan in ${community}`,
                     sublabel: `${offPlan.length} in ${community}`,
                     icon: <Navigation className="w-4 h-4 text-amber-600" />,
                     color: 'bg-amber-100',
-                    onClick: () => {
-                        window.dispatchEvent(new CustomEvent('global-tour-start', { detail: { label: `Off-Plan in ${community}`, projects: offPlan } }));
-                        setShowTourPanel(false);
-                    },
+                    onClick: () => startWithFilters(`Off-Plan in ${community}`, offPlan, { community, status: 'Off-Plan' }),
                 });
             }
 
             const completed = commProjects.filter(p => p.status?.toLowerCase() === 'completed');
             if (completed.length > 0) {
                 results.push({
-                    label: 'Completed Projects',
+                    label: `Completed in ${community}`,
                     sublabel: `${completed.length} in ${community}`,
                     icon: <MapPin className="w-4 h-4 text-teal-600" />,
                     color: 'bg-teal-100',
-                    onClick: () => {
-                        window.dispatchEvent(new CustomEvent('global-tour-start', { detail: { label: `Ready in ${community}`, projects: completed } }));
-                        setShowTourPanel(false);
-                    },
+                    onClick: () => startWithFilters(`Completed in ${community}`, completed, { community, status: 'Completed' }),
                 });
             }
         }
@@ -246,14 +247,11 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
             );
             if (devProjects.length > 0) {
                 results.push({
-                    label: `Projects by ${devName}`,
+                    label: `${devName} Projects`,
                     sublabel: `${devProjects.length} project${devProjects.length === 1 ? '' : 's'}`,
                     icon: <Navigation className="w-4 h-4 text-violet-600" />,
                     color: 'bg-violet-100',
-                    onClick: () => {
-                        window.dispatchEvent(new CustomEvent('global-tour-start', { detail: { label: `${devName} Showcase`, projects: devProjects.slice(0, 15) } }));
-                        setShowTourPanel(false);
-                    },
+                    onClick: () => startWithFilters(`${devName} Showcase`, devProjects.slice(0, 15), { developer: devName }),
                 });
             }
         }
@@ -410,7 +408,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
 
                 {/* ── Quick Map Tools (desktop only) ── */}
                 {mapRef && (
-                    <div className="hidden lg:flex items-center gap-1 bg-slate-50/80 border border-slate-200 rounded-xl px-1.5 py-1 shrink-0">
+                    <div className="hidden xl:flex items-center gap-1 bg-slate-50/80 border border-slate-200 rounded-xl px-1.5 py-1 shrink-0">
                         <button
                             onClick={() => {
                                 const map = mapRef?.current?.getMap?.();
@@ -550,7 +548,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                             }}
                         />
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="hidden xl:flex items-center gap-3">
                         <select value={selectedCity} onChange={handleCityChange} className="bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none transition-all cursor-pointer min-w-[150px]">
                             <option value="">All Emirates</option>
                             {cityOptions.map(city => <option key={city.id} value={city.id}>{city.label}</option>)}
@@ -565,8 +563,8 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                 {/* Right: Tools */}
                 <div className="flex items-center gap-2 shrink-0">
 
-                    {/* Map Command Center */}
-                    <div className="relative" ref={mapRefWrapper} onMouseEnter={() => setIsMapHovered(true)} onMouseLeave={() => setIsMapHovered(false)}>
+                    {/* Map Command Center — hidden at narrow desktop, visible at lg+ */}
+                    <div className="hidden lg:block relative" ref={mapRefWrapper} onMouseEnter={() => setIsMapHovered(true)} onMouseLeave={() => setIsMapHovered(false)}>
                         <button
                             onClick={() => setIsMapClicked(v => !v)}
                             aria-label="Open Map Command Center"

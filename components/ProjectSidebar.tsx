@@ -94,26 +94,12 @@ const RotatingMetric = ({ distance, walk, drive }: { distance: string, walk: str
   ];
   const m = metrics[idx];
   return (
-    <>
-      {/* Desktop: all three metrics side-by-side */}
-      <div className="hidden md:flex items-center gap-1.5">
-        {metrics.map((met, i) => (
-          <div key={i} className={`flex flex-col items-center justify-center w-16 h-12 bg-slate-50 rounded-lg ${met.color} shrink-0`}>
-            <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{met.label}</span>
-            <div className="flex items-center gap-1 font-bold text-xs">
-              {met.icon} <span>{met.val}</span>
-            </div>
-          </div>
-        ))}
+    <div key={idx} className={`flex flex-col items-center justify-center w-16 h-12 bg-slate-50 rounded-lg animate-in fade-in slide-in-from-bottom-2 duration-300 ${m.color} shrink-0`}>
+      <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{m.label}</span>
+      <div className="flex items-center gap-1 font-bold text-xs">
+        {m.icon} <span>{m.val}</span>
       </div>
-      {/* Mobile: rotating single metric */}
-      <div key={idx} className={`md:hidden flex flex-col items-center justify-center w-16 h-12 bg-slate-50 rounded-lg animate-in fade-in slide-in-from-bottom-2 duration-300 ${m.color} shrink-0`}>
-        <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{m.label}</span>
-        <div className="flex items-center gap-1 font-bold text-xs">
-          {m.icon} <span>{m.val}</span>
-        </div>
-      </div>
-    </>
+    </div>
   );
 }
 
