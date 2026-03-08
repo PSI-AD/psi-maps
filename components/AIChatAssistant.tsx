@@ -585,7 +585,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
         return (
             <button
                 onClick={openPanel}
-                className="fixed bottom-[110px] left-4 md:left-6 z-[6000] w-12 h-12 rounded-2xl flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-95 group"
+                className="fixed bottom-[110px] left-4 md:left-auto md:right-6 z-[6000] w-12 h-12 rounded-2xl flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-95 group"
                 style={{
                     background: hasContext
                         ? 'linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #818cf8 100%)'
@@ -611,7 +611,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
     if (!hasContext) {
         return (
             <div
-                className="fixed bottom-[110px] left-4 md:left-6 z-[6000] pointer-events-auto"
+                className="fixed bottom-[110px] left-4 md:left-auto md:right-6 z-[6000] pointer-events-auto"
                 style={fadeStyle}
                 onMouseEnter={handleChatMouseEnter}
                 onMouseLeave={handleChatMouseLeave}
@@ -647,7 +647,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
     if (chatStyle === 'classic') {
         return (
             <div
-                className="fixed bottom-[110px] left-4 md:left-6 z-[6000] w-[340px] pointer-events-auto"
+                className="fixed bottom-[110px] left-4 md:left-auto md:right-6 z-[6000] w-[340px] pointer-events-auto"
                 style={fadeStyle}
                 onMouseEnter={handleChatMouseEnter}
                 onMouseLeave={handleChatMouseLeave}
@@ -743,7 +743,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
     // ═══════════════════════════════════════════════════════════════════════
     return (
         <div
-            className="fixed bottom-[110px] left-4 md:left-6 z-[6000] max-w-[380px] flex flex-col items-start gap-3 pointer-events-none"
+            className="fixed bottom-[110px] left-4 md:left-auto md:right-6 z-[6000] max-w-[380px] flex flex-col items-start md:items-end gap-3 pointer-events-none"
             style={fadeStyle}
             onMouseEnter={handleChatMouseEnter}
             onMouseLeave={handleChatMouseLeave}

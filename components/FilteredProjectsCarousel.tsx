@@ -556,7 +556,9 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                     "
                 >
                     {displayGroups.map(([communityName, commProjects]) => {
-                        const isPlaying = playingCommunity === communityName;
+                        // Sync: exact match for community header tours, OR any external tour running
+                        const isPlaying = playingCommunity === communityName ||
+                            (!!activeTourRef.current?.isExternal && !!playingCommunity);
                         return (
                             <React.Fragment key={communityName}>
                                 {/* Desktop-only sticky community header with Play Tour button */}
