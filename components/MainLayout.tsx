@@ -493,6 +493,10 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
       {/* AI Chat Assistant overlay */}
       <AIChatAssistant
         selectedProject={selectedProject}
+        selectedCommunity={selectedCommunity}
+        selectedCity={selectedCity}
+        selectedDeveloper={developerFilter !== 'All' ? developerFilter : undefined}
+        selectedLandmark={props.selectedLandmarkForSearch}
         isTourActive={!!props.activePresentation}
         allProjects={liveProjects}
         allLandmarks={liveLandmarks}
