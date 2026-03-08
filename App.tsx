@@ -14,6 +14,7 @@ import MainLayout from './components/MainLayout';
 import MapCanvas from './components/MapCanvas';
 import ErrorBoundary from './components/ErrorBoundary';
 import { Project, Landmark, ClientPresentation } from './types';
+import { FavoritesProvider } from './hooks/useFavorites';
 import WelcomeBanner from './components/WelcomeBanner';
 import PropertyResultsList from './components/PropertyResultsList';
 import PresentationShowcase from './components/PresentationShowcase';
@@ -586,7 +587,7 @@ const App: React.FC = () => {
   if (typeof window !== 'undefined' && window.location.pathname === '/presentation') {
     return <PresentationShowcase />;
   }
-  return <AppInner />;
+  return <FavoritesProvider><AppInner /></FavoritesProvider>;
 };
 
 export default App;

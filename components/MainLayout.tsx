@@ -1,4 +1,4 @@
-import React, { useState, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Project, Landmark, ClientPresentation } from '../types';
 const AdminDashboard = React.lazy(() => import('./AdminDashboard'));
 const ProjectSidebar = React.lazy(() => import('./ProjectSidebar'));
@@ -7,6 +7,8 @@ import FullscreenImageModal from './FullscreenImageModal';
 import NearbyPanel from './NearbyPanel';
 import FilteredProjectsCarousel from './FilteredProjectsCarousel';
 import AIChatAssistant from './AIChatAssistant';
+import FavoritesPanel, { ComparePanel } from './FavoritesPanel';
+import { useFavoritesContext } from '../hooks/useFavorites';
 import { Loader2, Building, LayoutGrid, X, RotateCcw } from 'lucide-react';
 
 interface MainLayoutProps {
@@ -125,6 +127,16 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
 
   const [isAiChatOpen, setIsAiChatOpen] = useState(false);
+  const [isFavoritesOpen, setIsFavoritesOpen] = useState(false);
+  const [isCompareOpen, setIsCompareOpen] = useState(false);
+  const favCtx = useFavoritesContext();
+
+  // Listen for favorites panel open event from mobile tab bar
+  useEffect(() => {
+    const handler = () => setIsFavoritesOpen(true);
+    window.addEventListener('open-favorites-panel', handler);
+    return () => window.removeEventListener('open-favorites-panel', handler);
+  }, []);
 
   // Carousel + chip animation logic
   const isAnyFilterActive = Boolean(
@@ -502,6 +514,25 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
           setSelectedCommunity(filters.community || '');
           setSelectedCity(filters.city || '');
         }}
+      />
+
+      {/* Favorites Panel */}
+      <FavoritesPanel
+        isOpen={isFavoritesOpen}
+        onClose={() => setIsFavoritesOpen(false)}
+        projects={liveProjects}
+        favoriteIds={favCtx.favoriteIds}
+        onToggleFavorite={favCtx.toggleFavorite}
+        onSelectProject={handleSearchSelect}
+        onClearAll={favCtx.clearFavorites}
+      />
+
+      {/* Compare Panel */}
+      <ComparePanel
+        isOpen={isCompareOpen}
+        onClose={() => setIsCompareOpen(false)}
+        projects={liveProjects.filter(p => favCtx.compareIds.includes(p.id))}
+        onSelectProject={handleSearchSelect}
       />
     </div>
   );

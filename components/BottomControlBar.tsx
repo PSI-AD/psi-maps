@@ -1,9 +1,10 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import SearchBar from './SearchBar';
 import { Project, Landmark } from '../types';
-import { Settings, Filter as FilterIcon, X, Pencil, Search, Map as MapIcon, Box, RefreshCw, Layers, ZoomIn, ZoomOut, Play, Pause, Landmark as LandmarkIcon, MapPin, Navigation } from 'lucide-react';
+import { Settings, Filter as FilterIcon, X, Pencil, Search, Map as MapIcon, Box, RefreshCw, Layers, ZoomIn, ZoomOut, Play, Pause, Landmark as LandmarkIcon, MapPin, Navigation, Heart } from 'lucide-react';
 import { MapCommandCenter } from './MapCommandCenter';
 import { calculateDistance } from '../utils/geo';
+import { useFavoritesContext } from '../hooks/useFavorites';
 
 interface BottomControlBarProps {
     projects: Project[];
@@ -82,6 +83,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
     selectedProject,
     allLandmarks = [],
 }) => {
+    const favCtx = useFavoritesContext();
     // ── Theme map ──────────────────────────────────────────────────────────
     const THEMES: Record<string, string> = {
         glass: 'bg-white/95 backdrop-blur-xl border-slate-200 text-slate-500',
@@ -732,22 +734,34 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                         <svg viewBox="0 0 100 120" width={26} height={26} fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                             <path d="M50 115C50 115 92 72 92 46C92 22.804 73.196 4 50 4C26.804 4 8 22.804 8 46C8 72 50 115 50 115Z" />
                         </svg>
-                        <span className="text-[11px] font-bold tracking-wide mt-1">Home</span>
+                        <span className="text-[10px] font-bold tracking-wide mt-0.5">Home</span>
                     </button>
 
                     <button onClick={() => setIsMobileSearchOpen(true)} aria-label="Open property search" className={`flex flex-col items-center gap-1 flex-1 py-1 ${inactiveIconColor} transition-colors`}>
-                        <Search size={26} strokeWidth={2.5} />
-                        <span className="text-[11px] font-bold tracking-wide mt-1">Search</span>
+                        <Search size={24} strokeWidth={2.5} />
+                        <span className="text-[10px] font-bold tracking-wide mt-0.5">Search</span>
                     </button>
 
                     <button onClick={() => setIsMobileFilterOpen(true)} aria-label="Open property filters" className={`flex flex-col items-center gap-1 flex-1 py-1 transition-colors ${isAnyFilterActive ? activeIconColor : inactiveIconColor}`}>
-                        <FilterIcon size={26} strokeWidth={2.5} />
-                        <span className="text-[11px] font-bold tracking-wide mt-1">Filters</span>
+                        <FilterIcon size={24} strokeWidth={2.5} />
+                        <span className="text-[10px] font-bold tracking-wide mt-0.5">Filters</span>
+                    </button>
+
+                    <button onClick={() => window.dispatchEvent(new CustomEvent('open-favorites-panel'))} aria-label="View favorites" className={`flex flex-col items-center gap-1 flex-1 py-1 transition-colors relative ${favCtx.favoritesCount > 0 ? activeIconColor : inactiveIconColor}`}>
+                        <div className="relative">
+                            <Heart size={24} strokeWidth={2.5} className={favCtx.favoritesCount > 0 ? 'fill-current' : ''} />
+                            {favCtx.favoritesCount > 0 && (
+                                <span className="absolute -top-1 -right-2 min-w-[16px] h-4 bg-rose-500 text-white text-[9px] font-black rounded-full flex items-center justify-center px-1">
+                                    {favCtx.favoritesCount}
+                                </span>
+                            )}
+                        </div>
+                        <span className="text-[10px] font-bold tracking-wide mt-0.5">Favorites</span>
                     </button>
 
                     <button onClick={() => setIsMobileMapOpen(true)} aria-label="Open map controls" className={`flex flex-col items-center gap-1 flex-1 py-1 ${inactiveIconColor} transition-colors`}>
-                        <MapIcon size={26} strokeWidth={2.5} />
-                        <span className="text-[11px] font-bold tracking-wide mt-1">Map</span>
+                        <MapIcon size={24} strokeWidth={2.5} />
+                        <span className="text-[10px] font-bold tracking-wide mt-0.5">Map</span>
                     </button>
                 </div>
             </div>

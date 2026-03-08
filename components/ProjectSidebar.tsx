@@ -11,6 +11,7 @@ import ProjectPdfDocument from './pdf/ProjectPdfDocument';
 import { getRelatedProjects, getClosestCategorizedAmenities } from '../utils/projectHelpers';
 
 import LightboxGallery from './LightboxGallery';
+import { useFavoritesContext } from '../hooks/useFavorites';
 
 const DEV_DOMAINS: Record<string, string> = {
   'emaar': 'emaar.com',
@@ -135,6 +136,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   mapRef,
   onSelectLandmark,
 }) => {
+  const favCtx = useFavoritesContext();
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [activeIdx, setActiveIdx] = useState(0);
   const [galleryIndex, setGalleryIndex] = useState<number | null>(null);
@@ -932,10 +934,22 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
           {/* 2. Name → Location → Developer */}
           <div className="sticky top-0 z-20 bg-white px-6 pt-6 pb-5 border-b border-slate-100 shadow-sm" style={{ paddingTop: 'max(env(safe-area-inset-top), 24px)' }}>
 
-            {/* 1. Project Name */}
-            <h1 className="text-[26px] font-black text-slate-900 leading-tight mb-1.5 truncate">
-              {project.name}
-            </h1>
+            {/* 1. Project Name + Heart */}
+            <div className="flex items-start gap-2">
+              <h1 className="text-[26px] font-black text-slate-900 leading-tight mb-1.5 truncate flex-1">
+                {project.name}
+              </h1>
+              <button
+                onClick={() => favCtx.toggleFavorite(project.id)}
+                className={`shrink-0 mt-1 w-9 h-9 rounded-xl flex items-center justify-center transition-all ${favCtx.isFavorite(project.id)
+                  ? 'bg-rose-100 text-rose-500 shadow-sm'
+                  : 'bg-slate-100 text-slate-400 hover:bg-rose-50 hover:text-rose-400'
+                  }`}
+                title={favCtx.isFavorite(project.id) ? 'Remove from favorites' : 'Add to favorites'}
+              >
+                <Heart className={`w-4 h-4 ${favCtx.isFavorite(project.id) ? 'fill-current' : ''}`} />
+              </button>
+            </div>
 
             {/* 2. Location */}
             <div className="flex items-center text-slate-500 text-sm font-semibold mb-2 truncate">

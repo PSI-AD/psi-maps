@@ -1,8 +1,9 @@
 import React, { useRef, useEffect, useMemo, useState } from 'react';
 import { distance as turfDistance } from '@turf/distance';
 import { Project, ClientPresentation } from '../types';
-import { MapPin, Building, BedDouble, ChevronLeft, ChevronRight, X, Play, Square } from 'lucide-react';
+import { MapPin, Building, BedDouble, ChevronLeft, ChevronRight, X, Play, Square, Heart } from 'lucide-react';
 import { getOptimizedImageUrl } from '../utils/imageHelpers';
+import { useFavoritesContext } from '../hooks/useFavorites';
 
 interface FilteredProjectsCarouselProps {
     projects: Project[];
@@ -35,6 +36,7 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
     onExitPresentation,
     isAiChatOpen = false,
 }) => {
+    const { toggleFavorite, isFavorite } = useFavoritesContext();
     const scrollRef = useRef<HTMLDivElement>(null);
     const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
     // Keep a stable ref to onSelectProject so the interval closure doesn't go stale
@@ -394,6 +396,15 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                             {project.status === 'Completed' ? 'Ready' : project.status}
                         </div>
                     )}
+                    {/* Heart / Favorite toggle */}
+                    <button
+                        onClick={(e) => { e.stopPropagation(); toggleFavorite(project.id); }}
+                        onTouchEnd={(e) => { e.stopPropagation(); }}
+                        className={`absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center transition-all ${isFavorite(project.id) ? 'bg-rose-500 text-white shadow-lg' : 'bg-black/30 text-white/80 hover:bg-black/50'}`}
+                        title={isFavorite(project.id) ? 'Remove from favorites' : 'Add to favorites'}
+                    >
+                        <Heart className={`w-3 h-3 ${isFavorite(project.id) ? 'fill-current' : ''}`} />
+                    </button>
                 </div>
 
                 {/* Info */}
