@@ -85,6 +85,12 @@ function Badge({ children, gradient }: { children: React.ReactNode; gradient: st
 const PresentationShowcase: React.FC = () => {
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
+    // Unlock scrolling: add 'is-presentation' class to body (overrides overflow:hidden from index.html)
+    useEffect(() => {
+        document.body.classList.add('is-presentation');
+        return () => { document.body.classList.remove('is-presentation'); };
+    }, []);
+
     const handleMouseMove = useCallback((e: React.MouseEvent) => {
         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
         setMousePos({
