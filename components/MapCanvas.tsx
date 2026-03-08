@@ -316,7 +316,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
         <Map
             {...viewState}
             ref={mapRef}
-            clickTolerance={15}
+            clickTolerance={20}
             doubleClickZoom={false}
             onMove={evt => {
                 setViewState(evt.viewState);
@@ -498,7 +498,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                             paint={{
                                 'circle-color': '#000000',
                                 'circle-opacity': 0.01,
-                                'circle-radius': 35
+                                'circle-radius': 45
                             }}
                         />
                         {/* Project name labels — visible at zoom ≥ 13.5 */}

@@ -305,11 +305,21 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   // ── Filter localAmenities by live search query ───────────────────────────
   const searchedAmenities = useMemo(() => {
     if (!amenitySearch.trim()) return localAmenities;
-    const q = amenitySearch.toLowerCase();
-    return localAmenities.filter(a =>
-      a.name.toLowerCase().includes(q) ||
-      a.category?.toLowerCase().includes(q)
-    );
+    const raw = amenitySearch.toLowerCase().trim();
+    // Basic stemming: try the raw query, plus singular/plural variations
+    const variations = [raw];
+    if (raw.endsWith('ies')) variations.push(raw.slice(0, -3) + 'y'); // "cities" → "city"
+    else if (raw.endsWith('es')) variations.push(raw.slice(0, -2)); // "beaches" → "beach"
+    else if (raw.endsWith('s')) variations.push(raw.slice(0, -1)); // "hotels" → "hotel"
+    // Also try adding 's' for when user types singular
+    if (!raw.endsWith('s')) variations.push(raw + 's');
+    if (raw.endsWith('y')) variations.push(raw.slice(0, -1) + 'ies');
+
+    return localAmenities.filter(a => {
+      const name = a.name.toLowerCase();
+      const cat = a.category?.toLowerCase() || '';
+      return variations.some(q => name.includes(q) || cat.includes(q));
+    });
   }, [localAmenities, amenitySearch]);
 
   // ── Cinematic tour timer — dispatches CustomEvent every 8 s ─────────────
@@ -1228,7 +1238,20 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
             </div>
           </div>
 
-          <div className="px-6 pb-8 pt-4 space-y-3">
+          {/* Mobile: sticky CTA bar fixed at bottom of sidebar */}
+          <div className="md:hidden sticky bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-100 px-4 py-3 flex gap-2 z-20 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+            <button onClick={() => setShowNeighborhoodList(true)} disabled={isDiscovering} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-70 flex items-center justify-center gap-2">
+              <MapPin className="w-3.5 h-3.5" />
+              <span>Explore</span>
+            </button>
+            <button onClick={() => setIsInquireModalOpen(true)} className="flex-1 py-3.5 border border-blue-200 text-blue-700 bg-blue-50 font-bold text-[10px] uppercase tracking-widest rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span>Inquire</span>
+            </button>
+          </div>
+
+          {/* Desktop: original inline CTA buttons */}
+          <div className="hidden md:block px-6 pb-8 pt-4 space-y-3">
             <button onClick={() => setShowNeighborhoodList(true)} disabled={isDiscovering} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest transition-all hover:shadow-xl hover:shadow-blue-200 active:scale-[0.99] disabled:opacity-70 flex items-center justify-center gap-3">
               <MapPin className="w-4 h-4" />
               <span>Explore Neighborhood</span>
