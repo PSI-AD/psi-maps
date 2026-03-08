@@ -251,8 +251,9 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
     }, [selectedProjectId]);
 
     // Stop tour when the projects list changes (filter change) — but NOT in tour mode
+    // and NOT when an external tour (from global-tour-start / AI) is actively running
     useEffect(() => {
-        if (!isTourMode) {
+        if (!isTourMode && !activeTourRef.current) {
             setPlayingCommunity(null);
             setPlayProgress(0);
         }

@@ -273,8 +273,19 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
         }));
       }
     };
+
+    // Listen for pause from the top bar Play/Pause button
+    const handlePause = () => {
+      setIsTouringNeighborhood(false);
+      setActiveTourAmenityIdx(null);
+    };
+
     window.addEventListener('ai-open-neighborhood-tour', handler);
-    return () => window.removeEventListener('ai-open-neighborhood-tour', handler);
+    window.addEventListener('global-tour-pause', handlePause);
+    return () => {
+      window.removeEventListener('ai-open-neighborhood-tour', handler);
+      window.removeEventListener('global-tour-pause', handlePause);
+    };
   }, [project, localAmenities]);
 
   // ── Filter localAmenities by live search query ───────────────────────────

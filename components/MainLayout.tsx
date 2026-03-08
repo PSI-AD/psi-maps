@@ -501,17 +501,12 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
         allProjects={liveProjects}
         allLandmarks={liveLandmarks}
         onOpenChange={setIsAiChatOpen}
-        clearFilters={() => {
-          setDeveloperFilter('All');
-          setStatusFilter('All');
-          setSelectedCity('');
-          setSelectedCommunity('');
-        }}
         onApplyFilters={(filters) => {
-          if (filters.developer) setDeveloperFilter(filters.developer);
-          if (filters.status) setStatusFilter(filters.status);
-          if (filters.community) setSelectedCommunity(filters.community);
-          if (filters.city) setSelectedCity(filters.city);
+          // Atomic: reset everything, then apply specific values — one React batch
+          setDeveloperFilter(filters.developer || 'All');
+          setStatusFilter(filters.status || 'All');
+          setSelectedCommunity(filters.community || '');
+          setSelectedCity(filters.city || '');
         }}
       />
     </div>
