@@ -93,12 +93,26 @@ const RotatingMetric = ({ distance, walk, drive }: { distance: string, walk: str
   ];
   const m = metrics[idx];
   return (
-    <div key={idx} className={`flex flex-col items-center justify-center w-16 h-12 bg-slate-50 rounded-lg animate-in fade-in slide-in-from-bottom-2 duration-300 ${m.color} shrink-0`}>
-      <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{m.label}</span>
-      <div className="flex items-center gap-1 font-bold text-xs">
-        {m.icon} <span>{m.val}</span>
+    <>
+      {/* Desktop: all three metrics side-by-side */}
+      <div className="hidden md:flex items-center gap-1.5">
+        {metrics.map((met, i) => (
+          <div key={i} className={`flex flex-col items-center justify-center w-16 h-12 bg-slate-50 rounded-lg ${met.color} shrink-0`}>
+            <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{met.label}</span>
+            <div className="flex items-center gap-1 font-bold text-xs">
+              {met.icon} <span>{met.val}</span>
+            </div>
+          </div>
+        ))}
       </div>
-    </div>
+      {/* Mobile: rotating single metric */}
+      <div key={idx} className={`md:hidden flex flex-col items-center justify-center w-16 h-12 bg-slate-50 rounded-lg animate-in fade-in slide-in-from-bottom-2 duration-300 ${m.color} shrink-0`}>
+        <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{m.label}</span>
+        <div className="flex items-center gap-1 font-bold text-xs">
+          {m.icon} <span>{m.val}</span>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -745,7 +759,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
               {visibleAmenitiesCount < searchedAmenities.length && (
                 <div className="pt-4 pb-8 flex justify-center">
                   <button
-                    onClick={(e) => { e.stopPropagation(); setVisibleAmenitiesCount(prev => prev + 15); }}
+                    onClick={(e) => { e.stopPropagation(); setVisibleAmenitiesCount(searchedAmenities.length); }}
                     className="w-full py-3 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-sm rounded-xl border border-slate-200 transition-colors flex items-center justify-center gap-2"
                   >
                     View all amenities ({searchedAmenities.length - visibleAmenitiesCount} remaining)
@@ -1120,31 +1134,16 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
               )}
             </div>
 
-            {/* ── Street View & Google Maps Quick Actions ── */}
+            {/* ── Street View & Google Maps — HIDDEN until UX is improved ── */}
+            {/* These buttons previously opened new browser tabs with often-empty desert views.
+                They will be re-enabled once in-app Street View overlay is implemented.
             {project.latitude && project.longitude && !isNaN(Number(project.latitude)) && !isNaN(Number(project.longitude)) && (
               <div className="flex gap-2">
-                {/* Google Street View — opens full immersive experience */}
-                <a
-                  href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${project.latitude},${project.longitude}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all group shadow-sm"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 2v20" /><path d="M2 12h20" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10" /><path d="M12 2a15.3 15.3 0 0 0-4 10 15.3 15.3 0 0 0 4 10" /></svg>
-                  <span className="text-xs font-black uppercase tracking-wider">Street View</span>
-                </a>
-                {/* Google Maps — opens map centered on project */}
-                <a
-                  href={`https://www.google.com/maps?q=${project.latitude},${project.longitude}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all group shadow-sm"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
-                  <span className="text-xs font-black uppercase tracking-wider">Google Maps</span>
-                </a>
+                <a href="..." target="_blank">Street View</a>
+                <a href="..." target="_blank">Google Maps</a>
               </div>
             )}
+            */}
 
             <div id="sidebar-map-section" />
 

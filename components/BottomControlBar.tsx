@@ -119,26 +119,23 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
         };
     }, [isQuickRotating, mapRef]);
 
-    // ── Global tour state — listens to FilteredProjectsCarousel AND neighborhood tour broadcasts ──
+    // ── Global tour state — track global + neighborhood separately for proper sync ──
     const [isTourPlaying, setIsTourPlaying] = useState(false);
     const [showTourPanel, setShowTourPanel] = useState(false);
     const tourPanelTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isGlobalTourRef = useRef(false);
+    const isNeighborhoodTourRef = useRef(false);
 
     useEffect(() => {
         const onGlobalTour = (e: Event) => {
             const detail = (e as CustomEvent).detail;
-            setIsTourPlaying(!!detail?.active);
+            isGlobalTourRef.current = !!detail?.active;
+            setIsTourPlaying(isGlobalTourRef.current || isNeighborhoodTourRef.current);
         };
         const onNeighborhoodTour = (e: Event) => {
             const detail = (e as CustomEvent).detail;
-            if (detail?.active) {
-                setIsTourPlaying(true);
-            }
-            // When neighborhood tour stops, only reset if no global tour is still running
-            if (!detail?.active) {
-                // Will be corrected by the next global-tour-changed if a global tour is still running
-                setIsTourPlaying(false);
-            }
+            isNeighborhoodTourRef.current = !!detail?.active;
+            setIsTourPlaying(isGlobalTourRef.current || isNeighborhoodTourRef.current);
         };
         window.addEventListener('global-tour-changed', onGlobalTour);
         window.addEventListener('neighborhood-tour-changed', onNeighborhoodTour);
@@ -171,6 +168,96 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
     }, [selectedProject, projects, allLandmarks]);
 
     const hasTourOptions = !!nearbyTourData;
+
+    // ── Build unified tour options (mirror AI Chat suggestions) ──────────
+    const unifiedTourOptions = useMemo(() => {
+        if (!selectedProject) return [];
+        const results: { label: string; sublabel: string; icon: React.ReactNode; color: string; onClick: () => void }[] = [];
+        const community = selectedProject.community || '';
+        const devName = (selectedProject as any).developerName || '';
+
+        // Community projects
+        if (community) {
+            const commProjects = projects.filter(
+                p => p.id !== selectedProject.id && p.community?.toLowerCase() === community.toLowerCase() && p.latitude && p.longitude
+            );
+            if (commProjects.length > 0) {
+                results.push({
+                    label: `Projects in ${community}`,
+                    sublabel: `${commProjects.length} nearby`,
+                    icon: <MapPin className="w-4 h-4 text-blue-600" />,
+                    color: 'bg-blue-100',
+                    onClick: () => {
+                        window.dispatchEvent(new CustomEvent('global-tour-start', { detail: { label: community, projects: commProjects } }));
+                        setShowTourPanel(false);
+                    },
+                });
+            }
+
+            const offPlan = commProjects.filter(p => p.status?.toLowerCase() === 'off-plan');
+            if (offPlan.length > 0) {
+                results.push({
+                    label: 'Off-Plan Projects',
+                    sublabel: `${offPlan.length} in ${community}`,
+                    icon: <Navigation className="w-4 h-4 text-amber-600" />,
+                    color: 'bg-amber-100',
+                    onClick: () => {
+                        window.dispatchEvent(new CustomEvent('global-tour-start', { detail: { label: `Off-Plan in ${community}`, projects: offPlan } }));
+                        setShowTourPanel(false);
+                    },
+                });
+            }
+
+            const completed = commProjects.filter(p => p.status?.toLowerCase() === 'completed');
+            if (completed.length > 0) {
+                results.push({
+                    label: 'Completed Projects',
+                    sublabel: `${completed.length} in ${community}`,
+                    icon: <MapPin className="w-4 h-4 text-teal-600" />,
+                    color: 'bg-teal-100',
+                    onClick: () => {
+                        window.dispatchEvent(new CustomEvent('global-tour-start', { detail: { label: `Ready in ${community}`, projects: completed } }));
+                        setShowTourPanel(false);
+                    },
+                });
+            }
+        }
+
+        // Nearby landmarks
+        if (nearbyTourData?.nearbyLandmarks.length) {
+            results.push({
+                label: 'Nearby Landmarks',
+                sublabel: `${nearbyTourData.nearbyLandmarks.length} places`,
+                icon: <LandmarkIcon className="w-4 h-4 text-emerald-600" />,
+                color: 'bg-emerald-100',
+                onClick: () => {
+                    window.dispatchEvent(new CustomEvent('ai-open-neighborhood-tour'));
+                    setShowTourPanel(false);
+                },
+            });
+        }
+
+        // Developer projects
+        if (devName && devName !== 'Exclusive' && devName !== 'Unknown') {
+            const devProjects = projects.filter(
+                p => p.id !== selectedProject.id && (p as any).developerName === devName && p.latitude && p.longitude
+            );
+            if (devProjects.length > 0) {
+                results.push({
+                    label: `Projects by ${devName}`,
+                    sublabel: `${devProjects.length} project${devProjects.length === 1 ? '' : 's'}`,
+                    icon: <Navigation className="w-4 h-4 text-violet-600" />,
+                    color: 'bg-violet-100',
+                    onClick: () => {
+                        window.dispatchEvent(new CustomEvent('global-tour-start', { detail: { label: `${devName} Showcase`, projects: devProjects.slice(0, 15) } }));
+                        setShowTourPanel(false);
+                    },
+                });
+            }
+        }
+
+        return results;
+    }, [selectedProject, projects, nearbyTourData]);
 
     const handleTourPanelEnter = () => {
         if (tourPanelTimer.current) clearTimeout(tourPanelTimer.current);
@@ -319,119 +406,6 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                     </div>
                 </button>
 
-                {/* ── Global Play/Pause Button ── */}
-                <div
-                    className="relative shrink-0"
-                    onMouseEnter={handleTourPanelEnter}
-                    onMouseLeave={handleTourPanelLeave}
-                >
-                    <button
-                        onClick={() => {
-                            if (isTourPlaying) {
-                                window.dispatchEvent(new CustomEvent('global-tour-pause'));
-                            } else if (showTourPanel) {
-                                // Panel is open, clicking play starts nearby projects tour by default
-                                if (nearbyTourData?.nearbyProjects.length) {
-                                    window.dispatchEvent(new CustomEvent('global-tour-start', {
-                                        detail: { label: 'Nearby Projects', projects: nearbyTourData.nearbyProjects }
-                                    }));
-                                    setShowTourPanel(false);
-                                }
-                            }
-                        }}
-                        disabled={!hasTourOptions && !isTourPlaying}
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shrink-0 ${isTourPlaying
-                            ? 'bg-amber-500 text-white shadow-lg shadow-amber-200 hover:bg-amber-600 animate-pulse'
-                            : hasTourOptions
-                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 hover:bg-blue-700 hover:scale-105'
-                                : 'bg-slate-100 text-slate-300 cursor-not-allowed'
-                            }`}
-                        title={isTourPlaying ? 'Pause Tour' : hasTourOptions ? 'Start Tour' : 'Select a project first'}
-                    >
-                        {isTourPlaying ? <Pause className="w-4.5 h-4.5" /> : <Play className="w-4.5 h-4.5 ml-0.5" />}
-                    </button>
-
-                    {/* Tour Selection Panel — appears on hover */}
-                    {showTourPanel && hasTourOptions && !isTourPlaying && selectedProject && (
-                        <div className="absolute bottom-full left-0 mb-3 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden animate-in slide-in-from-bottom-2 fade-in duration-200 z-[7000]">
-                            {/* Header */}
-                            <div className="px-4 pt-4 pb-2 bg-gradient-to-r from-slate-900 to-slate-800">
-                                <p className="text-[9px] font-bold text-blue-400 uppercase tracking-[0.2em]">Explore Around</p>
-                                <h4 className="text-sm font-black text-white truncate mt-0.5">{selectedProject.name}</h4>
-                            </div>
-
-                            {/* Tour Options */}
-                            <div className="p-2 space-y-1">
-                                {/* Nearby Projects Tour */}
-                                <button
-                                    onClick={() => {
-                                        if (nearbyTourData?.nearbyProjects.length) {
-                                            window.dispatchEvent(new CustomEvent('global-tour-start', {
-                                                detail: { label: 'Nearby Projects', projects: nearbyTourData.nearbyProjects }
-                                            }));
-                                            setShowTourPanel(false);
-                                        }
-                                    }}
-                                    disabled={!nearbyTourData?.nearbyProjects.length}
-                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-blue-50 transition-all group text-left disabled:opacity-40"
-                                >
-                                    <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0 group-hover:bg-blue-200 transition-colors">
-                                        <MapPin className="w-4 h-4 text-blue-600" />
-                                    </div>
-                                    <div>
-                                        <p className="text-xs font-bold text-slate-800">Nearby Projects</p>
-                                        <p className="text-[10px] text-slate-400">{nearbyTourData?.nearbyProjects.length || 0} projects</p>
-                                    </div>
-                                </button>
-
-                                {/* Nearby Landmarks Tour */}
-                                <button
-                                    onClick={() => {
-                                        if (nearbyTourData?.nearbyLandmarks.length) {
-                                            // Trigger neighborhood tour via existing event
-                                            window.dispatchEvent(new CustomEvent('ai-open-neighborhood-tour'));
-                                            setShowTourPanel(false);
-                                        }
-                                    }}
-                                    disabled={!nearbyTourData?.nearbyLandmarks.length}
-                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-emerald-50 transition-all group text-left disabled:opacity-40"
-                                >
-                                    <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0 group-hover:bg-emerald-200 transition-colors">
-                                        <LandmarkIcon className="w-4 h-4 text-emerald-600" />
-                                    </div>
-                                    <div>
-                                        <p className="text-xs font-bold text-slate-800">Nearby Landmarks</p>
-                                        <p className="text-[10px] text-slate-400">{nearbyTourData?.nearbyLandmarks.length || 0} landmarks</p>
-                                    </div>
-                                </button>
-
-                                {/* Nearby Locations Tour */}
-                                <button
-                                    onClick={() => {
-                                        // Start a tour with both nearby projects + landmarks context
-                                        if (nearbyTourData?.nearbyProjects.length) {
-                                            window.dispatchEvent(new CustomEvent('global-tour-start', {
-                                                detail: { label: 'Nearby Locations', projects: nearbyTourData.nearbyProjects }
-                                            }));
-                                            setShowTourPanel(false);
-                                        }
-                                    }}
-                                    disabled={!nearbyTourData?.nearbyProjects.length}
-                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-purple-50 transition-all group text-left disabled:opacity-40"
-                                >
-                                    <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center shrink-0 group-hover:bg-purple-200 transition-colors">
-                                        <Navigation className="w-4 h-4 text-purple-600" />
-                                    </div>
-                                    <div>
-                                        <p className="text-xs font-bold text-slate-800">Nearby Locations</p>
-                                        <p className="text-[10px] text-slate-400">Explore the area</p>
-                                    </div>
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
                 {/* ── Quick Map Tools (desktop only) ── */}
                 {mapRef && (
                     <div className="hidden lg:flex items-center gap-1 bg-slate-50/80 border border-slate-200 rounded-xl px-1.5 py-1 shrink-0">
@@ -490,8 +464,63 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                     </div>
                 )}
 
-                {/* Search + Dropdowns */}
+                {/* Search + Play + Dropdowns */}
                 <div className="hidden md:flex items-center gap-2 flex-1 max-w-4xl justify-center">
+                    {/* ── Play/Pause Button (moved here — right before search) ── */}
+                    <div
+                        className="relative shrink-0"
+                        onMouseEnter={handleTourPanelEnter}
+                        onMouseLeave={handleTourPanelLeave}
+                    >
+                        <button
+                            onClick={() => {
+                                if (isTourPlaying) {
+                                    window.dispatchEvent(new CustomEvent('global-tour-pause'));
+                                } else if (showTourPanel && unifiedTourOptions.length > 0) {
+                                    // Default: start first option
+                                    unifiedTourOptions[0].onClick();
+                                }
+                            }}
+                            disabled={!hasTourOptions && !isTourPlaying}
+                            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shrink-0 ${isTourPlaying
+                                ? 'bg-amber-500 text-white shadow-lg shadow-amber-200 hover:bg-amber-600 animate-pulse'
+                                : hasTourOptions
+                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 hover:bg-blue-700 hover:scale-105'
+                                    : 'bg-slate-100 text-slate-300 cursor-not-allowed'
+                                }`}
+                            title={isTourPlaying ? 'Pause Tour' : hasTourOptions ? 'Start Tour' : 'Select a project first'}
+                        >
+                            {isTourPlaying ? <Pause className="w-4.5 h-4.5" /> : <Play className="w-4.5 h-4.5 ml-0.5" />}
+                        </button>
+
+                        {/* Tour Selection Panel — opens UPWARD to avoid overlapping AI chat */}
+                        {showTourPanel && hasTourOptions && !isTourPlaying && selectedProject && (
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-72 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden animate-in slide-in-from-bottom-2 fade-in duration-200 z-[7000]">
+                                <div className="px-4 pt-4 pb-2 bg-gradient-to-r from-slate-900 to-slate-800">
+                                    <p className="text-[9px] font-bold text-blue-400 uppercase tracking-[0.2em]">Explore Around</p>
+                                    <h4 className="text-sm font-black text-white truncate mt-0.5">{selectedProject.name}</h4>
+                                </div>
+                                <div className="p-2 space-y-1 max-h-[320px] overflow-y-auto">
+                                    {unifiedTourOptions.map((opt, i) => (
+                                        <button
+                                            key={i}
+                                            onClick={opt.onClick}
+                                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition-all group text-left"
+                                        >
+                                            <div className={`w-8 h-8 rounded-lg ${opt.color} flex items-center justify-center shrink-0 group-hover:brightness-95 transition-all`}>
+                                                {opt.icon}
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-bold text-slate-800">{opt.label}</p>
+                                                <p className="text-[10px] text-slate-400">{opt.sublabel}</p>
+                                            </div>
+                                            <Play className="w-3 h-3 text-slate-300 group-hover:text-blue-500 transition-colors shrink-0 ml-auto fill-current" />
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
                     <div className="flex-1 min-w-[250px] max-w-sm">
                         <SearchBar
                             projects={projects}

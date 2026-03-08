@@ -124,18 +124,34 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
     }, []);
 
     const AUTO_DISMISS_MS = 14_000;
+    const isHoveringRef = useRef(false);
 
     const resetTimer = useCallback(() => {
         setIsFading(false);
         if (dismissTimer.current) clearTimeout(dismissTimer.current);
+        // Don't start dismiss countdown while user is hovering
+        if (isHoveringRef.current) return;
         dismissTimer.current = setTimeout(() => {
+            if (isHoveringRef.current) return; // re-check in case hover started during timeout
             setIsFading(true);
             setTimeout(() => {
+                if (isHoveringRef.current) return;
                 setIsOpen(false);
                 onOpenChange?.(false);
             }, 500);
         }, AUTO_DISMISS_MS);
     }, [onOpenChange]);
+
+    const handleChatMouseEnter = useCallback(() => {
+        isHoveringRef.current = true;
+        setIsFading(false);
+        if (dismissTimer.current) clearTimeout(dismissTimer.current);
+    }, []);
+
+    const handleChatMouseLeave = useCallback(() => {
+        isHoveringRef.current = false;
+        resetTimer();
+    }, [resetTimer]);
 
     useEffect(() => {
         return () => { if (dismissTimer.current) clearTimeout(dismissTimer.current); };
@@ -556,6 +572,8 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
             <div
                 className="fixed bottom-[110px] left-4 md:left-6 z-[6000] pointer-events-auto"
                 style={fadeStyle}
+                onMouseEnter={handleChatMouseEnter}
+                onMouseLeave={handleChatMouseLeave}
             >
                 <div className="flex items-start gap-3">
                     <div className="flex flex-col items-center gap-1.5 shrink-0">
@@ -590,7 +608,8 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
             <div
                 className="fixed bottom-[110px] left-4 md:left-6 z-[6000] w-[340px] pointer-events-auto"
                 style={fadeStyle}
-                onMouseEnter={resetTimer}
+                onMouseEnter={handleChatMouseEnter}
+                onMouseLeave={handleChatMouseLeave}
                 onClick={resetTimer}
             >
                 <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden">
@@ -640,7 +659,8 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({
         <div
             className="fixed bottom-[110px] left-4 md:left-6 z-[6000] max-w-[380px] flex flex-col items-start gap-3 pointer-events-none"
             style={fadeStyle}
-            onMouseEnter={resetTimer}
+            onMouseEnter={handleChatMouseEnter}
+            onMouseLeave={handleChatMouseLeave}
             onClick={resetTimer}
         >
             <div className="flex items-start gap-3 pointer-events-auto">
