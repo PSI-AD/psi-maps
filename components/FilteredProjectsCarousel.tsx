@@ -49,7 +49,9 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
     const [playProgress, setPlayProgress] = useState(0);
     const [isCollapsed, setIsCollapsed] = useState(true); // desktop: starts hidden, only arrow visible
     // Stable ref holds the active tour's project array — decoupled from render cycle
-    const activeTourRef = useRef<{ community: string; projects: Project[] } | null>(null);
+    // isExternal = true → started by AI Chat or Play Button (stops at end)
+    // isExternal = false → started by community header Tour button (cycles through groups)
+    const activeTourRef = useRef<{ community: string; projects: Project[]; isExternal?: boolean } | null>(null);
     // Touch-tap tracker — MUST be before any early return to satisfy Rules of Hooks
     const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
@@ -81,7 +83,8 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
             const detail = (e as CustomEvent).detail;
             if (detail?.projects?.length) {
                 const label = detail.label || 'Nearby Tour';
-                activeTourRef.current = { community: label, projects: detail.projects };
+                // Mark as external so it stops at the end instead of cycling
+                activeTourRef.current = { community: label, projects: detail.projects, isExternal: true };
                 setPlayingCommunity(label);
                 setPlayIndex(0);
                 setPlayProgress(0);
@@ -184,7 +187,21 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                                 const tourProjects = activeTourRef.current!.projects;
                                 nextProjIdx = nextProjIdx % tourProjects.length;
                                 nextProj = tourProjects[nextProjIdx];
+                            } else if (activeTourRef.current!.isExternal) {
+                                // ── External tour (AI Chat / Play Button) → STOP at end ──
+                                const tourProjects = activeTourRef.current!.projects;
+                                if (nextProjIdx >= tourProjects.length) {
+                                    // Tour completed — stop automatically
+                                    setTimeout(() => {
+                                        setPlayingCommunity(null);
+                                        setPlayProgress(0);
+                                        activeTourRef.current = null;
+                                    }, 0);
+                                    return curr; // keep current index, effect will clean up
+                                }
+                                nextProj = tourProjects[nextProjIdx];
                             } else {
+                                // ── Community header tour → cycle through groups ──
                                 const currentComm = activeTourRef.current!.community;
                                 const groupIdx = groups.findIndex(g => g[0] === currentComm);
 
@@ -203,8 +220,13 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                                         nextProj = currentGroupProjects[nextProjIdx];
                                     }
                                 } else {
-                                    nextProj = activeTourRef.current!.projects[0];
-                                    nextProjIdx = 0;
+                                    // Group not found — stop tour instead of restarting
+                                    setTimeout(() => {
+                                        setPlayingCommunity(null);
+                                        setPlayProgress(0);
+                                        activeTourRef.current = null;
+                                    }, 0);
+                                    return curr;
                                 }
                             }
 
