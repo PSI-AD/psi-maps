@@ -3,53 +3,128 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <!-- Mobile viewport: allow zoom for accessibility, safe areas for PWA -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- Prevent double-tap zoom completely -->
+    <meta name="HandheldFriendly" content="true" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="PSI Maps" />
     <meta name="mobile-web-app-capable" content="yes" />
+    <!-- Prevent auto-detection of phone numbers, emails, addresses -->
+    <meta name="format-detection" content="telephone=no, date=no, email=no, address=no" />
     <meta name="description"
         content="PSI Maps Pro — Explore UAE's most exclusive luxury real estate projects across Abu Dhabi, Dubai, and beyond. Interactive map-powered property search with advanced spatial intelligence." />
+    <meta name="theme-color" content="#1e3a5f" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
+    <meta name="msapplication-TileColor" content="#1e3a5f" />
+    <meta name="msapplication-TileImage" content="/icons/icon-144x144.png" />
+    <meta name="application-name" content="PSI Maps Pro" />
+
+    <!-- SEO: Open Graph -->
+    <meta property="og:title" content="PSI Maps Pro — Luxury Real Estate" />
+    <meta property="og:description"
+        content="Explore UAE's most exclusive luxury real estate. Interactive map-powered property search." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/icons/icon-512x512.png" />
+    <meta property="og:url" content="/" />
+
+    <!-- SEO: Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="PSI Maps Pro — Luxury Real Estate" />
+    <meta name="twitter:description" content="Explore UAE's most exclusive luxury real estate projects." />
+
     <title>PSI Maps Pro | Luxury Real Estate</title>
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" crossorigin="use-credentials" />
+
+    <!-- Favicons & Touch Icons (complete set for all Apple devices) -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png" />
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+    <link rel="apple-touch-icon" sizes="120x120" href="/icons/icon-128x128.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/icons/icon-192x192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.png" />
+
+    <!-- iOS Splash Screens (Apple Launch Images) -->
+    <!-- iPhone 6/7/8 -->
+    <link rel="apple-touch-startup-image"
+        media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)"
+        href="/icons/icon-512x512.png" />
+    <!-- iPhone X/XS/11 Pro -->
+    <link rel="apple-touch-startup-image"
+        media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)"
+        href="/icons/icon-512x512.png" />
+    <!-- iPhone XR/11 -->
+    <link rel="apple-touch-startup-image"
+        media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)"
+        href="/icons/icon-512x512.png" />
+    <!-- iPhone 12/13/14 -->
+    <link rel="apple-touch-startup-image"
+        media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)"
+        href="/icons/icon-512x512.png" />
+    <!-- iPhone 14 Pro Max -->
+    <link rel="apple-touch-startup-image"
+        media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)"
+        href="/icons/icon-512x512.png" />
+    <!-- iPad Pro 11" -->
+    <link rel="apple-touch-startup-image"
+        media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2)"
+        href="/icons/icon-512x512.png" />
+
     <!-- LCP preload: banner logo is the first large paint element on mobile -->
     <link rel="preload" href="/psi-logo.png" as="image" fetchpriority="high" />
 
     <!-- DNS Preconnects: resolve critical third-party origins before they're needed -->
-    <link rel="preconnect" href="https://firebasestorage.googleapis.com" />
     <link rel="preconnect" href="https://firestore.googleapis.com" />
     <link rel="preconnect" href="https://api.mapbox.com" />
     <link rel="preconnect" href="https://events.mapbox.com" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!-- Google Maps removed — all geocoding migrated to Mapbox Geocoding API -->
+
+    <!-- Prefetch the map tiles domain for faster initial map load -->
+    <link rel="dns-prefetch" href="https://tiles.mapbox.com" />
+    <link rel="dns-prefetch" href="https://a.tiles.mapbox.com" />
+    <link rel="dns-prefetch" href="https://b.tiles.mapbox.com" />
 
     <style>
+        /* Font display optimization — prevent FOIT (Flash of Invisible Text) */
+        @font-face {
+            font-family: 'system-fallback';
+            src: local('.SFNSText-Regular'),
+                local('-apple-system'),
+                local('BlinkMacSystemFont'),
+                local('Segoe UI'),
+                local('system-ui');
+            font-display: swap;
+        }
+
         body {
             margin: 0;
             padding: 0;
-            font-family: system-ui, -apple-system, sans-serif;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            /* Prevent pull-to-refresh and overscroll */
+            overscroll-behavior: none;
+            /* Prevent text size adjustment on orientation change */
+            -webkit-text-size-adjust: 100%;
+            text-size-adjust: 100%;
+            /* Smooth font rendering */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            /* Optimize text rendering for speed */
+            text-rendering: optimizeSpeed;
         }
 
-        /* Map pages: lock viewport, no scroll */
-        body:not(.is-presentation) {
+        /* Touch highlight removal for native feel */
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Prevent iOS rubber-banding on #root */
+        #root {
+            position: fixed;
+            inset: 0;
             overflow: hidden;
-        }
-
-        body:not(.is-presentation) #root {
-            height: 100vh;
-            width: 100vw;
-        }
-
-        /* Presentation page: allow full-page scrolling */
-        body.is-presentation {
-            overflow-y: auto;
-            overflow-x: hidden;
-        }
-
-        body.is-presentation #root {
-            width: 100%;
-            min-height: 100vh;
         }
 
         /* Mapbox UI Tweaks */
@@ -112,14 +187,11 @@
         /* Hide scrollbar utility */
         .hide-scrollbar {
             -ms-overflow-style: none;
-            /* IE and Edge */
             scrollbar-width: none;
-            /* Firefox */
         }
 
         .hide-scrollbar::-webkit-scrollbar {
             display: none;
-            /* Chrome, Safari and Opera */
         }
 
         /* Custom Animations */
@@ -157,6 +229,27 @@
 <body>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
+    <!-- Accessibility: label Mapbox control buttons for screen readers -->
+    <script>
+        addEventListener('load', function() {
+            setTimeout(function() {
+                var labels = {
+                    'mapboxgl-ctrl-zoom-in': 'Zoom in',
+                    'mapboxgl-ctrl-zoom-out': 'Zoom out',
+                    'mapboxgl-ctrl-compass': 'Reset bearing to north',
+                    'mapboxgl-ctrl-geolocate': 'Find my location'
+                };
+                for (var cls in labels) {
+                    var btns = document.querySelectorAll('.' + cls);
+                    btns.forEach(function(btn) {
+                        if (!btn.getAttribute('aria-label')) btn.setAttribute('aria-label', labels[cls]);
+                    });
+                }
+                var logo = document.querySelector('.mapboxgl-ctrl-logo');
+                if (logo && !logo.getAttribute('aria-label')) logo.setAttribute('aria-label', 'Mapbox logo');
+            }, 2000);
+        });
+    </script>
 </body>
 
 </html>

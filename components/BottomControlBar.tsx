@@ -5,6 +5,7 @@ import { Settings, Filter as FilterIcon, X, Pencil, Search, Map as MapIcon, Box,
 import { MapCommandCenter } from './MapCommandCenter';
 import { calculateDistance } from '../utils/geo';
 import { useFavoritesContext } from '../hooks/useFavorites';
+import haptic from '../utils/haptics';
 
 interface BottomControlBarProps {
     projects: Project[];
@@ -226,6 +227,30 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                     onClick: () => startWithFilters(`Completed in ${community}`, completed, { community, status: 'Completed' }),
                 });
             }
+
+            // Developer projects — scoped to same community, sorted by distance (same pattern as Off-Plan / Completed)
+            if (devName && devName !== 'Exclusive' && devName !== 'Unknown') {
+                const lat = Number(selectedProject.latitude);
+                const lng = Number(selectedProject.longitude);
+                const devInCommunity = commProjects
+                    .filter(p => (p as any).developerName === devName)
+                    .map(p => ({
+                        ...p,
+                        _dist: (lat && lng && p.latitude && p.longitude)
+                            ? calculateDistance(lat, lng, Number(p.latitude), Number(p.longitude))
+                            : Infinity,
+                    }))
+                    .sort((a, b) => a._dist - b._dist);
+                if (devInCommunity.length > 0) {
+                    results.push({
+                        label: `${devName} Projects`,
+                        sublabel: `${devInCommunity.length} in ${community}`,
+                        icon: <Navigation className="w-4 h-4 text-violet-600" />,
+                        color: 'bg-violet-100',
+                        onClick: () => startWithFilters(`${devName} in ${community}`, devInCommunity, { developer: devName, community }),
+                    });
+                }
+            }
         }
 
         // Nearby landmarks
@@ -240,23 +265,6 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                     setShowTourPanel(false);
                 },
             });
-        }
-
-        // Developer projects — ALL projects by this developer (no slice cap)
-        if (devName && devName !== 'Exclusive' && devName !== 'Unknown') {
-            const devProjects = projects.filter(
-                p => p.id !== selectedProject.id && (p as any).developerName === devName && p.latitude && p.longitude
-            );
-            if (devProjects.length > 0) {
-                results.push({
-                    label: `${devName} Projects`,
-                    sublabel: `${devProjects.length} project${devProjects.length === 1 ? '' : 's'}`,
-                    icon: <Navigation className="w-4 h-4 text-violet-600" />,
-                    color: 'bg-violet-100',
-                    // Developer tour: clear community filter so ALL dev projects show, not just current community
-                    onClick: () => startWithFilters(`${devName} Showcase`, devProjects, { developer: devName }),
-                });
-            }
         }
 
         return results;
@@ -558,11 +566,11 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                         />
                     </div>
                     <div className="hidden xl:flex items-center gap-3">
-                        <select value={selectedCity} onChange={handleCityChange} className="bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none transition-all cursor-pointer min-w-[150px]">
+                        <select value={selectedCity} onChange={handleCityChange} aria-label="Filter by emirate" className="bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none transition-all cursor-pointer min-w-[150px]">
                             <option value="">All Emirates</option>
                             {cityOptions.map(city => <option key={city.id} value={city.id}>{city.label}</option>)}
                         </select>
-                        <select value={selectedCommunity} onChange={handleCommunityChange} className="bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none transition-all cursor-pointer min-w-[170px] disabled:opacity-50" disabled={!selectedCity}>
+                        <select value={selectedCommunity} onChange={handleCommunityChange} aria-label="Filter by community" className="bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none transition-all cursor-pointer min-w-[170px] disabled:opacity-50" disabled={!selectedCity}>
                             <option value="">Select Community</option>
                             {availableCommunities.map(([name, count]) => <option key={name} value={name}>{name} ({count})</option>)}
                         </select>
@@ -632,12 +640,12 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                                         {/* Location */}
                                         <div className="flex flex-col gap-3">
                                             <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Location</h4>
-                                            <select value={selectedCity} onChange={handleCityChange}
+                                            <select value={selectedCity} onChange={handleCityChange} aria-label="Filter by emirate"
                                                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-sm font-bold text-slate-700 outline-none hover:border-blue-300 transition-colors cursor-pointer">
                                                 <option value="">All Emirates</option>
                                                 {cityOptions.map(city => <option key={city.id} value={city.id}>{city.label}</option>)}
                                             </select>
-                                            <select value={selectedCommunity} onChange={handleCommunityChange} disabled={!selectedCity}
+                                            <select value={selectedCommunity} onChange={handleCommunityChange} disabled={!selectedCity} aria-label="Filter by community"
                                                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-sm font-bold text-slate-700 outline-none disabled:opacity-50 hover:border-blue-300 transition-colors cursor-pointer">
                                                 <option value="">All Communities</option>
                                                 {availableCommunities.map(([name, count]) => <option key={name} value={name}>{name} ({count})</option>)}
@@ -647,7 +655,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                                         {/* Developer */}
                                         <div>
                                             <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Developer</h4>
-                                            <select value={developerFilter} onChange={(e) => setDeveloperFilter(e.target.value)}
+                                            <select value={developerFilter} onChange={(e) => setDeveloperFilter(e.target.value)} aria-label="Filter by developer"
                                                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-sm font-bold text-slate-700 outline-none hover:border-blue-300 transition-colors cursor-pointer">
                                                 <option value="All">All Developers</option>
                                                 {developerOptions.filter(d => d.name !== 'All').map(dev => <option key={dev.name} value={dev.name}>{dev.name} ({dev.count})</option>)}
@@ -737,24 +745,24 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                 style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 12px)' }}
             >
                 <div className="flex justify-between items-center px-1 pt-3">
-                    <button onClick={onGlobalReset} aria-label="Reset map to full UAE view" className={`flex flex-col items-center gap-1 flex-1 py-1 ${inactiveIconColor} transition-colors`}>
+                    <button onClick={() => { haptic.tap(); onGlobalReset(); }} aria-label="Reset map to full UAE view" className={`touch-feedback flex flex-col items-center gap-1 flex-1 py-1 ${inactiveIconColor} transition-colors`}>
                         <svg viewBox="0 0 100 120" width={26} height={26} fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                             <path d="M50 115C50 115 92 72 92 46C92 22.804 73.196 4 50 4C26.804 4 8 22.804 8 46C8 72 50 115 50 115Z" />
                         </svg>
                         <span className="text-[10px] font-bold tracking-wide mt-0.5">Home</span>
                     </button>
 
-                    <button onClick={() => setIsMobileSearchOpen(true)} aria-label="Open property search" className={`flex flex-col items-center gap-1 flex-1 py-1 ${inactiveIconColor} transition-colors`}>
+                    <button onClick={() => { haptic.tap(); setIsMobileSearchOpen(true); }} aria-label="Open property search" className={`touch-feedback flex flex-col items-center gap-1 flex-1 py-1 ${inactiveIconColor} transition-colors`}>
                         <Search size={24} strokeWidth={2.5} />
                         <span className="text-[10px] font-bold tracking-wide mt-0.5">Search</span>
                     </button>
 
-                    <button onClick={() => setIsMobileFilterOpen(true)} aria-label="Open property filters" className={`flex flex-col items-center gap-1 flex-1 py-1 transition-colors ${isAnyFilterActive ? activeIconColor : inactiveIconColor}`}>
+                    <button onClick={() => { haptic.tap(); setIsMobileFilterOpen(true); }} aria-label="Open property filters" className={`touch-feedback flex flex-col items-center gap-1 flex-1 py-1 transition-colors ${isAnyFilterActive ? activeIconColor : inactiveIconColor}`}>
                         <FilterIcon size={24} strokeWidth={2.5} />
                         <span className="text-[10px] font-bold tracking-wide mt-0.5">Filters</span>
                     </button>
 
-                    <button onClick={() => window.dispatchEvent(new CustomEvent('open-favorites-panel'))} aria-label="View favorites" className={`flex flex-col items-center gap-1 flex-1 py-1 transition-colors relative ${favCtx.favoritesCount > 0 ? activeIconColor : inactiveIconColor}`}>
+                    <button onClick={() => { haptic.tap(); window.dispatchEvent(new CustomEvent('open-favorites-panel')); }} aria-label="View favorites" className={`touch-feedback flex flex-col items-center gap-1 flex-1 py-1 transition-colors relative ${favCtx.favoritesCount > 0 ? activeIconColor : inactiveIconColor}`}>
                         <div className="relative">
                             <Heart size={24} strokeWidth={2.5} className={favCtx.favoritesCount > 0 ? 'fill-current' : ''} />
                             {favCtx.favoritesCount > 0 && (
@@ -766,7 +774,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                         <span className="text-[10px] font-bold tracking-wide mt-0.5">Favorites</span>
                     </button>
 
-                    <button onClick={() => setIsMobileMapOpen(true)} aria-label="Open map controls" className={`flex flex-col items-center gap-1 flex-1 py-1 ${inactiveIconColor} transition-colors`}>
+                    <button onClick={() => { haptic.tap(); setIsMobileMapOpen(true); }} aria-label="Open map controls" className={`touch-feedback flex flex-col items-center gap-1 flex-1 py-1 ${inactiveIconColor} transition-colors`}>
                         <MapIcon size={24} strokeWidth={2.5} />
                         <span className="text-[10px] font-bold tracking-wide mt-0.5">Map</span>
                     </button>
@@ -775,11 +783,12 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
 
             {/* ─────────────────── MOBILE SEARCH MODAL ─────────────────── */}
             {isMobileSearchOpen && (
-                <div className="fixed inset-0 z-[7000] bg-slate-900/60 backdrop-blur-sm flex items-end md:hidden">
-                    <div className="bg-white w-full rounded-t-3xl p-6 space-y-5 animate-in slide-in-from-bottom-full duration-300 shadow-2xl pb-10">
+                <div className="fixed inset-0 z-[7000] bg-slate-900/60 backdrop-blur-sm flex items-end md:hidden" onClick={(e) => { if (e.target === e.currentTarget) { haptic.tap(); setIsMobileSearchOpen(false); } }}>
+                    <div className="bg-white w-full rounded-t-3xl p-6 space-y-5 shadow-2xl pb-10" style={{ animation: 'slideUpSheet 0.35s cubic-bezier(0.32, 0.72, 0, 1) forwards', paddingBottom: 'max(40px, calc(24px + env(safe-area-inset-bottom)))' }}>
+                        <div className="bottom-sheet-handle" />
                         <div className="flex justify-between items-center">
                             <h3 className="text-base font-black text-slate-900 uppercase tracking-widest">Find Property</h3>
-                            <button onClick={() => setIsMobileSearchOpen(false)} aria-label="Close search" className="p-2 bg-slate-100 rounded-full text-slate-500 hover:bg-slate-200 transition-all">
+                            <button onClick={() => { haptic.tap(); setIsMobileSearchOpen(false); }} aria-label="Close search" className="touch-feedback p-2 bg-slate-100 rounded-full text-slate-500 hover:bg-slate-200 transition-all">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
@@ -812,21 +821,21 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                         </div>
                         <div className="space-y-3">
                             <div className="flex flex-col gap-1.5">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Select Emirate</label>
-                                <select value={selectedCity} onChange={handleCityChange} className={selectCls}>
+                                <label htmlFor="mobile-search-emirate" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Select Emirate</label>
+                                <select id="mobile-search-emirate" value={selectedCity} onChange={handleCityChange} className={selectCls}>
                                     <option value="">All Emirates</option>
                                     {cityOptions.map(city => <option key={city.id} value={city.id}>{city.label}</option>)}
                                 </select>
                             </div>
                             <div className="flex flex-col gap-1.5">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Select Community</label>
-                                <select value={selectedCommunity} onChange={handleCommunityChange} className={`${selectCls} disabled:opacity-50`} disabled={!selectedCity}>
+                                <label htmlFor="mobile-search-community" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Select Community</label>
+                                <select id="mobile-search-community" value={selectedCommunity} onChange={handleCommunityChange} className={`${selectCls} disabled:opacity-50`} disabled={!selectedCity}>
                                     <option value="">Select Community</option>
                                     {availableCommunities.map(([name, count]) => <option key={name} value={name}>{name} ({count})</option>)}
                                 </select>
                             </div>
                         </div>
-                        <button onClick={() => setIsMobileSearchOpen(false)} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] shadow-xl hover:bg-blue-700 transition-all">
+                        <button onClick={() => { haptic.success(); setIsMobileSearchOpen(false); }} className="touch-feedback w-full py-5 bg-blue-600 text-white rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] shadow-xl hover:bg-blue-700 transition-all">
                             Discover Results
                         </button>
                     </div>
@@ -835,11 +844,12 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
 
             {/* ─────────────────── MOBILE FILTER MODAL ─────────────────── */}
             {isMobileFilterOpen && (
-                <div className="fixed inset-0 z-[7000] bg-slate-900/60 backdrop-blur-sm flex items-end md:hidden">
-                    <div className="bg-white w-full rounded-t-3xl p-6 space-y-5 animate-in slide-in-from-bottom-full duration-300 shadow-2xl pb-10">
+                <div className="fixed inset-0 z-[7000] bg-slate-900/60 backdrop-blur-sm flex items-end md:hidden" onClick={(e) => { if (e.target === e.currentTarget) { haptic.tap(); setIsMobileFilterOpen(false); } }}>
+                    <div className="bg-white w-full rounded-t-3xl p-6 space-y-5 shadow-2xl" style={{ animation: 'slideUpSheet 0.35s cubic-bezier(0.32, 0.72, 0, 1) forwards', paddingBottom: 'max(40px, calc(24px + env(safe-area-inset-bottom)))' }}>
+                        <div className="bottom-sheet-handle" />
                         <div className="flex justify-between items-center">
                             <h3 className="text-base font-black text-slate-900 uppercase tracking-widest">Map Filters</h3>
-                            <button onClick={() => setIsMobileFilterOpen(false)} aria-label="Close filters" className="p-2 bg-slate-100 rounded-full text-slate-500 hover:bg-slate-200 transition-all">
+                            <button onClick={() => { haptic.tap(); setIsMobileFilterOpen(false); }} aria-label="Close filters" className="touch-feedback p-2 bg-slate-100 rounded-full text-slate-500 hover:bg-slate-200 transition-all">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
@@ -854,16 +864,16 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                                 ))}
                             </div>
                             <div className="flex flex-col gap-2">
-                                <select value={selectedCity} onChange={handleCityChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-sm font-bold text-slate-700 outline-none">
+                                <select value={selectedCity} onChange={handleCityChange} aria-label="Filter by emirate" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-sm font-bold text-slate-700 outline-none">
                                     <option value="">All Emirates</option>
                                     {cityOptions.map(city => <option key={city.id} value={city.id}>{city.label}</option>)}
                                 </select>
-                                <select value={selectedCommunity} onChange={handleCommunityChange} disabled={!selectedCity} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-sm font-bold text-slate-700 outline-none disabled:opacity-50">
+                                <select value={selectedCommunity} onChange={handleCommunityChange} disabled={!selectedCity} aria-label="Filter by community" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-sm font-bold text-slate-700 outline-none disabled:opacity-50">
                                     <option value="">All Communities</option>
                                     {availableCommunities.map(([name, count]) => <option key={name} value={name}>{name} ({count})</option>)}
                                 </select>
                             </div>
-                            <select value={developerFilter} onChange={(e) => setDeveloperFilter(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-sm font-bold text-slate-700 outline-none">
+                            <select value={developerFilter} onChange={(e) => setDeveloperFilter(e.target.value)} aria-label="Filter by developer" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-sm font-bold text-slate-700 outline-none">
                                 <option value="All">All Developers</option>
                                 {developerOptions.filter(d => d.name !== 'All').map(dev => (
                                     <option key={dev.name} value={dev.name}>{dev.name} ({dev.count})</option>
@@ -913,7 +923,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                                 </button>
                             </div>
                         </div>
-                        <button onClick={() => setIsMobileFilterOpen(false)} className="w-full py-5 bg-blue-600 text-white hover:bg-blue-700 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] shadow-xl transition-all">
+                        <button onClick={() => { haptic.success(); setIsMobileFilterOpen(false); }} className="touch-feedback w-full py-5 bg-blue-600 text-white hover:bg-blue-700 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] shadow-xl transition-all">
                             Apply Filters
                         </button>
                     </div>
@@ -922,23 +932,24 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
 
             {/* ─────────────────── MOBILE MAP MODAL ─────────────────── */}
             {isMobileMapOpen && (
-                <div className="fixed inset-0 z-[7000] bg-slate-900/60 backdrop-blur-sm flex items-end md:hidden">
-                    <div className="bg-white w-full rounded-t-3xl p-6 space-y-5 animate-in slide-in-from-bottom-full duration-300 shadow-2xl pb-10">
+                <div className="fixed inset-0 z-[7000] bg-slate-900/60 backdrop-blur-sm flex items-end md:hidden" onClick={(e) => { if (e.target === e.currentTarget) { haptic.tap(); setIsMobileMapOpen(false); } }}>
+                    <div className="bg-white w-full rounded-t-3xl p-6 space-y-5 shadow-2xl" style={{ animation: 'slideUpSheet 0.35s cubic-bezier(0.32, 0.72, 0, 1) forwards', paddingBottom: 'max(40px, calc(24px + env(safe-area-inset-bottom)))' }}>
+                        <div className="bottom-sheet-handle" />
                         <div className="flex justify-between items-center">
                             <h3 className="text-base font-black text-slate-900 uppercase tracking-widest">Map Controls</h3>
-                            <button onClick={() => setIsMobileMapOpen(false)} aria-label="Close map controls" className="p-2 bg-slate-100 rounded-full text-slate-500 hover:bg-slate-200 transition-all">
+                            <button onClick={() => { haptic.tap(); setIsMobileMapOpen(false); }} aria-label="Close map controls" className="touch-feedback p-2 bg-slate-100 rounded-full text-slate-500 hover:bg-slate-200 transition-all">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
-                        <div className="w-full max-h-[60vh] overflow-y-auto hide-scrollbar">
+                        <div className="w-full max-h-[60vh] overflow-y-auto hide-scrollbar native-scroll">
                             <MapCommandCenter
                                 mapRef={mapRef}
                                 mapStyle={mapStyle}
                                 setMapStyle={setMapStyle || (() => { })}
-                                onClose={() => setIsMobileMapOpen(false)}
+                                onClose={() => { haptic.tap(); setIsMobileMapOpen(false); }}
                             />
                         </div>
-                        <button onClick={() => setIsMobileMapOpen(false)} className="w-full py-5 bg-blue-600 text-white hover:bg-blue-700 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] shadow-xl transition-all">
+                        <button onClick={() => { haptic.success(); setIsMobileMapOpen(false); }} className="touch-feedback w-full py-5 bg-blue-600 text-white hover:bg-blue-700 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] shadow-xl transition-all">
                             Apply Changes
                         </button>
                     </div>

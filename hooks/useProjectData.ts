@@ -4,6 +4,12 @@ import { pointsWithinPolygon } from '@turf/points-within-polygon';
 import { Project, Landmark } from '../types';
 import { collection, onSnapshot, query } from 'firebase/firestore';
 import { db } from '../utils/firebase';
+import { preloadCriticalImages, prefetchImages } from '../utils/performanceEngine';
+import {
+    cacheProjectData, loadCachedProjectData,
+    cacheLandmarkData, loadCachedLandmarkData,
+    initSmartCache,
+} from '../utils/smartCache';
 
 // Intercepts the PSI API image URL and forces it to return a fast, compressed thumbnail
 const getOptimizedImage = (url: string, width: number, height: number) => {
@@ -43,6 +49,29 @@ export const useProjectData = () => {
     const [selectedCity, setSelectedCity] = useState<string>('');
     const [selectedCommunity, setSelectedCommunity] = useState<string>('');
     const [activeBoundary, setActiveBoundary] = useState<any>(null);
+
+    // ── Cache-first hydration: render instantly from IndexedDB ────────────
+    useEffect(() => {
+        // Initialize smart cache DB + prune expired entries
+        initSmartCache().then(async () => {
+            // SWR Step 1: serve stale data instantly
+            const { projects: cachedProjects } = await loadCachedProjectData();
+            if (cachedProjects.length > 0 && liveProjects.length === 0) {
+                console.log('[Cache] ⚡ Instant hydration:', cachedProjects.length, 'projects');
+                setLiveProjects(cachedProjects as Project[]);
+                preloadCriticalImages(
+                    cachedProjects.map((p: any) => p.thumbnailUrl).filter(Boolean),
+                    8
+                );
+            }
+
+            const { landmarks: cachedLandmarks } = await loadCachedLandmarkData();
+            if (cachedLandmarks.length > 0 && liveLandmarks.length === 0) {
+                console.log('[Cache] ⚡ Instant hydration:', cachedLandmarks.length, 'landmarks');
+                setLiveLandmarks(cachedLandmarks as Landmark[]);
+            }
+        }).catch(() => { });
+    }, []); // Runs once on mount
 
     // Projects Listener
     useEffect(() => {
@@ -113,6 +142,18 @@ export const useProjectData = () => {
             console.log("🔥 FIRESTORE PROJECTS LOADED. Count:", projects.length);
             setLiveProjects(projects);
             setIsRefreshing(false);
+
+            // ── SWR Step 2: cache fresh Firestore data for next instant load ──
+            cacheProjectData(projects).catch(() => { });
+            // Preload first 8 thumbnails for instant carousel
+            preloadCriticalImages(
+                projects.filter(p => !p.isHidden).map(p => p.thumbnailUrl).filter(Boolean),
+                8
+            );
+            // Prefetch remaining thumbnails in idle time
+            prefetchImages(
+                projects.filter(p => !p.isHidden).slice(8).map(p => p.thumbnailUrl).filter(Boolean)
+            );
         }, (error) => {
             console.error("🔥 FIRESTORE PROJECTS ERROR:", error);
             setIsRefreshing(false);
@@ -141,6 +182,9 @@ export const useProjectData = () => {
 
             console.log("📍 FIRESTORE LANDMARKS LOADED. Count:", landmarks.length);
             setLiveLandmarks(landmarks);
+
+            // Cache landmarks for instant next-load
+            cacheLandmarkData(landmarks).catch(() => { });
         }, (error) => {
             console.error("📍 FIRESTORE LANDMARKS ERROR:", error);
         });

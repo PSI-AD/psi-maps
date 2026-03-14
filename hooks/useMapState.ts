@@ -3,13 +3,17 @@ import { MapRef } from 'react-map-gl';
 import MapboxDrawImport from '@mapbox/mapbox-gl-draw';
 import useSupercluster from 'use-supercluster';
 import { Project } from '../types';
+import { loadAppState, saveAppState } from '../utils/performanceEngine';
+import { cacheMapState } from '../utils/smartCache';
 
 
 export const useMapState = (filteredProjects: Project[], cameraDuration: number = 2000) => {
     const mapRef = useRef<MapRef>(null);
     const drawRef = useRef<any>(null);
 
-    const [viewState, setViewState] = useState({
+    // Restore camera from persisted state for instant familiarity
+    const savedState = loadAppState();
+    const [viewState, setViewState] = useState(savedState?.viewState || {
         longitude: 54.8,
         latitude: 24.84,
         zoom: 7.5,
@@ -17,7 +21,7 @@ export const useMapState = (filteredProjects: Project[], cameraDuration: number 
         bearing: 0
     });
 
-    const [mapStyle, setMapStyle] = useState('mapbox://styles/mapbox/streets-v12');
+    const [mapStyle, setMapStyle] = useState(savedState?.mapStyle || 'mapbox://styles/mapbox/streets-v12');
     const [bounds, setBounds] = useState<[number, number, number, number] | null>(null);
     const [isDrawing, setIsDrawing] = useState(false);
 
@@ -33,6 +37,18 @@ export const useMapState = (filteredProjects: Project[], cameraDuration: number 
     useEffect(() => {
         updateBounds();
     }, [updateBounds]);
+
+    // Debounced camera state persistence (save after 1s of no movement)
+    const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    useEffect(() => {
+        if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = setTimeout(() => {
+            saveAppState({ viewState, mapStyle });
+            // Also persist to IndexedDB for durable offline recovery
+            cacheMapState({ ...viewState, mapStyle }).catch(() => { });
+        }, 1000);
+        return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+    }, [viewState, mapStyle]);
 
     const points = useMemo(() =>
         filteredProjects

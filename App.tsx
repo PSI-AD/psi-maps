@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { distance as turfDistance } from '@turf/distance';
 import { point as turfPoint } from '@turf/helpers';
@@ -17,11 +17,20 @@ import { Project, Landmark, ClientPresentation } from './types';
 import { FavoritesProvider } from './hooks/useFavorites';
 import WelcomeBanner from './components/WelcomeBanner';
 import PropertyResultsList from './components/PropertyResultsList';
-import PresentationShowcase from './components/PresentationShowcase';
-import LandmarkInfoModal from './components/LandmarkInfoModal';
-import StreetViewPanel from './components/StreetViewPanel';
-import ARView from './components/ARView';
+import PWAInstallPrompt from './components/PWAInstallPrompt';
+import PWAStatusOverlays from './components/PWAStatusOverlays';
+import haptic from './utils/haptics';
+import { loadAppState } from './utils/performanceEngine';
+import { recordRecentView, addSearchEntry } from './utils/localPersistence';
+import { warmUpPreloader, preloadProjectScreen, recordNavigation, preloadPredictedScreens, preloadVisibleProjects } from './utils/predictivePreloader';
+import { AnalyticsEvents, PerfTraces } from './utils/firebasePlatform';
 import 'mapbox-gl/dist/mapbox-gl.css';
+
+// ── Lazy-loaded components (only downloaded when user triggers them) ─────────
+const PresentationShowcase = React.lazy(() => import('./components/PresentationShowcase'));
+const LandmarkInfoModal = React.lazy(() => import('./components/LandmarkInfoModal'));
+const StreetViewPanel = React.lazy(() => import('./components/StreetViewPanel'));
+const ARView = React.lazy(() => import('./components/ARView'));
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from './utils/firebase';
@@ -79,6 +88,42 @@ const AppInner: React.FC = () => {
       window.removeEventListener('lasso-clear', handleClear);
     };
   }, []);
+
+  // ── Restore persisted state (last session) ──────────────────────────────
+  useEffect(() => {
+    const saved = loadAppState();
+    if (!saved) return;
+
+    // Restore filters (instant, no network)
+    if (saved.selectedCity) setSelectedCity(saved.selectedCity);
+    if (saved.selectedCommunity) setSelectedCommunity(saved.selectedCommunity);
+    if (saved.propertyType && saved.propertyType !== 'All') setPropertyType(saved.propertyType);
+    if (saved.developerFilter && saved.developerFilter !== 'All') setDeveloperFilter(saved.developerFilter);
+    if (saved.statusFilter && saved.statusFilter !== 'All') setStatusFilter(saved.statusFilter);
+    if (saved.mapStyle) setMapStyle(saved.mapStyle);
+
+    // Restore selected project (after data loads)
+    if (saved.selectedProjectId && saved.isAnalysisOpen) {
+      // Wait for projects to load, then restore selection
+      const restoreTimer = setTimeout(() => {
+        setSelectedProjectId(saved.selectedProjectId);
+        setIsAnalysisOpen(true);
+      }, 500);
+      return () => clearTimeout(restoreTimer);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Initialize predictive preloader ─────────────────────────────────────
+  useEffect(() => {
+    warmUpPreloader();
+  }, []);
+
+  // ── Preload visible projects' thumbnails when they change ──────────────
+  useEffect(() => {
+    if (filteredProjects.length > 0) {
+      preloadVisibleProjects(filteredProjects);
+    }
+  }, [filteredProjects]);
 
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
   const [isAdminOpen, setIsAdminOpen] = useState(false);
@@ -158,6 +203,76 @@ const AppInner: React.FC = () => {
     return () => window.removeEventListener('open-ar-mode', handler);
   }, []);
 
+  // ── Deep Link / App Shortcut Handler ─────────────────────────────────────
+  // Handles ?action=search|favorites|chat|map and ?project=ID from:
+  // 1. manifest.json shortcuts (long-press app icon)
+  // 2. Push notification deep links (sw.js → NOTIFICATION_CLICK)
+  // 3. Direct URL sharing
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const action = params.get('action');
+    const projectId = params.get('project');
+
+    if (action) {
+      // Slight delay to ensure components are mounted
+      setTimeout(() => {
+        switch (action) {
+          case 'search':
+            // Open mobile search modal
+            window.dispatchEvent(new CustomEvent('open-mobile-search'));
+            break;
+          case 'favorites':
+            window.dispatchEvent(new CustomEvent('open-favorites-panel'));
+            break;
+          case 'chat':
+            window.dispatchEvent(new CustomEvent('open-ai-chat'));
+            break;
+          case 'map':
+            // Map is default — do nothing or reset view
+            break;
+        }
+      }, 1000);
+
+      // Clean the URL without reload
+      const clean = new URL(window.location.href);
+      clean.searchParams.delete('action');
+      window.history.replaceState({}, '', clean.toString());
+    }
+
+    if (projectId) {
+      setTimeout(() => {
+        setSelectedProjectId(projectId);
+        setIsAnalysisOpen(true);
+        const project = liveProjects.find(p => p.id === projectId);
+        if (project) {
+          handleFlyTo(project.longitude, project.latitude, 16);
+        }
+      }, 1500);
+
+      const clean = new URL(window.location.href);
+      clean.searchParams.delete('project');
+      window.history.replaceState({}, '', clean.toString());
+    }
+  }, [liveProjects]);
+
+  // Listen for notification deep-link events (from sw.js via swRegistration)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.projectId) {
+        setSelectedProjectId(detail.projectId);
+        setIsAnalysisOpen(true);
+        const project = liveProjects.find((p: Project) => p.id === detail.projectId);
+        if (project) {
+          haptic.nav();
+          handleFlyTo(project.longitude, project.latitude, 16);
+        }
+      }
+    };
+    window.addEventListener('psi-deep-link', handler);
+    return () => window.removeEventListener('psi-deep-link', handler);
+  }, [liveProjects, handleFlyTo]);
+
   // Auto-infer city when a community is selected (prevents dropdown desync)
   useEffect(() => {
     if (!selectedCommunity) return;
@@ -168,6 +283,13 @@ const AppInner: React.FC = () => {
       setSelectedCity(matched.city);
     }
   }, [selectedCommunity, liveProjects, selectedCity, setSelectedCity]);
+
+  // Clear community boundary when community changes (prevents stale boundary overlay)
+  useEffect(() => {
+    if (activeBoundary) {
+      setActiveBoundary(null);
+    }
+  }, [selectedCommunity]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle route geometry from the sidebar's Directions call
   const handleRouteReady = (routeInfo: { geometry: any; startName: string; startLng: number; startLat: number; destName: string; destLng: number; destLat: number } | null) => {
@@ -198,7 +320,12 @@ const AppInner: React.FC = () => {
     }
   };
 
-  const selectedProject = filteredProjects.find(p => p.id === selectedProjectId) || null;
+  // IMPORTANT: Fall back to liveProjects when selectedProject is not in filteredProjects.
+  // This happens when searching for a project in a different community — the filter
+  // state (selectedCommunity) may not have updated yet in the same React cycle.
+  const selectedProject = filteredProjects.find(p => p.id === selectedProjectId)
+    || liveProjects.find(p => p.id === selectedProjectId)
+    || null;
   const hoveredProject = filteredProjects.find(p => p.id === hoveredProjectId) || null;
   const selectedLandmark = filteredAmenities.find(l => l.id === selectedLandmarkId) || null;
 
@@ -333,31 +460,48 @@ const AppInner: React.FC = () => {
   };
 
   const handleMarkerClick = (id: string) => {
+    haptic.tap();
     setSelectedProjectId(id);
     setSelectedLandmarkId(null);
-    setActiveRouteInfo(null); // Clear any active route when switching projects
-    // Open analysis panel on both desktop AND mobile
+    setActiveRouteInfo(null);
     setIsAnalysisOpen(true);
-    const p = filteredProjects.find(pr => pr.id === id);
+    // Use liveProjects as fallback — filteredProjects may not contain this project
+    // if community/city filters are still set to the previous context
+    const p = filteredProjects.find(pr => pr.id === id) || liveProjects.find(pr => pr.id === id);
     if (p) {
-      // Sync Breadcrumbs on click
       setSelectedCity(p.city || '');
       setSelectedCommunity(p.community || '');
       if (p.latitude && p.longitude && !isNaN(p.latitude) && !isNaN(p.longitude)) {
         handleFlyTo(p.longitude, p.latitude, 16);
       }
+      recordRecentView(p.id, p.name, p.thumbnailUrl);
+      // Predictive: preload project screen + record navigation pattern
+      preloadProjectScreen(p);
+      recordNavigation('map', 'project', p.id);
+      preloadPredictedScreens('project');
+      // Analytics: track project view
+      AnalyticsEvents.projectView(p.id, p.name);
+      AnalyticsEvents.screenView('project');
     }
   };
 
   const handleSearchSelect = (project: Project) => {
+    haptic.nav();
     handleFlyTo(project.longitude, project.latitude, 16);
     setSelectedProjectId(project.id);
     setSelectedLandmarkId(null);
-    setActiveRouteInfo(null); // Clear any active route when searching
+    setActiveRouteInfo(null);
     setIsAnalysisOpen(true);
-    // Sync Breadcrumbs on select
     setSelectedCity(project.city || '');
     setSelectedCommunity(project.community || '');
+    recordRecentView(project.id, project.name, project.thumbnailUrl);
+    addSearchEntry({ query: project.name, type: 'text', resultCount: 1 });
+    // Predictive: preload + record pattern
+    preloadProjectScreen(project);
+    recordNavigation('map', 'project', project.id);
+    // Analytics: track search + project view
+    AnalyticsEvents.projectSearch(project.name, 1);
+    AnalyticsEvents.projectView(project.id, project.name);
   };
 
   const handleLandmarkClick = (l: any) => {
@@ -415,6 +559,7 @@ const AppInner: React.FC = () => {
   };
 
   const handleGlobalReset = () => {
+    haptic.heavy();
     setSelectedProjectId(null);
     setSelectedLandmarkId(null);
     setIsAnalysisOpen(false);
@@ -527,6 +672,7 @@ const AppInner: React.FC = () => {
       {activeRouteInfo && (
         <button
           onClick={() => {
+            haptic.tap();
             setActiveRouteInfo(null);
             // Reset pitch back to flat
             mapRef.current?.getMap()?.easeTo({ pitch: 0, duration: 800 });
@@ -550,33 +696,45 @@ const AppInner: React.FC = () => {
       )}
       {/* Landmark 3D Info Modal */}
       {infoLandmark && (
-        <LandmarkInfoModal
-          landmark={infoLandmark}
-          onClose={() => setInfoLandmark(null)}
-        />
+        <Suspense fallback={null}>
+          <LandmarkInfoModal
+            landmark={infoLandmark}
+            onClose={() => setInfoLandmark(null)}
+          />
+        </Suspense>
       )}
 
       {/* Street View Split Screen Panel */}
       {streetViewData && (
-        <StreetViewPanel
-          lat={streetViewData.lat}
-          lng={streetViewData.lng}
-          projectName={streetViewData.name}
-          onClose={() => setStreetViewData(null)}
-        />
+        <Suspense fallback={null}>
+          <StreetViewPanel
+            lat={streetViewData.lat}
+            lng={streetViewData.lng}
+            projectName={streetViewData.name}
+            onClose={() => setStreetViewData(null)}
+          />
+        </Suspense>
       )}
 
       {/* AR Mode Overlay */}
       {isAROpen && (
-        <ARView
-          projects={liveProjects}
-          onClose={() => setIsAROpen(false)}
-          onSelectProject={(p) => {
-            setIsAROpen(false);
-            handleMarkerClick(p.id);
-          }}
-        />
+        <Suspense fallback={null}>
+          <ARView
+            projects={liveProjects}
+            onClose={() => setIsAROpen(false)}
+            onSelectProject={(p) => {
+              setIsAROpen(false);
+              handleMarkerClick(p.id);
+            }}
+          />
+        </Suspense>
       )}
+
+      {/* PWA Install Prompt */}
+      <PWAInstallPrompt />
+
+      {/* PWA Status Overlays — Offline banner, update prompt, error toasts */}
+      <PWAStatusOverlays />
     </MainLayout>
   );
 };
@@ -585,7 +743,7 @@ const AppInner: React.FC = () => {
 // PresentationShowcase self-loads its Firestore data, so no props needed here.
 const App: React.FC = () => {
   if (typeof window !== 'undefined' && window.location.pathname === '/presentation') {
-    return <PresentationShowcase />;
+    return <Suspense fallback={<div className="flex items-center justify-center h-screen bg-slate-900"><div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full" /></div>}><PresentationShowcase /></Suspense>;
   }
   return <FavoritesProvider><AppInner /></FavoritesProvider>;
 };

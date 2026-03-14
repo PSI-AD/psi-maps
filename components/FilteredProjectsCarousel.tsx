@@ -4,6 +4,8 @@ import { Project, ClientPresentation } from '../types';
 import { MapPin, Building, BedDouble, ChevronLeft, ChevronRight, X, Play, Square, Heart } from 'lucide-react';
 import { getOptimizedImageUrl } from '../utils/imageHelpers';
 import { useFavoritesContext } from '../hooks/useFavorites';
+import { getPreloadHandlers, getProximityRef, preloadVisibleProjects } from '../utils/predictivePreloader';
+import { CarouselSkeleton } from './SkeletonUI';
 
 interface FilteredProjectsCarouselProps {
     projects: Project[];
@@ -20,6 +22,8 @@ interface FilteredProjectsCarouselProps {
     onExitPresentation?: () => void;
     /** Whether the AI chat assistant is currently visible */
     isAiChatOpen?: boolean;
+    /** Whether data is still loading from Firestore */
+    isLoading?: boolean;
 }
 
 const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
@@ -35,6 +39,7 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
     presentationProjects,
     onExitPresentation,
     isAiChatOpen = false,
+    isLoading = false,
 }) => {
     const { toggleFavorite, isFavorite } = useFavoritesContext();
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -302,6 +307,15 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isTourMode]);
 
+    // Show skeleton placeholders during initial data load
+    if (isVisible && projects.length === 0 && isLoading && !isTourMode) {
+        return (
+            <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+58px)] left-0 right-0 z-[3400] md:absolute md:bottom-6 md:left-6 md:right-auto md:w-[380px]">
+                <CarouselSkeleton count={3} />
+            </div>
+        );
+    }
+
     if (!isVisible || (projects.length === 0 && !isTourMode)) return null;
 
     const scrollHorizontal = (dir: 'left' | 'right') => {
@@ -345,15 +359,24 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
     // ── Single card renderer ────────────────────────────────────────────────
     const renderCard = (project: Project, idx: number) => {
         const isSelected = selectedProjectId === project.id;
+        const preloadHandlers = getPreloadHandlers(project);
 
         return (
             <div
                 key={project.id}
-                ref={el => { itemRefs.current[project.id] = el; }}
+                ref={el => {
+                    itemRefs.current[project.id] = el;
+                    // Proximity-based preloading — preload when card enters viewport
+                    if (el) getProximityRef(project.id, (project as any).thumbnailUrl)(el);
+                }}
                 onClick={() => onSelectProject(project)}
+                onMouseEnter={preloadHandlers.onMouseEnter}
+                onMouseLeave={preloadHandlers.onMouseLeave}
                 onTouchStart={(e) => {
                     const t = e.touches[0];
                     touchStartRef.current = { x: t.clientX, y: t.clientY };
+                    // Predictive preload: start loading sidebar data on touch-down
+                    preloadHandlers.onTouchStart();
                 }}
                 onTouchEnd={(e) => {
                     if (!touchStartRef.current) return;
@@ -380,14 +403,16 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                     group
                 `}
             >
-                {/* Thumbnail */}
-                <div className="w-[88px] h-[88px] md:w-20 md:h-20 shrink-0 rounded-xl overflow-hidden bg-slate-100 relative shadow-sm">
+                {/* Thumbnail — skeleton shimmer shows while image loads */}
+                <div className="w-[88px] h-[88px] md:w-20 md:h-20 shrink-0 rounded-xl overflow-hidden skeleton relative shadow-sm">
                     <img
                         src={getOptimizedImageUrl(
                             (project as any).thumbnailUrl || ((project as any).images?.[0]) || '',
                             200, 200
                         )}
                         alt={project.name}
+                        loading={idx < 6 ? 'eager' : 'lazy'}
+                        decoding="async"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                     />
@@ -454,7 +479,7 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
     return (
         <div className={`
             absolute z-[4000] pointer-events-none
-            bottom-[88px] left-0 w-full
+            bottom-[calc(env(safe-area-inset-bottom,0px)+58px)] left-0 w-full
             md:bottom-[96px] md:top-[80px] md:left-0 md:w-[360px]
             flex flex-col
             transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]
@@ -527,7 +552,7 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
             </div>
 
             {/* ── Scroll containers ── */}
-            <div className="relative flex-1 min-h-0">
+            <div className="relative flex-1 min-h-0 pointer-events-auto w-full">
 
                 {/* Left arrow — mobile only */}
                 <button
@@ -554,6 +579,7 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                         md:shadow-2xl md:shadow-slate-300/30
                         pointer-events-auto hide-scrollbar scroll-smooth
                     "
+                    style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x' }}
                 >
                     {displayGroups.map(([communityName, commProjects]) => {
                         // Sync: exact match for community header tours, OR any external tour running

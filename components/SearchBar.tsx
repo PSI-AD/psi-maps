@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Project, Landmark } from '../types';
 import { Search, ArrowRight, X, Building2, MapPin, User } from 'lucide-react';
+import { cacheSearchResult } from '../utils/smartCache';
 
 interface SearchBarProps {
     projects: Project[];
@@ -133,6 +134,16 @@ const SearchBar: React.FC<SearchBarProps> = ({
         const next = { projects: matchedProjects, developers: matchedDevelopers, locations: matchedLocations, landmarks: matchedLandmarks };
         setResults(next);
         setIsOpen(next.projects.length > 0 || next.developers.length > 0 || next.locations.length > 0 || next.landmarks.length > 0);
+
+        // Cache search query + result IDs for history & offline replay
+        if (matchedProjects.length > 0 && value.length >= 3) {
+            cacheSearchResult({
+                query: value,
+                resultIds: matchedProjects.map(p => p.id),
+                resultCount: matchedProjects.length + matchedDevelopers.length + matchedLocations.length + matchedLandmarks.length,
+                filters: {},
+            }).catch(() => { });
+        }
     };
 
     const handleSelectProject = (project: Project) => { close(); onSelectProject(project); };

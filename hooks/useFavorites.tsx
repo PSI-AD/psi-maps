@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { cacheFavorites, loadCachedFavorites, cacheCompareIds, loadCachedCompareIds } from '../utils/smartCache';
 
 const FAVORITES_KEY = 'psi-map-favorites';
 const COMPARE_KEY = 'psi-map-compare';
@@ -31,8 +32,22 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         catch { return []; }
     });
 
+    // Hydrate from IndexedDB if localStorage was empty (recovery path)
+    useEffect(() => {
+        if (favoriteIds.length === 0) {
+            loadCachedFavorites().then(cached => {
+                if (cached.length > 0) {
+                    console.log('[Cache] Recovered', cached.length, 'favorites from IndexedDB');
+                    setFavoriteIds(cached);
+                }
+            }).catch(() => { });
+        }
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Persist to localStorage + IndexedDB on every change
     useEffect(() => {
         try { localStorage.setItem(FAVORITES_KEY, JSON.stringify(favoriteIds)); } catch { }
+        cacheFavorites(favoriteIds).catch(() => { });
     }, [favoriteIds]);
 
     const toggleFavorite = useCallback((id: string) => {
@@ -48,8 +63,22 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         catch { return []; }
     });
 
+    // Hydrate from IndexedDB if localStorage was empty (recovery path)
+    useEffect(() => {
+        if (compareIds.length === 0) {
+            loadCachedCompareIds().then(cached => {
+                if (cached.length > 0) {
+                    console.log('[Cache] Recovered', cached.length, 'compare IDs from IndexedDB');
+                    setCompareIds(cached);
+                }
+            }).catch(() => { });
+        }
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Persist to localStorage + IndexedDB on every change
     useEffect(() => {
         try { localStorage.setItem(COMPARE_KEY, JSON.stringify(compareIds)); } catch { }
+        cacheCompareIds(compareIds).catch(() => { });
     }, [compareIds]);
 
     const toggleCompare = useCallback((id: string) => {
@@ -64,12 +93,12 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const clearCompare = useCallback(() => setCompareIds([]), []);
 
     return (
-        <FavoritesContext.Provider value= {{
-        favoriteIds, toggleFavorite, isFavorite, clearFavorites, favoritesCount: favoriteIds.length,
+        <FavoritesContext.Provider value={{
+            favoriteIds, toggleFavorite, isFavorite, clearFavorites, favoritesCount: favoriteIds.length,
             compareIds, toggleCompare, isInCompare, clearCompare, compareCount: compareIds.length,
-    }
-}>
-    { children }
-    </FavoritesContext.Provider>
-  );
+        }
+        }>
+            {children}
+        </FavoritesContext.Provider>
+    );
 };

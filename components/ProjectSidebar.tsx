@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Project, Landmark } from '../types';
-import { X, MapPin, BedDouble, Bath, Square as SquareIcon, Calendar, ArrowRight, Activity, Building, LayoutTemplate, Car, Footprints, Clock, MessageSquare, Compass, ChevronLeft, ChevronRight, Play, Pause, Square, StopCircle, Share2, Heart, GitCompare, Loader2, Flag, Download } from 'lucide-react';
+import { X, MapPin, BedDouble, Bath, Square as SquareIcon, Calendar, ArrowRight, ArrowUpRight, Activity, Building, LayoutTemplate, Car, Footprints, Clock, MessageSquare, Compass, ChevronLeft, ChevronRight, Play, Pause, Square, StopCircle, Share2, Heart, GitCompare, Loader2, Flag, Download, Navigation } from 'lucide-react';
 import { calculateDistance } from '../utils/geo';
 import TextModal from './TextModal';
 import InquireModal from './InquireModal';
@@ -12,6 +12,7 @@ import { getRelatedProjects, getClosestCategorizedAmenities } from '../utils/pro
 
 import LightboxGallery from './LightboxGallery';
 import { useFavoritesContext } from '../hooks/useFavorites';
+import { recordProjectView } from '../utils/smartCache';
 
 const DEV_DOMAINS: Record<string, string> = {
   'emaar': 'emaar.com',
@@ -222,6 +223,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   const [isTouringNeighborhood, setIsTouringNeighborhood] = useState(false);
   const [activeTourAmenityIdx, setActiveTourAmenityIdx] = useState<number | null>(null);
   const [amenitySearch, setAmenitySearch] = useState('');
+  const neighborhoodScrollRef = useRef<HTMLDivElement>(null);
 
   // Notify AI chat when neighborhood tour state changes
   useEffect(() => {
@@ -482,6 +484,17 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
     setIsMainImageLoaded(false); // block thumbnails until new hero loads
   }, [project.id]);
 
+  // Record view in smart cache for "recently viewed" history
+  useEffect(() => {
+    recordProjectView({
+      id: project.id,
+      name: project.name,
+      thumbnailUrl: project.thumbnailUrl,
+      community: project.community,
+      city: project.city,
+    }).catch(() => { });
+  }, [project.id, project.name, project.thumbnailUrl, project.community, project.city]);
+
   // Tick-based slideshow engine — 50ms interval drives SVG progress ring
   const MAX_TICKS = 120; // 6 seconds at 50ms per tick
   useEffect(() => {
@@ -615,6 +628,52 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
       .sort((a, b) => a.distance - b.distance)
       .slice(0, 5);
   }, [project.latitude, project.longitude, nearbyLandmarks]);
+
+  // ── 3 nearest projects in the same community ("Projects Around") ──────
+  const projectsAround = useMemo(() => {
+    if (!project.latitude || !project.longitude || !project.community) return [];
+    const pLat = Number(project.latitude);
+    const pLng = Number(project.longitude);
+    return allProjects
+      .filter(p => p.id !== project.id && p.latitude && p.longitude
+        && p.community?.toLowerCase() === project.community!.toLowerCase())
+      .map(p => ({
+        ...p,
+        _dist: calculateDistance(pLat, pLng, Number(p.latitude), Number(p.longitude)),
+      }))
+      .sort((a, b) => a._dist - b._dist)
+      .slice(0, 3);
+  }, [project.id, project.latitude, project.longitude, project.community, allProjects]);
+
+  // ── 3 nearest projects by the same developer ("More by [Dev]") ────────
+  const developerProjects = useMemo(() => {
+    if (!project.latitude || !project.longitude || !project.developerName) return [];
+    const devName = project.developerName;
+    if (!devName || devName === 'Unknown' || devName === 'Exclusive') return [];
+    const pLat = Number(project.latitude);
+    const pLng = Number(project.longitude);
+    return allProjects
+      .filter(p => p.id !== project.id && p.latitude && p.longitude
+        && (p as any).developerName === devName)
+      .map(p => ({
+        ...p,
+        _dist: calculateDistance(pLat, pLng, Number(p.latitude), Number(p.longitude)),
+      }))
+      .sort((a, b) => a._dist - b._dist)
+      .slice(0, 3);
+  }, [project.id, project.latitude, project.longitude, project.developerName, allProjects]);
+  // ── Scroll neighborhood panel to top whenever it opens ────────────────────
+  useEffect(() => {
+    if (showNeighborhoodList) {
+      // Use rAF to ensure the DOM has been painted after the early-return swap
+      requestAnimationFrame(() => {
+        if (neighborhoodScrollRef.current) {
+          neighborhoodScrollRef.current.scrollTop = 0;
+        }
+      });
+    }
+  }, [showNeighborhoodList]);
+
   // ── Neighborhood Tour view — early return when active ────────────────────
   if (showNeighborhoodList) {
     const stopTour = () => {
@@ -669,7 +728,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
         </div>
 
         {/* Amenity list */}
-        <div className="p-4 flex-1 overflow-y-auto">
+        <div ref={neighborhoodScrollRef} className="p-4 flex-1 overflow-y-auto">
           <div className="mb-3">
             <h3 className="text-base font-black text-slate-800">Neighborhood: {project.name}</h3>
             <p className="text-[11px] text-slate-400 font-medium mt-0.5">
@@ -777,36 +836,37 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
 
         {/* 1. Hero Gallery — single optimized thumb + tick-based slideshow engine */}
         <div
-          className="relative h-64 w-full shrink-0 bg-slate-100 overflow-hidden group"
+          className="relative h-64 w-full shrink-0 skeleton overflow-hidden group"
           onMouseEnter={() => setIsPlaying(false)}
           onMouseLeave={() => { /* only resume if already playing via user action */ }}
         >
-          {/* Header action bar: Compare · Favourite · Flag · Share · PDF · Close */}
-          <div className="absolute top-0 right-0 flex flex-wrap justify-end items-center gap-1 z-10 max-w-[70%] md:max-w-none p-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
+          {/* Header action bar: Compare · Favourite · Flag · Share · PDF · Close
+              z-50 keeps buttons above thumbnails (z-40) and hero image (z-0). */}
+          <div className="absolute top-0 right-0 flex flex-wrap justify-end items-center gap-1 z-50 pointer-events-auto max-w-[70%] md:max-w-none p-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
             <button
               onClick={() => handleSaveLocal('compare')}
-              className="p-2 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md text-white border border-white/20 transition-all"
+              className="pointer-events-auto p-2 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md text-white border border-white/20 transition-all"
               title="Add to Comparison" aria-label="Add to comparison"
             >
               <GitCompare className="w-4 h-4" />
             </button>
             <button
               onClick={() => handleSaveLocal('favorite')}
-              className="p-2 rounded-full bg-black/40 hover:bg-rose-600/80 backdrop-blur-md text-white border border-white/20 transition-all"
+              className="pointer-events-auto p-2 rounded-full bg-black/40 hover:bg-rose-600/80 backdrop-blur-md text-white border border-white/20 transition-all"
               title="Add to Favourites" aria-label="Add to favourites"
             >
               <Heart className="w-4 h-4" />
             </button>
             <button
               onClick={() => setIsReportModalOpen(true)}
-              className="p-2 rounded-full bg-black/40 hover:bg-orange-600/80 backdrop-blur-md text-white border border-white/20 transition-all"
+              className="pointer-events-auto p-2 rounded-full bg-black/40 hover:bg-orange-600/80 backdrop-blur-md text-white border border-white/20 transition-all"
               title="Report Issue" aria-label="Report an issue with this listing"
             >
               <Flag className="w-4 h-4" />
             </button>
             <button
               onClick={handleNativeShare}
-              className="p-2 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md text-white border border-white/20 transition-all"
+              className="pointer-events-auto p-2 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md text-white border border-white/20 transition-all"
               title="Share" aria-label="Share listing"
             >
               <Share2 className="w-4 h-4" />
@@ -814,21 +874,21 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
             <button
               onClick={handleExportPdf}
               disabled={isGeneratingPdf}
-              className="p-2 rounded-full bg-blue-600/80 hover:bg-blue-600 backdrop-blur-md text-white border border-blue-500/50 transition-all"
+              className="pointer-events-auto p-2 rounded-full bg-blue-600/80 hover:bg-blue-600 backdrop-blur-md text-white border border-blue-500/50 transition-all"
               title="Download PDF Brochure" aria-label="Download PDF Brochure"
             >
               {isGeneratingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
             </button>
             <button
               onClick={onClose}
-              className="p-2 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md text-white border border-white/20 transition-all ml-1"
+              className="pointer-events-auto p-2 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md text-white border border-white/20 transition-all ml-1"
               title="Close" aria-label="Close panel"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Hero image — strictly uses optimized thumb (correct size for 380px panel) */}
+          {/* Hero image — skeleton shimmer underneath, fades in when loaded */}
           <img
             key={currentImage?.thumb || 'fallback'}
             src={currentImage?.thumb || '/placeholder-image.png'}
@@ -838,7 +898,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
             decoding="async"
             onLoad={() => setIsMainImageLoaded(true)}
             onClick={(e) => { e.stopPropagation(); setGalleryIndex(activeIdx); }}
-            className="absolute inset-0 w-full h-full object-cover cursor-zoom-in transition-opacity duration-300"
+            className={`absolute inset-0 w-full h-full object-cover cursor-zoom-in transition-opacity duration-300 z-0 pointer-events-auto ${isMainImageLoaded ? 'opacity-100' : 'opacity-0'}`}
             onError={(e) => { e.currentTarget.src = '/placeholder-image.png'; }}
           />
 
@@ -847,7 +907,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
             <button
               onClick={(e) => { e.stopPropagation(); setIsPlaying(p => !p); }}
               aria-label={isPlaying ? 'Pause slideshow' : 'Play slideshow'}
-              className="absolute top-4 left-4 bg-black/40 hover:bg-black/70 backdrop-blur-md text-white rounded-full transition-all border border-white/20 z-10 flex items-center justify-center w-9 h-9"
+              className="absolute top-4 left-4 bg-black/40 hover:bg-black/70 backdrop-blur-md text-white rounded-full transition-all border border-white/20 z-50 pointer-events-auto flex items-center justify-center w-9 h-9"
             >
               {isPlaying ? (
                 <div className="relative w-full h-full flex items-center justify-center">
@@ -875,14 +935,14 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
               <button
                 onClick={handlePrevImage}
                 aria-label="Previous image"
-                className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2 bg-black/40 hover:bg-black/70 backdrop-blur-md text-white rounded-full border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                className="absolute left-2 top-1/2 -translate-y-1/2 z-50 pointer-events-auto p-2 bg-black/40 hover:bg-black/70 backdrop-blur-md text-white rounded-full border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <button
                 onClick={handleNextImage}
                 aria-label="Next image"
-                className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2 bg-black/40 hover:bg-black/70 backdrop-blur-md text-white rounded-full border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                className="absolute right-2 top-1/2 -translate-y-1/2 z-50 pointer-events-auto p-2 bg-black/40 hover:bg-black/70 backdrop-blur-md text-white rounded-full border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
@@ -891,7 +951,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
 
           {/* Thumbnail strip — gated on isMainImageLoaded to enforce waterfall loading */}
           {hasMultipleImages && (
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent pt-6 pb-2 px-2 flex gap-2 overflow-x-auto hide-scrollbar">
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent pt-6 pb-2 px-2 flex gap-2 overflow-x-auto hide-scrollbar z-40 pointer-events-auto">
               {isMainImageLoaded
                 ? gallery.map((img, idx) => (
                   <button
@@ -906,7 +966,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                 ))
                 : Array(Math.min(gallery.length, 6)).fill(0).map((_, i) => (
                   // Skeleton placeholders — zero network requests, correct layout dimensions
-                  <div key={i} aria-hidden="true" className="shrink-0 w-14 h-10 rounded-lg bg-white/10 animate-pulse" />
+                  <div key={i} aria-hidden="true" className="shrink-0 w-14 h-10 rounded-lg skeleton" />
                 ))
               }
             </div>
@@ -1077,19 +1137,41 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
               View All Amenities
             </button>
 
-            {/* ── SECTION 3: Route & Drive Time ── */}
-            <div className="relative mt-8 pt-6 border-t border-slate-100 pb-4">
-              <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center">
-                <Car className="w-4 h-4 mr-2 text-blue-600" /> Route & Drive Time
-              </h3>
-              <p className="text-[10px] text-slate-400 font-medium mb-3 -mt-2">Search a destination — we'll draw the real traffic-adjusted route on the map.</p>
+            {/* ── SECTION 3: Route & Drive Time (Enhanced) ── */}
+            <div className="relative mt-8 pt-0 pb-4">
+              {/* Attention-grabbing banner */}
+              <div className="rounded-2xl bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700 p-4 mb-4 relative overflow-hidden">
+                {/* Animated road illustration */}
+                <div className="absolute inset-0 opacity-[0.08]">
+                  <div className="absolute bottom-0 left-0 right-0 h-3 bg-white/40" />
+                  <div className="absolute bottom-[5px] left-[10%] right-[10%] h-[2px] bg-white/60" style={{ backgroundImage: 'repeating-linear-gradient(90deg, white 0px, white 12px, transparent 12px, transparent 24px)' }} />
+                </div>
+                {/* Animated car */}
+                <div className="absolute bottom-2 animate-[routeCar_4s_ease-in-out_infinite] opacity-20">
+                  <Car className="w-5 h-5 text-white transform -scale-x-100" />
+                </div>
+                <style>{`@keyframes routeCar { 0% { left: -5%; } 50% { left: 95%; } 100% { left: -5%; } }`}</style>
+                <div className="relative z-10 flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0 mt-0.5">
+                    <Navigation className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-black text-white tracking-wide">Route & Drive Time</h3>
+                    <p className="text-[11px] text-blue-200 font-medium mt-0.5 leading-snug">Search any destination — see the real traffic-adjusted route drawn on the map.</p>
+                  </div>
+                </div>
+              </div>
+              {/* Search input */}
               <div className="relative z-10">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                  <MapPin className="w-4 h-4" />
+                </div>
                 <input
                   type="text"
-                  placeholder="Search any place in UAE…"
+                  placeholder="Where would you like to go?"
                   value={customDestQuery}
                   onChange={e => fetchDestSuggestions(e.target.value)}
-                  className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 pr-10 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-slate-400"
+                  className="w-full h-12 bg-slate-50 border-2 border-slate-200 rounded-xl pl-10 pr-10 text-sm font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-slate-400"
                 />
                 {(isSearchingDest || isFetchingRoute) && (
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin pointer-events-none" />
@@ -1111,12 +1193,10 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
               </div>
               {customDestResult && destSuggestions.length === 0 && (
                 <div className="mt-3 rounded-xl overflow-hidden border border-blue-100 shadow-sm">
-                  {/* Destination label */}
                   <div className="px-4 py-2.5 bg-blue-50 border-b border-blue-100">
                     <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-0.5">Destination</p>
                     <p className="text-xs font-bold text-slate-800 truncate">{customDestResult.name.split(',')[0]}</p>
                   </div>
-                  {/* Route stats */}
                   {isFetchingRoute ? (
                     <div className="px-4 py-3 bg-white flex items-center gap-2 text-slate-400 text-xs font-bold">
                       <div className="w-3.5 h-3.5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
@@ -1238,20 +1318,79 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
             </div>
           </div>
 
-          {/* Mobile: sticky CTA bar fixed at bottom of sidebar */}
-          <div className="md:hidden sticky bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-100 px-4 py-3 flex gap-2 z-20 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
-            <button onClick={() => setShowNeighborhoodList(true)} disabled={isDiscovering} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-70 flex items-center justify-center gap-2">
-              <MapPin className="w-3.5 h-3.5" />
-              <span>Explore</span>
-            </button>
-            <button onClick={() => setIsInquireModalOpen(true)} className="flex-1 py-3.5 border border-blue-200 text-blue-700 bg-blue-50 font-bold text-[10px] uppercase tracking-widest rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2">
-              <MessageSquare className="w-3.5 h-3.5" />
-              <span>Inquire</span>
-            </button>
-          </div>
+          {/* ── Projects Around (3 nearest in same community) ─────────────── */}
+          {projectsAround.length > 0 && (
+            <div className="px-6 pb-2">
+              <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-3 flex items-center">
+                <Compass className="w-4 h-4 mr-2 text-blue-600" />Projects Around
+              </h3>
+              <div className="space-y-2">
+                {projectsAround.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      if (p.latitude && p.longitude) {
+                        onFlyTo(Number(p.longitude), Number(p.latitude), 16);
+                        // Dispatch a lightweight project-select so the sidebar updates
+                        window.dispatchEvent(new CustomEvent('sidebar-select-project', { detail: { projectId: p.id } }));
+                      }
+                    }}
+                    className="w-full flex items-center gap-3 p-2.5 rounded-xl border border-slate-100 bg-white hover:border-blue-200 hover:bg-blue-50/50 transition-all group text-left"
+                  >
+                    <img
+                      src={p.thumbnailUrl || '/placeholder-image.png'}
+                      alt={p.name}
+                      className="w-12 h-12 rounded-lg object-cover shrink-0 bg-slate-100"
+                      onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder-image.png'; }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-slate-800 truncate group-hover:text-blue-700 transition-colors">{p.name}</p>
+                      <p className="text-[10px] text-slate-400 font-semibold truncate">{(p as any).developerName || 'Developer'} · {p._dist.toFixed(1)} km</p>
+                    </div>
+                    <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 shrink-0 transition-colors" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
-          {/* Desktop: original inline CTA buttons */}
-          <div className="hidden md:block px-6 pb-8 pt-4 space-y-3">
+          {/* ── More by Developer (3 nearest by same developer) ──────────── */}
+          {developerProjects.length > 0 && (
+            <div className="px-6 pb-4">
+              <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-3 flex items-center">
+                <Building className="w-4 h-4 mr-2 text-violet-600" />More by {project.developerName}
+              </h3>
+              <div className="space-y-2">
+                {developerProjects.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      if (p.latitude && p.longitude) {
+                        onFlyTo(Number(p.longitude), Number(p.latitude), 16);
+                        window.dispatchEvent(new CustomEvent('sidebar-select-project', { detail: { projectId: p.id } }));
+                      }
+                    }}
+                    className="w-full flex items-center gap-3 p-2.5 rounded-xl border border-slate-100 bg-white hover:border-violet-200 hover:bg-violet-50/50 transition-all group text-left"
+                  >
+                    <img
+                      src={p.thumbnailUrl || '/placeholder-image.png'}
+                      alt={p.name}
+                      className="w-12 h-12 rounded-lg object-cover shrink-0 bg-slate-100"
+                      onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder-image.png'; }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-slate-800 truncate group-hover:text-violet-700 transition-colors">{p.name}</p>
+                      <p className="text-[10px] text-slate-400 font-semibold truncate">{p.community || p.city || 'UAE'} · {p._dist.toFixed(1)} km</p>
+                    </div>
+                    <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-violet-500 shrink-0 transition-colors" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* CTA Buttons — full width, large, inline (NOT sticky) */}
+          <div className="px-6 pb-4 pt-4 space-y-3">
             <button onClick={() => setShowNeighborhoodList(true)} disabled={isDiscovering} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest transition-all hover:shadow-xl hover:shadow-blue-200 active:scale-[0.99] disabled:opacity-70 flex items-center justify-center gap-3">
               <MapPin className="w-4 h-4" />
               <span>Explore Neighborhood</span>
@@ -1261,6 +1400,13 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
               <span>Inquire Now</span>
               <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
             </button>
+          </div>
+
+          {/* Safety padding — ensures buttons are never cut off by mobile browser chrome */}
+          <div className="px-6 pb-8 pt-2">
+            <p className="text-[10px] text-slate-300 text-center font-medium">
+              PSI Interactive Map · {project.community || 'UAE'}
+            </p>
           </div>
         </div>
       </div>

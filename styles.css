@@ -2,11 +2,592 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Native app feel: no pull-to-refresh bounce, no tap flash ── */
+/* ══════════════════════════════════════════════════════════════════════════════
+   NATIVE MOBILE APP STYLES — Touch-first, GPU-accelerated, safe-area aware
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. CORE: No bounce, no flash, smooth momentum ─────────────────────────── */
 html,
 body {
+    overscroll-behavior: none;
     overscroll-behavior-y: none;
+    overscroll-behavior-x: none;
     -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    touch-action: manipulation;
+}
+
+/* Prevent iOS rubber-band / bounce-scroll on the main viewport */
+html {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+#root {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+}
+
+/* Allow scrolling inside specific containers */
+.native-scroll {
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    scroll-behavior: smooth;
+}
+
+/* ── 2. SAFE AREA INSETS — iPhone notch, Android navigation bar ────────────── */
+:root {
+    --sat: env(safe-area-inset-top, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+    /* Bottom nav bar height including safe area */
+    --bottom-nav-height: calc(56px + var(--sab));
+}
+
+/* Utility classes for safe areas */
+.safe-top {
+    padding-top: var(--sat);
+}
+
+.safe-bottom {
+    padding-bottom: var(--sab);
+}
+
+.safe-left {
+    padding-left: var(--sal);
+}
+
+.safe-right {
+    padding-right: var(--sar);
+}
+
+.safe-all {
+    padding: var(--sat) var(--sar) var(--sab) var(--sal);
+}
+
+/* ── 3. TOUCH TARGETS — 44px minimum (Apple HIG / Material 48dp) ──────────── */
+.touch-target {
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Active press state: subtle scale down like native buttons */
+.touch-feedback {
+    transition: transform 0.1s ease, opacity 0.1s ease;
+    will-change: transform;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.touch-feedback:active {
+    transform: scale(0.96);
+    opacity: 0.85;
+}
+
+/* Stronger feedback for primary actions */
+.touch-feedback-strong:active {
+    transform: scale(0.93);
+    opacity: 0.75;
+}
+
+/* ── 4. NATIVE PAGE TRANSITIONS — GPU-accelerated with iOS spring curves ───── */
+
+/* Push: slide in from right */
+.native-transition {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+}
+
+.nt-enter-push {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+}
+
+.native-transition:not(.nt-enter-push):not(.nt-enter-pop):not(.nt-enter-modal):not(.nt-enter-fade):not(.nt-enter-slide-up):not(.nt-exit-push):not(.nt-exit-pop):not(.nt-exit-modal):not(.nt-exit-fade):not(.nt-exit-slide-up) {
+    transform: translate3d(100%, 0, 0);
+    opacity: 0;
+}
+
+.nt-exit-push {
+    transform: translate3d(100%, 0, 0);
+    opacity: 0;
+}
+
+/* Pop: slide in from left */
+.nt-enter-pop {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+}
+
+.nt-exit-pop {
+    transform: translate3d(-30%, 0, 0);
+    opacity: 0.5;
+}
+
+/* Modal: scale + fade from center */
+.nt-enter-modal {
+    transform: scale(1) translate3d(0, 0, 0);
+    opacity: 1;
+}
+
+.nt-exit-modal {
+    transform: scale(0.9) translate3d(0, 0, 0);
+    opacity: 0;
+}
+
+/* Fade: simple opacity */
+.nt-enter-fade {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+}
+
+.nt-exit-fade {
+    opacity: 0;
+    transform: translate3d(0, 0, 0);
+}
+
+/* Slide up: from bottom (for bottom sheets) */
+.nt-enter-slide-up {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+}
+
+.nt-exit-slide-up {
+    transform: translate3d(0, 100%, 0);
+    opacity: 0;
+}
+
+/* ── Bottom Sheet slide-up animation (for mobile modals) ───────────────────── */
+@keyframes slideUpSheet {
+    from {
+        transform: translate3d(0, 100%, 0);
+        opacity: 0.8;
+    }
+
+    to {
+        transform: translate3d(0, 0, 0);
+        opacity: 1;
+    }
+}
+
+/* ── 5. PULL-TO-REFRESH INDICATOR ──────────────────────────────────────────── */
+.ptr-indicator {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+    pointer-events: none;
+}
+
+.ptr-spinner {
+    width: 36px;
+    height: 36px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #2563eb;
+}
+
+@keyframes ptr-spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ── 6. BOTTOM SHEET / MODAL TRANSITIONS ───────────────────────────────────── */
+.bottom-sheet {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 7000;
+    border-radius: 24px 24px 0 0;
+    background: white;
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.12);
+    transform: translate3d(0, 100%, 0);
+    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+    will-change: transform;
+    max-height: calc(100vh - var(--sat) - 20px);
+    overflow: hidden;
+    padding-bottom: var(--sab);
+}
+
+.bottom-sheet.open {
+    transform: translate3d(0, 0, 0);
+}
+
+/* Drag handle for bottom sheets */
+.bottom-sheet-handle {
+    width: 36px;
+    height: 5px;
+    background: #cbd5e1;
+    border-radius: 3px;
+    margin: 8px auto 4px;
+    opacity: 0.6;
+}
+
+/* ── 7. SWIPEABLE CARD ─────────────────────────────────────────────────────── */
+.swipeable-card {
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: grab;
+}
+
+.swipeable-card:active {
+    cursor: grabbing;
+}
+
+/* ── 8. FLOATING ACTION BUTTON ─────────────────────────────────────────────── */
+.fab {
+    position: fixed;
+    z-index: 5500;
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    background: #2563eb;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35), 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s cubic-bezier(0.32, 0.72, 0, 1),
+        box-shadow 0.2s ease;
+    will-change: transform;
+    -webkit-tap-highlight-color: transparent;
+    border: none;
+    outline: none;
+    touch-action: manipulation;
+}
+
+.fab:active {
+    transform: scale(0.9);
+    box-shadow: 0 3px 10px rgba(37, 99, 235, 0.25);
+}
+
+.fab-bottom-right {
+    bottom: calc(var(--bottom-nav-height) + 16px);
+    right: 16px;
+}
+
+.fab-bottom-center {
+    bottom: calc(var(--bottom-nav-height) + 16px);
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.fab-bottom-center:active {
+    transform: translateX(-50%) scale(0.9);
+}
+
+/* ── 9. MOBILE SIDEBAR / PANEL TRANSITIONS ─────────────────────────────────── */
+@media (max-width: 767px) {
+    .mobile-panel-right {
+        transform: translate3d(100%, 0, 0);
+        transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+        will-change: transform;
+    }
+
+    .mobile-panel-right.open {
+        transform: translate3d(0, 0, 0);
+    }
+
+    .mobile-panel-left {
+        transform: translate3d(-100%, 0, 0);
+        transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+        will-change: transform;
+    }
+
+    .mobile-panel-left.open {
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+/* ── 10. BACKDROP BLUR OVERLAY ─────────────────────────────────────────────── */
+.native-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 6500;
+    background: rgba(0, 0, 0, 0.4);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    pointer-events: none;
+}
+
+.native-overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* ── 11. INPUT FOCUS — prevent zoom on iOS (16px minimum) ──────────────────── */
+@media (max-width: 767px) {
+
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="search"],
+    input[type="url"],
+    input[type="number"],
+    input[type="password"],
+    textarea,
+    select {
+        font-size: 16px !important;
+    }
+}
+
+/* ── 12. SMOOTH INERTIA SCROLLING ──────────────────────────────────────────── */
+.momentum-scroll {
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+}
+
+/* Horizontal snap scrolling (for carousels, tabs) */
+.snap-scroll-x {
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.snap-scroll-x::-webkit-scrollbar {
+    display: none;
+}
+
+.snap-item {
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
+}
+
+/* ── 13. NATIVE BUTTON RIPPLE EFFECT ───────────────────────────────────────── */
+.ripple-container {
+    position: relative;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.ripple-container::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle, rgba(0, 0, 0, 0.08) 10%, transparent 60%);
+    opacity: 0;
+    transform: scale(2);
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.ripple-container:active::after {
+    opacity: 1;
+    transform: scale(0);
+    transition: transform 0s, opacity 0s;
+}
+
+/* ── 14. SKELETON LOADING (native feel, GPU-accelerated) ───────────────────── */
+@keyframes skeleton-shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+.skeleton {
+    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s ease-in-out infinite;
+    border-radius: 8px;
+    will-change: background-position;
+    transform: translate3d(0, 0, 0);
+    /* Prevent skeleton content from being read by screen readers */
+    color: transparent;
+    user-select: none;
+    pointer-events: none;
+}
+
+/* Dark variant for dark backgrounds */
+.skeleton-dark {
+    background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s ease-in-out infinite;
+    border-radius: 8px;
+    will-change: background-position;
+    transform: translate3d(0, 0, 0);
+    color: transparent;
+}
+
+/* Staggered animation delays for natural loading feel */
+.skeleton-delay-1 {
+    animation-delay: 80ms;
+}
+
+.skeleton-delay-2 {
+    animation-delay: 160ms;
+}
+
+.skeleton-delay-3 {
+    animation-delay: 240ms;
+}
+
+.skeleton-delay-4 {
+    animation-delay: 320ms;
+}
+
+/* Skeleton → Content crossfade transition */
+@keyframes skeleton-content-enter {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 4px, 0);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+.skeleton-content-enter {
+    animation: skeleton-content-enter 0.25s ease-out forwards;
+}
+
+/* animate-in utility (used by SkeletonTransition component) */
+@keyframes animate-in-fade {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.animate-in {
+    animation: animate-in-fade 0.2s ease-out forwards;
+}
+
+.fade-in {
+    animation-name: animate-in-fade;
+}
+
+/* Loading progress bar animation */
+@keyframes loading-progress {
+    0% {
+        width: 0%;
+    }
+
+    20% {
+        width: 25%;
+    }
+
+    50% {
+        width: 60%;
+    }
+
+    80% {
+        width: 85%;
+    }
+
+    100% {
+        width: 100%;
+    }
+}
+
+.loading-progress {
+    animation: loading-progress 2s ease-out forwards;
+}
+
+/* ── 14b. CONTENT VISIBILITY (auto-hide off-screen elements) ───────────────── */
+.cv-auto {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 200px;
+}
+
+/* ── 14c. GPU-PROMOTED TRANSITIONS (zero-jank) ─────────────────────────────── */
+.gpu-layer {
+    will-change: transform;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+
+/* Remove will-change after animation completes to free VRAM */
+.gpu-layer-auto {
+    will-change: auto;
+}
+
+/* Image rendering optimization */
+.img-optimized {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    content-visibility: auto;
+}
+
+/* Fade-in for lazy-loaded images */
+@keyframes img-fade-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.img-loaded {
+    animation: img-fade-in 0.25s ease-out;
+}
+
+/* Instant show (no transition delay) — used for critical above-the-fold */
+.instant-show {
+    transition: none !important;
+    animation: none !important;
+}
+
+/* ── 15. STATUS BAR AREA (standalone PWA) ──────────────────────────────────── */
+@media (display-mode: standalone) {
+    .status-bar-spacer {
+        height: var(--sat);
+        background: inherit;
+    }
 }
 
 /* ── Mapbox Navigation Controls — larger, compass-free ── */
@@ -63,4 +644,224 @@ body {
     background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.3), transparent);
     transform: translateX(-100%);
     animation: shimmer 2.5s infinite;
+}
+
+/* ── 16. EDGE SWIPE INDICATOR ──────────────────────────────────────────────── */
+.edge-swipe-indicator {
+    position: fixed;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 80px;
+    background: linear-gradient(to bottom, transparent, #2563eb, transparent);
+    border-radius: 0 4px 4px 0;
+    opacity: 0;
+    transition: opacity 0.2s ease, width 0.2s ease;
+    z-index: 9998;
+    pointer-events: none;
+}
+
+.edge-swipe-indicator.active {
+    opacity: 0.6;
+    width: 6px;
+}
+
+/* ── 17. DISABLE USER-SELECT ON INTERACTIVE ELEMENTS ───────────────────────── */
+button,
+a,
+[role="button"],
+.no-select {
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* ── 18. PRESENTATION PAGE OVERRIDES ───────────────────────────────────────── */
+body.is-presentation {
+    position: static;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+body.is-presentation #root {
+    position: static;
+    width: 100%;
+    min-height: 100vh;
+}
+
+/* ── 19. REDUCED MOTION: Respect user preferences ──────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+
+    .native-transition,
+    .bottom-sheet,
+    .mobile-panel-right,
+    .mobile-panel-left,
+    .fab,
+    .touch-feedback,
+    .ptr-indicator {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+    }
+}
+
+/* ── 20. LANDSCAPE SAFE AREA ADJUSTMENTS ───────────────────────────────────── */
+@media (orientation: landscape) and (max-height: 500px) {
+    :root {
+        --bottom-nav-height: calc(48px + var(--sab));
+    }
+
+    .bottom-sheet {
+        max-height: calc(100vh - 20px);
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   21. NAVIGATION STACK — iOS/Android native-style transitions
+   GPU-accelerated, 60fps, with parallax and dimming effects
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Container for screens managed by the nav stack ── */
+.nav-stack {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.nav-screen {
+    position: absolute;
+    inset: 0;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    transform: translate3d(0, 0, 0);
+}
+
+/* ── FORWARD NAVIGATION: New screen slides in from right ────────────────────── */
+
+/* The entering screen (new) — starts off-screen right, slides to center */
+.nav-enter-forward {
+    transform: translate3d(100%, 0, 0);
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+
+.nav-enter-forward.nav-enter-active {
+    transform: translate3d(0, 0, 0);
+    transition: transform 350ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.nav-enter-forward.nav-enter-done {
+    transform: translate3d(0, 0, 0);
+}
+
+/* The exiting screen (old) — slides 30% left with a dim overlay (iOS parallax) */
+.nav-exit-forward {
+    transform: translate3d(0, 0, 0);
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+
+.nav-exit-forward.nav-exit-active {
+    transform: translate3d(-30%, 0, 0);
+    transition: transform 350ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.nav-exit-forward.nav-exit-done {
+    transform: translate3d(-30%, 0, 0);
+}
+
+/* ── BACK NAVIGATION: Returning screen slides in from left ──────────────────── */
+
+/* The entering screen (returning) — starts 30% left, slides to center */
+.nav-enter-back {
+    transform: translate3d(-30%, 0, 0);
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+
+.nav-enter-back.nav-enter-active {
+    transform: translate3d(0, 0, 0);
+    transition: transform 350ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.nav-enter-back.nav-enter-done {
+    transform: translate3d(0, 0, 0);
+}
+
+/* The exiting screen (current) — slides out to the right */
+.nav-exit-back {
+    transform: translate3d(0, 0, 0);
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+
+.nav-exit-back.nav-exit-active {
+    transform: translate3d(100%, 0, 0);
+    transition: transform 350ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.nav-exit-back.nav-exit-done {
+    transform: translate3d(100%, 0, 0);
+}
+
+/* ── Dimming overlay (iOS-style shadow on the screen behind) ── */
+.nav-screen-dimmer {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0);
+    pointer-events: none;
+    z-index: 1;
+    will-change: background;
+    transition: background 350ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.nav-screen-dimmer.dimmed {
+    background: rgba(0, 0, 0, 0.15);
+}
+
+/* ── Swipe-back interactive gesture ── */
+.nav-screen.swiping {
+    /* Disable transition during active touch — follow finger exactly */
+    transition: none !important;
+}
+
+.nav-screen.swipe-settling {
+    /* Re-enable spring transition when touch ends */
+    transition: transform 300ms cubic-bezier(0.32, 0.72, 0, 1) !important;
+}
+
+/* ── Edge swipe hint (subtle shadow on left edge during swipe-back) ── */
+.nav-swipe-shadow {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -20px;
+    width: 20px;
+    background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.08));
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 200ms ease;
+    z-index: 10;
+}
+
+.nav-screen.swiping .nav-swipe-shadow,
+.nav-screen.swipe-settling .nav-swipe-shadow {
+    opacity: 1;
+}
+
+/* ── Respect reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+
+    .nav-enter-forward.nav-enter-active,
+    .nav-exit-forward.nav-exit-active,
+    .nav-enter-back.nav-enter-active,
+    .nav-exit-back.nav-exit-active,
+    .nav-screen-dimmer {
+        transition-duration: 0.01ms !important;
+    }
 }

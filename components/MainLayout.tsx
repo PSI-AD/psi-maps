@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { Project, Landmark, ClientPresentation } from '../types';
 const AdminDashboard = React.lazy(() => import('./AdminDashboard'));
 const ProjectSidebar = React.lazy(() => import('./ProjectSidebar'));
@@ -10,6 +10,12 @@ import AIChatAssistant from './AIChatAssistant';
 import FavoritesPanel, { ComparePanel } from './FavoritesPanel';
 import { useFavoritesContext } from '../hooks/useFavorites';
 import { Loader2, Building, LayoutGrid, X, RotateCcw } from 'lucide-react';
+import { PullToRefreshIndicator } from './NativeTransition';
+import { SidebarSkeleton, AdminSkeleton, AppLoadingSkeleton } from './SkeletonUI';
+import haptic from '../utils/haptics';
+import { useNativeGestures } from '../hooks/useNativeGestures';
+import { prefetchComponent, saveAppState, loadAppState, logWebVitals } from '../utils/performanceEngine';
+import { useNavigationStack, type ScreenId } from '../hooks/useNavigationStack';
 
 interface MainLayoutProps {
   viewMode: 'map' | 'list';
@@ -131,9 +137,116 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
   const [isCompareOpen, setIsCompareOpen] = useState(false);
   const favCtx = useFavoritesContext();
 
+  // ── Performance: Prefetch lazy components during idle time ─────────────
+  useEffect(() => {
+    // Delay prefetch so it doesn't compete with the critical render path.
+    // After 5s the user is likely idle — prefetch heavy chunks in background.
+    const timer = setTimeout(() => {
+      prefetchComponent(() => import('./ProjectSidebar'), 'ProjectSidebar');
+      prefetchComponent(() => import('./AdminDashboard'), 'AdminDashboard');
+    }, 5000);
+    logWebVitals();
+    return () => clearTimeout(timer);
+  }, []);
+
+  // ── Navigation Stack — native iOS/Android-style history management ─────
+  const [navState, nav] = useNavigationStack('map');
+
+  // Sync external state changes → nav stack
+  // When isAnalysisOpen turns on via App.tsx (marker click), push 'project' screen
+  useEffect(() => {
+    if (isAnalysisOpen && selectedProject && navState.current.screen !== 'project') {
+      nav.push('project', { projectId: selectedProject.id });
+    } else if (!isAnalysisOpen && navState.current.screen === 'project') {
+      // If sidebar closed externally, pop from stack
+      nav.pop();
+    }
+  }, [isAnalysisOpen, selectedProject?.id]);
+
+  // Sync admin state
+  useEffect(() => {
+    if (isAdminOpen && navState.current.screen !== 'admin') {
+      nav.push('admin');
+    } else if (!isAdminOpen && navState.current.screen === 'admin') {
+      nav.pop();
+    }
+  }, [isAdminOpen]);
+
+  // Sync nav stack → external state (for back navigation via swipe/browser button)
+  useEffect(() => {
+    const screen = navState.current.screen;
+    // If we popped back from project, close the sidebar
+    if (screen !== 'project' && isAnalysisOpen) {
+      setIsAnalysisOpen(false);
+      onCloseProject();
+    }
+    // If we popped back from admin, close admin
+    if (screen !== 'admin' && isAdminOpen) {
+      setIsAdminOpen(false);
+    }
+    // Sync overlay panels
+    if (screen !== 'favorites') setIsFavoritesOpen(false);
+    if (screen !== 'compare') setIsCompareOpen(false);
+    if (screen !== 'chat') setIsAiChatOpen(false);
+    if (screen !== 'nearby') setShowNearbyPanel(false);
+  }, [navState.current.screen]);
+
+  // Override panel togglers to go through nav stack
+  const openFavorites = () => { setIsFavoritesOpen(true); nav.push('favorites'); };
+  const openCompare = () => { setIsCompareOpen(true); nav.push('compare'); };
+  const openChat = () => { setIsAiChatOpen(true); nav.push('chat'); };
+  const openNearby = () => { if (props.setShowNearbyPanel) props.setShowNearbyPanel(true); nav.push('nearby'); };
+  const closePanelViaBack = () => { nav.pop(); haptic.nav(); };
+
+  // ── Performance: Save app state for instant restore ────────────────────
+  useEffect(() => {
+    saveAppState({
+      selectedProjectId: selectedProject?.id || null,
+      selectedCity,
+      selectedCommunity,
+      propertyType,
+      developerFilter,
+      statusFilter,
+      isAnalysisOpen,
+    });
+  }, [selectedProject, selectedCity, selectedCommunity, propertyType, developerFilter, statusFilter, isAnalysisOpen]);
+
+  // ── Native Gesture Support ────────────────────────────────────────────
+  const mainContainerRef = useRef<HTMLDivElement>(null);
+  const [pullRefreshActive, setPullRefreshActive] = useState(false);
+
+  const gestureState = useNativeGestures(mainContainerRef, {
+    // Pull-to-refresh DISABLED — it fires on normal content scrolls and
+    // reloads the entire app.  Users can use browser pull-to-refresh.
+    onEdgeSwipeBack: () => {
+      // Edge swipe from left = pop navigation stack (back)
+      if (navState.canGoBack) {
+        haptic.nav();
+        nav.pop();
+      }
+    },
+    enabled: typeof window !== 'undefined' && window.innerWidth < 768,
+  });
+
+  // ── Sidebar transition state (for native slide animation) ─────────
+  const [sidebarMounted, setSidebarMounted] = useState(false);
+  const [sidebarVisible, setSidebarVisible] = useState(false);
+
+  useEffect(() => {
+    if (isAnalysisOpen && selectedProject) {
+      setSidebarMounted(true);
+      // Trigger enter animation on next frame
+      requestAnimationFrame(() => requestAnimationFrame(() => setSidebarVisible(true)));
+    } else if (sidebarVisible) {
+      setSidebarVisible(false);
+      const timer = setTimeout(() => setSidebarMounted(false), 350);
+      return () => clearTimeout(timer);
+    }
+  }, [isAnalysisOpen, selectedProject]);
+
   // Listen for favorites panel open event from mobile tab bar
   useEffect(() => {
-    const handler = () => setIsFavoritesOpen(true);
+    const handler = () => openFavorites();
     window.addEventListener('open-favorites-panel', handler);
     return () => window.removeEventListener('open-favorites-panel', handler);
   }, []);
@@ -163,6 +276,18 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
     };
   }, [setIsAnalysisOpen]);
 
+  // Listen for lightweight project selection from sidebar project lists
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { projectId } = (e as CustomEvent).detail || {};
+      if (!projectId) return;
+      const target = liveProjects.find(p => p.id === projectId);
+      if (target) handleProjectFocus(target);
+    };
+    window.addEventListener('sidebar-select-project', handler);
+    return () => window.removeEventListener('sidebar-select-project', handler);
+  }, [liveProjects]);
+
   // Carousel + chip animation logic
   const isAnyFilterActive = Boolean(
     (developerFilter && developerFilter !== 'All') ||
@@ -184,6 +309,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
   // drive filteredProjects. Changing them mid-tour would narrow the list.
   const handleProjectFocus = (project: Project) => {
     if (!project) return;
+    haptic.tap();
     onProjectClick(project.id);
     setIsAnalysisOpen(true);
     const lat = Number(project.latitude);
@@ -200,31 +326,49 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
     // 1. Stop any active tours
     window.dispatchEvent(new CustomEvent('global-tour-pause'));
 
-    // 2. Clear all filters
+    // 2. Clear all filters (developer, status, property type)
     setDeveloperFilter('All');
     setStatusFilter('All');
     if (props.setPropertyType) props.setPropertyType('All');
 
-    // 3. Close nearby panel, clear isochrone/route
+    // 3. CRITICAL: Reset city/community to the NEW project's context
+    //    This must happen BEFORE onProjectClick, because onProjectClick
+    //    looks up the project from filteredProjects (which is filtered by community).
+    setSelectedCity(project.city || '');
+    setSelectedCommunity(project.community || '');
+
+    // 4. Close nearby panel, clear isochrone/route/boundary
     if (props.setShowNearbyPanel) props.setShowNearbyPanel(false);
     if (props.setActiveIsochrone) props.setActiveIsochrone(null);
 
-    // 4. Clear old landmark selection 
+    // 5. Clear old landmark selection
     if ((props as any).setSelectedLandmarkForSearch) (props as any).setSelectedLandmarkForSearch(null);
 
-    // 5. Focus the project
+    // 6. Close AI chat if open (prevents ghost panel + state conflicts)
+    if (isAiChatOpen) {
+      setIsAiChatOpen(false);
+      // Pop chat from nav stack if it's the current screen
+      if (navState.current.screen === 'chat') nav.pop();
+    }
+
+    // 7. Focus the project (fly to + open sidebar)
     handleProjectFocus(project);
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-900 font-sans relative">
+    <div ref={mainContainerRef} className="flex flex-col h-screen w-screen overflow-hidden bg-slate-900 font-sans relative" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+
+      {/* Pull-to-Refresh visual indicator */}
+      <PullToRefreshIndicator
+        pullDistance={gestureState.pullDistance}
+        isRefreshing={pullRefreshActive}
+      />
+
+      {/* Edge Swipe Indicator — shows on left edge during edge gesture */}
+      <div className={`edge-swipe-indicator ${gestureState.isEdgeSwipe ? 'active' : ''}`} />
 
       {isAdminOpen && (
-        <Suspense fallback={
-          <div className="fixed inset-0 z-[10001] bg-slate-50/98 flex items-center justify-center">
-            <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-          </div>
-        }>
+        <Suspense fallback={<AdminSkeleton />}>
           <AdminDashboard
             onClose={() => setIsAdminOpen(false)}
             liveProjects={liveProjects}
@@ -258,21 +402,15 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
         </Suspense>
       )}
 
-      {isRefreshing && (
-        <div className="absolute inset-0 z-[7000] flex flex-col items-center justify-center bg-slate-900/80 backdrop-blur-xl">
-          <Loader2 className="w-16 h-16 text-blue-500 animate-spin mb-6" />
-          <h2 className="text-2xl font-black text-white tracking-widest uppercase">Initializing</h2>
-          <p className="text-slate-300 mt-2 font-medium tracking-wide text-sm">Loading Premium Properties...</p>
-        </div>
-      )}
+      {isRefreshing && <AppLoadingSkeleton />}
 
       {/* Main Map Container - completely flush with the bottom */}
       <div className="absolute inset-0 z-0 bg-slate-100">
         {children}
       </div>
 
-      {/* Breadcrumbs Navigation — capped width on mobile, project name hidden on xs */}
-      <div className="absolute top-6 left-6 z-[4000] flex items-center gap-1.5 text-slate-800 text-sm font-bold bg-white/80 backdrop-blur-md px-4 py-2 rounded-full shadow-sm border border-slate-200 max-w-[calc(100vw-112px)] overflow-hidden">
+      {/* Breadcrumbs Navigation — pushed below notch on mobile */}
+      <div className="absolute top-4 md:top-6 left-4 md:left-6 z-[4000] flex items-center gap-1.5 text-slate-800 text-sm font-bold bg-white/80 backdrop-blur-md px-4 py-2 rounded-full shadow-sm border border-slate-200 max-w-[calc(100vw-112px)] overflow-hidden" style={{ top: 'max(env(safe-area-inset-top, 16px), 16px)' }}>
         <button onClick={() => { props.setSelectedCity(''); props.setSelectedCommunity(''); props.onCloseProject(); props.handleLocationSelect('city', '', props.liveProjects); }} className="hover:text-blue-600 transition-colors shrink-0">UAE</button>
         {props.selectedCity && (
           <>
@@ -294,23 +432,25 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
         )}
       </div>
 
-      {/* Analysis Sidebar */}
-      {isAnalysisOpen && selectedProject && (
+      {/* Analysis Sidebar — Native slide transition */}
+      {sidebarMounted && selectedProject && (
         <div
-          className="absolute top-0 right-0 w-full md:w-[380px] z-[5000] shadow-2xl bg-white transition-transform transform translate-x-0 border-l border-slate-200 overflow-hidden flex flex-col"
-          style={{ bottom: 'max(56px, calc(56px + env(safe-area-inset-bottom, 0px)))' }}
+          data-nav-scroll="sidebar"
+          className={`absolute top-0 right-0 w-full md:w-[380px] z-[5000] shadow-2xl bg-white border-l border-slate-200 overflow-hidden flex flex-col`}
+          style={{
+            bottom: 'max(56px, calc(56px + env(safe-area-inset-bottom, 0px)))',
+            transform: sidebarVisible ? 'translate3d(0, 0, 0)' : 'translate3d(100%, 0, 0)',
+            transition: 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)',
+            willChange: 'transform',
+            backfaceVisibility: 'hidden',
+          }}
         >
-          <Suspense fallback={
-            <div className="h-full flex items-center justify-center bg-white">
-              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-            </div>
-          }>
+          <Suspense fallback={<SidebarSkeleton />}>
             <ProjectSidebar
               project={selectedProject}
               allProjects={liveProjects}
               onClose={() => {
-                setIsAnalysisOpen(false);
-                onCloseProject();
+                closePanelViaBack();
               }}
               onDiscoverNeighborhood={onDiscoverNeighborhood}
               onQuickFilter={onQuickFilter}
@@ -430,57 +570,51 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
         />
       )}
 
-      {/* Mobile Filter Tag Bar — thin, horizontally scrollable, ABOVE the carousel */}
+      {/* Mobile Filter Tags — compact chips matching desktop style */}
       {isAnyFilterActive && (
         <div
-          className={`md:hidden flex items-center gap-2 px-3 py-1.5 bg-white/95 backdrop-blur-md border-b border-slate-100 shadow-sm fixed ${showCarousel ? 'bottom-[250px]' : 'bottom-[68px]'} left-0 right-0 z-[4400] overflow-x-auto whitespace-nowrap scrollbar-hide transition-all duration-300`}
+          className={`md:hidden flex items-center gap-1.5 px-3 py-1.5 fixed ${showCarousel ? 'bottom-[190px]' : 'bottom-[68px]'} left-0 right-0 z-[4400] overflow-x-auto whitespace-nowrap scrollbar-hide transition-all duration-300`}
+          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
-          {/* Reset + count (icon + number) */}
+          {/* Count + Reset */}
           <button
             onClick={() => { setDeveloperFilter('All'); setStatusFilter('All'); props.setSelectedCity(''); props.setSelectedCommunity(''); props.onCloseProject(); props.handleLocationSelect('city', '', props.liveProjects); }}
-            className="flex items-center gap-1 text-xs font-bold px-2.5 py-1 bg-slate-100 text-slate-600 border border-slate-200 rounded-full shrink-0"
+            className="flex items-center gap-1 text-[10px] font-black px-2 py-1 bg-white/95 backdrop-blur-md text-slate-600 border border-slate-200 rounded-full shrink-0 shadow-sm"
           >
-            <RotateCcw className="w-3 h-3" />
+            <Building className="w-3 h-3" />
             <span>{props.filteredProjects.length}</span>
+            <RotateCcw className="w-2.5 h-2.5 ml-0.5 text-slate-400" />
           </button>
 
-          {/* Developer chip */}
           {developerFilter && developerFilter !== 'All' && (
-            <button onClick={() => setDeveloperFilter('All')} className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 bg-white border border-slate-200 rounded-full text-slate-700 hover:bg-slate-50 transition-colors shrink-0">
-              <span className="max-w-[80px] truncate">{developerFilter}</span>
-              <X className="w-3 h-3 text-slate-400" />
+            <button onClick={() => setDeveloperFilter('All')} className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 bg-white/95 backdrop-blur-md border border-slate-200 rounded-full text-slate-700 shrink-0 shadow-sm">
+              <span className="max-w-[60px] truncate">{developerFilter}</span>
+              <X className="w-2.5 h-2.5 text-slate-400" />
             </button>
           )}
-
-          {/* Status chip */}
           {statusFilter && statusFilter !== 'All' && (
-            <button onClick={() => setStatusFilter('All')} className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 bg-white border border-slate-200 rounded-full text-slate-700 hover:bg-slate-50 transition-colors shrink-0">
+            <button onClick={() => setStatusFilter('All')} className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 bg-white/95 backdrop-blur-md border border-slate-200 rounded-full text-slate-700 shrink-0 shadow-sm">
               <span>{statusFilter}</span>
-              <X className="w-3 h-3 text-slate-400" />
+              <X className="w-2.5 h-2.5 text-slate-400" />
             </button>
           )}
-
-          {/* City chip */}
           {selectedCity && (
-            <button onClick={() => { props.setSelectedCity(''); props.setSelectedCommunity(''); props.onCloseProject(); props.handleLocationSelect('city', '', props.liveProjects); }} className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 bg-white border border-slate-200 rounded-full text-slate-700 hover:bg-slate-50 transition-colors shrink-0 capitalize">
-              <span className="max-w-[80px] truncate">{selectedCity}</span>
-              <X className="w-3 h-3 text-slate-400" />
+            <button onClick={() => { props.setSelectedCity(''); props.setSelectedCommunity(''); props.onCloseProject(); props.handleLocationSelect('city', '', props.liveProjects); }} className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 bg-white/95 backdrop-blur-md border border-slate-200 rounded-full text-slate-700 shrink-0 shadow-sm capitalize">
+              <span className="max-w-[60px] truncate">{selectedCity}</span>
+              <X className="w-2.5 h-2.5 text-slate-400" />
             </button>
           )}
-
-          {/* Community chip */}
           {selectedCommunity && (
-            <button onClick={() => { props.setSelectedCommunity(''); props.onCloseProject(); selectedCity ? props.handleLocationSelect('city', selectedCity, props.liveProjects.filter(p => p.city === selectedCity)) : props.handleLocationSelect('city', '', props.liveProjects); }} className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 bg-white border border-slate-200 rounded-full text-slate-700 hover:bg-slate-50 transition-colors shrink-0 capitalize">
-              <span className="max-w-[80px] truncate">{selectedCommunity}</span>
-              <X className="w-3 h-3 text-slate-400" />
+            <button onClick={() => { props.setSelectedCommunity(''); props.onCloseProject(); selectedCity ? props.handleLocationSelect('city', selectedCity, props.liveProjects.filter(p => p.city === selectedCity)) : props.handleLocationSelect('city', '', props.liveProjects); }} className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 bg-white/95 backdrop-blur-md border border-slate-200 rounded-full text-slate-700 shrink-0 shadow-sm capitalize">
+              <span className="max-w-[60px] truncate">{selectedCommunity}</span>
+              <X className="w-2.5 h-2.5 text-slate-400" />
             </button>
           )}
         </div>
       )}
 
-      {/* Filtered results carousel / side panel — responsive dual mode */}
-      <div className={selectedProject && isAnalysisOpen ? 'hidden md:block' : 'block'}>
-        <FilteredProjectsCarousel
+      {/* Filtered results carousel — always visible on mobile, desktop toggle unchanged */}
+      <FilteredProjectsCarousel
           projects={props.filteredProjects}
           onSelectProject={handleProjectFocus}
           isVisible={showCarousel}
@@ -495,8 +629,20 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
             props.handleGlobalReset();
           }}
           isAiChatOpen={isAiChatOpen}
+          isLoading={isRefreshing}
         />
-      </div>
+
+      {/* Floating Map/List toggle — mobile only, visible when sidebar covers the map */}
+      {selectedProject && isAnalysisOpen && (
+        <button
+          onClick={() => { onCloseProject(); closePanelViaBack(); }}
+          className="md:hidden fixed z-[5500] w-12 h-12 rounded-full bg-blue-600 text-white shadow-xl shadow-blue-600/30 flex items-center justify-center active:scale-95 transition-all border-2 border-white/30"
+          style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 68px)', right: '16px' }}
+          aria-label="Show map"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+        </button>
+      )}
 
       {/* The New Bottom Dock */}
       <BottomControlBar
@@ -542,30 +688,36 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
         <FullscreenImageModal imageUrl={fullscreenImage} onClose={() => setFullscreenImage(null)} />
       )}
 
-      {/* AI Chat Assistant overlay */}
-      <AIChatAssistant
-        selectedProject={selectedProject}
-        selectedCommunity={selectedCommunity}
-        selectedCity={selectedCity}
-        selectedDeveloper={developerFilter !== 'All' ? developerFilter : undefined}
-        selectedLandmark={props.selectedLandmarkForSearch}
-        isTourActive={!!props.activePresentation}
-        allProjects={liveProjects}
-        allLandmarks={liveLandmarks}
-        onOpenChange={setIsAiChatOpen}
-        onApplyFilters={(filters) => {
-          // Atomic: reset everything, then apply specific values — one React batch
-          setDeveloperFilter(filters.developer || 'All');
-          setStatusFilter(filters.status || 'All');
-          setSelectedCommunity(filters.community || '');
-          setSelectedCity(filters.city || '');
-        }}
-      />
+      {/* AI Chat Assistant overlay — TEMPORARILY DISABLED for stability */}
+      {/* To re-enable: remove the `false &&` below */}
+      {false && (
+        <AIChatAssistant
+          selectedProject={selectedProject}
+          selectedCommunity={selectedCommunity}
+          selectedCity={selectedCity}
+          selectedDeveloper={developerFilter !== 'All' ? developerFilter : undefined}
+          selectedLandmark={props.selectedLandmarkForSearch}
+          isTourActive={!!props.activePresentation}
+          allProjects={liveProjects}
+          allLandmarks={liveLandmarks}
+          onOpenChange={(open) => {
+            if (open) { openChat(); }
+            else { closePanelViaBack(); }
+          }}
+          onApplyFilters={(filters) => {
+            // Atomic: reset everything, then apply specific values — one React batch
+            setDeveloperFilter(filters.developer || 'All');
+            setStatusFilter(filters.status || 'All');
+            setSelectedCommunity(filters.community || '');
+            setSelectedCity(filters.city || '');
+          }}
+        />
+      )}
 
       {/* Favorites Panel */}
       <FavoritesPanel
         isOpen={isFavoritesOpen}
-        onClose={() => setIsFavoritesOpen(false)}
+        onClose={closePanelViaBack}
         projects={liveProjects}
         favoriteIds={favCtx.favoriteIds}
         onToggleFavorite={favCtx.toggleFavorite}
@@ -576,7 +728,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
       {/* Compare Panel */}
       <ComparePanel
         isOpen={isCompareOpen}
-        onClose={() => setIsCompareOpen(false)}
+        onClose={closePanelViaBack}
         projects={liveProjects.filter(p => favCtx.compareIds.includes(p.id))}
         onSelectProject={handleSearchSelect}
       />

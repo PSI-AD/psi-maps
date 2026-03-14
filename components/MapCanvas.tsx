@@ -316,8 +316,8 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
         <Map
             {...viewState}
             ref={mapRef}
-            clickTolerance={20}
-            doubleClickZoom={false}
+            clickTolerance={4}
+            doubleClickZoom={true}
             onMove={evt => {
                 setViewState(evt.viewState);
             }}

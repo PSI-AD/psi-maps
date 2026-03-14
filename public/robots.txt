@@ -1,0 +1,11 @@
+# PSI Maps - robots.txt
+# https://psimaps-pro.web.app
+
+User-agent: *
+Allow: /
+
+# Disallow crawling of API endpoints
+Disallow: /api/
+
+# Sitemap (uncomment when sitemap.xml is available)
+# Sitemap: https://psimaps-pro.web.app/sitemap.xml

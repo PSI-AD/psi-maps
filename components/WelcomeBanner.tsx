@@ -59,6 +59,8 @@ const WelcomeBanner: React.FC<WelcomeBannerProps> = ({
                     <img
                         src="/psi-logo.png"
                         alt="PSI Logo"
+                        width="256"
+                        height="256"
                         className="h-28 sm:h-32 md:h-48 lg:h-56 w-auto object-contain drop-shadow-[0_10px_15px_rgba(0,0,0,0.6)]"
                         onError={(e) => { e.currentTarget.style.display = 'none'; }}
                     />
