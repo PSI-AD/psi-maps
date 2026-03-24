@@ -310,7 +310,7 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
     // Show skeleton placeholders during initial data load
     if (isVisible && projects.length === 0 && isLoading && !isTourMode) {
         return (
-            <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+58px)] left-0 right-0 z-[3400] md:absolute md:bottom-6 md:left-6 md:right-auto md:w-[380px]">
+            <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+72px)] left-0 right-0 z-[3400] md:absolute md:bottom-6 md:left-6 md:right-auto md:w-[380px]">
                 <CarouselSkeleton count={3} />
             </div>
         );
@@ -479,7 +479,7 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
     return (
         <div className={`
             absolute z-[4000] pointer-events-none
-            bottom-[calc(env(safe-area-inset-bottom,0px)+58px)] left-0 w-full
+            bottom-[calc(env(safe-area-inset-bottom,0px)+72px)] left-0 w-full
             md:bottom-[96px] md:top-[80px] md:left-0 md:w-[360px]
             flex flex-col
             transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]
@@ -534,11 +534,13 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
 
             {/* ── Mobile count badge + dismiss ── */}
             <div className="flex md:hidden items-center justify-center gap-2 mb-2 pointer-events-auto">
-                <div className={`text-[10px] font-black uppercase tracking-[0.18em] px-3 py-1.5 rounded-full shadow-md border ${isTourMode
+                <div className={`flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.18em] px-3 py-1.5 rounded-full shadow-md border ${isTourMode
                     ? 'bg-amber-50/90 text-amber-700 border-amber-100'
                     : 'bg-white/90 text-slate-700 border-slate-100'
                     } backdrop-blur-md`}>
-                    {isTourMode ? activePresentation!.title : `${projects.length} propert${projects.length === 1 ? 'y' : 'ies'}`}
+                    {isTourMode ? activePresentation!.title : (
+                        <><Building className="w-3 h-3" /><span>{projects.length}</span></>
+                    )}
                 </div>
                 {onDismiss && (
                     <button

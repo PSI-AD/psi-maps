@@ -9,7 +9,7 @@ import FilteredProjectsCarousel from './FilteredProjectsCarousel';
 import AIChatAssistant from './AIChatAssistant';
 import FavoritesPanel, { ComparePanel } from './FavoritesPanel';
 import { useFavoritesContext } from '../hooks/useFavorites';
-import { Loader2, Building, LayoutGrid, X, RotateCcw } from 'lucide-react';
+import { Loader2, Building, LayoutGrid, X } from 'lucide-react';
 import { PullToRefreshIndicator } from './NativeTransition';
 import { SidebarSkeleton, AdminSkeleton, AppLoadingSkeleton } from './SkeletonUI';
 import haptic from '../utils/haptics';
@@ -239,7 +239,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
       requestAnimationFrame(() => requestAnimationFrame(() => setSidebarVisible(true)));
     } else if (sidebarVisible) {
       setSidebarVisible(false);
-      const timer = setTimeout(() => setSidebarMounted(false), 350);
+      const timer = setTimeout(() => setSidebarMounted(false), 200);
       return () => clearTimeout(timer);
     }
   }, [isAnalysisOpen, selectedProject]);
@@ -300,8 +300,8 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
   const showCarousel = isAnyFilterActive || !!selectedProject;
   // Chips: lift above carousel when it's showing
   const chipsBottomClass = showCarousel
-    ? 'bottom-[245px] md:bottom-[96px]'
-    : 'bottom-[88px]';
+    ? 'bottom-[210px] md:bottom-[96px]'
+    : 'bottom-[80px]';
 
   // ── Lightweight project focus — for tour playback & carousel clicks ──
   // Does NOT stop tours, clear filters, or change city/community breadcrumbs.
@@ -440,7 +440,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
           style={{
             bottom: 'max(56px, calc(56px + env(safe-area-inset-bottom, 0px)))',
             transform: sidebarVisible ? 'translate3d(0, 0, 0)' : 'translate3d(100%, 0, 0)',
-            transition: 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)',
+            transition: 'transform 0.2s cubic-bezier(0.32, 0.72, 0, 1)',
             willChange: 'transform',
             backfaceVisibility: 'hidden',
           }}
@@ -471,7 +471,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
 
       {/* Active Filter Chips — floating above the bottom dock (desktop) */}
       {(developerFilter !== 'All' && developerFilter !== '' || statusFilter !== 'All' && statusFilter !== '' || selectedCity || selectedCommunity) && (
-        <div className={`absolute ${chipsBottomClass} left-1/2 -translate-x-1/2 z-[4500] hidden md:flex flex-wrap gap-2 pointer-events-none justify-center px-4 w-full max-w-3xl transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]`}>
+        <div className={`absolute ${chipsBottomClass} left-1/2 -translate-x-1/2 z-[4500] hidden md:flex flex-wrap gap-2 pointer-events-none justify-center px-4 w-full max-w-3xl transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]`}>
 
           {/* Properties Count & Reset */}
           <div className="pointer-events-auto flex items-center gap-4 bg-white py-1.5 px-2 pr-4 rounded-xl shadow-lg border border-slate-200">
@@ -561,53 +561,55 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
         </div>
       )}
 
-      {/* NearbyPanel — floats above the bottom dock */}
+      {/* NearbyPanel — floats above the bottom dock (desktop only, hidden on mobile) */}
       {showNearbyPanel && selectedProject && (
-        <NearbyPanel
-          project={selectedProject}
-          landmarks={projectSpecificLandmarks}
-          onClose={() => setShowNearbyPanel(false)}
-        />
+        <div className="hidden md:block">
+          <NearbyPanel
+            project={selectedProject}
+            landmarks={projectSpecificLandmarks}
+            onClose={() => setShowNearbyPanel(false)}
+          />
+        </div>
       )}
 
-      {/* Mobile Filter Tags — compact chips matching desktop style */}
+      {/* Mobile Filter Tags — clean compact chips */}
       {isAnyFilterActive && (
         <div
-          className={`md:hidden flex items-center gap-1.5 px-3 py-1.5 fixed ${showCarousel ? 'bottom-[190px]' : 'bottom-[68px]'} left-0 right-0 z-[4400] overflow-x-auto whitespace-nowrap scrollbar-hide transition-all duration-300`}
+          className={`md:hidden flex items-center gap-1.5 px-3 py-1 fixed ${showCarousel ? 'bottom-[200px]' : 'bottom-[72px]'} left-0 right-0 z-[4400] overflow-x-auto whitespace-nowrap hide-scrollbar transition-all duration-300`}
           style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
-          {/* Count + Reset */}
+          {/* Count + Reset — icon and number only, no "Properties" text */}
           <button
             onClick={() => { setDeveloperFilter('All'); setStatusFilter('All'); props.setSelectedCity(''); props.setSelectedCommunity(''); props.onCloseProject(); props.handleLocationSelect('city', '', props.liveProjects); }}
-            className="flex items-center gap-1 text-[10px] font-black px-2 py-1 bg-white/95 backdrop-blur-md text-slate-600 border border-slate-200 rounded-full shrink-0 shadow-sm"
+            className="flex items-center gap-1 text-[9px] font-black px-2 py-1 bg-white/95 backdrop-blur-md text-slate-600 border border-slate-200 rounded-full shrink-0 shadow-sm"
           >
             <Building className="w-3 h-3" />
             <span>{props.filteredProjects.length}</span>
-            <RotateCcw className="w-2.5 h-2.5 ml-0.5 text-slate-400" />
+            <X className="w-2.5 h-2.5 ml-0.5 text-slate-400" />
           </button>
 
           {developerFilter && developerFilter !== 'All' && (
-            <button onClick={() => setDeveloperFilter('All')} className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 bg-white/95 backdrop-blur-md border border-slate-200 rounded-full text-slate-700 shrink-0 shadow-sm">
-              <span className="max-w-[60px] truncate">{developerFilter}</span>
-              <X className="w-2.5 h-2.5 text-slate-400" />
+            <button onClick={() => setDeveloperFilter('All')} className="flex items-center gap-1 text-[9px] font-bold px-2 py-1 bg-blue-600 text-white rounded-full shrink-0 shadow-sm">
+              <span className="max-w-[70px] truncate">{developerFilter}</span>
+              <X className="w-2.5 h-2.5" />
             </button>
           )}
           {statusFilter && statusFilter !== 'All' && (
-            <button onClick={() => setStatusFilter('All')} className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 bg-white/95 backdrop-blur-md border border-slate-200 rounded-full text-slate-700 shrink-0 shadow-sm">
+            <button onClick={() => setStatusFilter('All')} className="flex items-center gap-1 text-[9px] font-bold px-2 py-1 bg-blue-800 text-white rounded-full shrink-0 shadow-sm">
               <span>{statusFilter}</span>
-              <X className="w-2.5 h-2.5 text-slate-400" />
+              <X className="w-2.5 h-2.5" />
             </button>
           )}
           {selectedCity && (
-            <button onClick={() => { props.setSelectedCity(''); props.setSelectedCommunity(''); props.onCloseProject(); props.handleLocationSelect('city', '', props.liveProjects); }} className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 bg-white/95 backdrop-blur-md border border-slate-200 rounded-full text-slate-700 shrink-0 shadow-sm capitalize">
-              <span className="max-w-[60px] truncate">{selectedCity}</span>
-              <X className="w-2.5 h-2.5 text-slate-400" />
+            <button onClick={() => { props.setSelectedCity(''); props.setSelectedCommunity(''); props.onCloseProject(); props.handleLocationSelect('city', '', props.liveProjects); }} className="flex items-center gap-1 text-[9px] font-bold px-2 py-1 bg-emerald-600 text-white rounded-full shrink-0 shadow-sm capitalize">
+              <span className="max-w-[70px] truncate">{selectedCity}</span>
+              <X className="w-2.5 h-2.5" />
             </button>
           )}
           {selectedCommunity && (
-            <button onClick={() => { props.setSelectedCommunity(''); props.onCloseProject(); selectedCity ? props.handleLocationSelect('city', selectedCity, props.liveProjects.filter(p => p.city === selectedCity)) : props.handleLocationSelect('city', '', props.liveProjects); }} className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 bg-white/95 backdrop-blur-md border border-slate-200 rounded-full text-slate-700 shrink-0 shadow-sm capitalize">
-              <span className="max-w-[60px] truncate">{selectedCommunity}</span>
-              <X className="w-2.5 h-2.5 text-slate-400" />
+            <button onClick={() => { props.setSelectedCommunity(''); props.onCloseProject(); selectedCity ? props.handleLocationSelect('city', selectedCity, props.liveProjects.filter(p => p.city === selectedCity)) : props.handleLocationSelect('city', '', props.liveProjects); }} className="flex items-center gap-1 text-[9px] font-bold px-2 py-1 bg-violet-600 text-white rounded-full shrink-0 shadow-sm capitalize">
+              <span className="max-w-[70px] truncate">{selectedCommunity}</span>
+              <X className="w-2.5 h-2.5" />
             </button>
           )}
         </div>
