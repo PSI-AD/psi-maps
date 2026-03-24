@@ -6,8 +6,7 @@ import { calculateDistance } from '../utils/geo';
 import TextModal from './TextModal';
 import InquireModal from './InquireModal';
 import ReportModal from './ReportModal';
-import { pdf } from '@react-pdf/renderer';
-import ProjectPdfDocument from './pdf/ProjectPdfDocument';
+// @react-pdf/renderer is lazy-loaded in handleExportPdf() to save ~500KB from initial bundle
 import { getRelatedProjects, getClosestCategorizedAmenities } from '../utils/projectHelpers';
 
 import LightboxGallery from './LightboxGallery';
@@ -183,15 +182,19 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
       try {
         const mapCanvas = mapRef?.current?.getMap?.()?.getCanvas?.();
         if (mapCanvas) snapshotUrl = mapCanvas.toDataURL('image/jpeg', 0.85);
-      } catch (e) {
-        console.warn('Map snapshot unavailable:', e);
-      }
+      } catch { /* Map snapshot unavailable */ }
 
-      // 2. Gather data
+      // 2. Lazy-load PDF renderer (~500KB) — only when user actually exports
+      const [{ pdf }, { default: ProjectPdfDocument }] = await Promise.all([
+        import('@react-pdf/renderer'),
+        import('./pdf/ProjectPdfDocument'),
+      ]);
+
+      // 3. Gather data
       const related = getRelatedProjects(project, allProjects);
       const categorizedAmenities = getClosestCategorizedAmenities(project, nearbyLandmarks);
 
-      // 3. Generate PDF blob
+      // 4. Generate PDF blob
       const blob = await pdf(
         <ProjectPdfDocument
           project={project}
@@ -201,7 +204,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
         />
       ).toBlob();
 
-      // 4. Trigger download
+      // 5. Trigger download
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;

@@ -744,25 +744,25 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                 className={`md:hidden fixed bottom-0 left-0 w-full border-t z-[6000] transition-colors duration-300 ${activeThemeClass}`}
                 style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 12px)' }}
             >
-                <div className="flex justify-between items-center px-1 pt-3">
-                    <button onClick={() => { haptic.tap(); onGlobalReset(); }} aria-label="Reset map to full UAE view" className={`touch-feedback flex flex-col items-center gap-1 flex-1 py-1 ${inactiveIconColor} transition-colors`}>
-                        <svg viewBox="0 0 100 120" width={26} height={26} fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <div className="flex justify-between items-center px-1 pt-2">
+                    <button onClick={() => { haptic.tap(); onGlobalReset(); }} aria-label="Reset map to full UAE view" className={`touch-feedback flex flex-col items-center gap-0.5 flex-1 py-2 min-h-[48px] ${inactiveIconColor} transition-colors`}>
+                        <svg viewBox="0 0 100 120" width={24} height={24} fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                             <path d="M50 115C50 115 92 72 92 46C92 22.804 73.196 4 50 4C26.804 4 8 22.804 8 46C8 72 50 115 50 115Z" />
                         </svg>
-                        <span className="text-[10px] font-bold tracking-wide mt-0.5">Home</span>
+                        <span className="text-[10px] font-bold tracking-wide">Home</span>
                     </button>
 
-                    <button onClick={() => { haptic.tap(); setIsMobileSearchOpen(true); }} aria-label="Open property search" className={`touch-feedback flex flex-col items-center gap-1 flex-1 py-1 ${inactiveIconColor} transition-colors`}>
+                    <button onClick={() => { haptic.tap(); setIsMobileSearchOpen(true); }} aria-label="Open property search" className={`touch-feedback flex flex-col items-center gap-0.5 flex-1 py-2 min-h-[48px] ${inactiveIconColor} transition-colors`}>
                         <Search size={24} strokeWidth={2.5} />
-                        <span className="text-[10px] font-bold tracking-wide mt-0.5">Search</span>
+                        <span className="text-[10px] font-bold tracking-wide">Search</span>
                     </button>
 
-                    <button onClick={() => { haptic.tap(); setIsMobileFilterOpen(true); }} aria-label="Open property filters" className={`touch-feedback flex flex-col items-center gap-1 flex-1 py-1 transition-colors ${isAnyFilterActive ? activeIconColor : inactiveIconColor}`}>
+                    <button onClick={() => { haptic.tap(); setIsMobileFilterOpen(true); }} aria-label="Open property filters" className={`touch-feedback flex flex-col items-center gap-0.5 flex-1 py-2 min-h-[48px] transition-colors ${isAnyFilterActive ? activeIconColor : inactiveIconColor}`}>
                         <FilterIcon size={24} strokeWidth={2.5} />
-                        <span className="text-[10px] font-bold tracking-wide mt-0.5">Filters</span>
+                        <span className="text-[10px] font-bold tracking-wide">Filters</span>
                     </button>
 
-                    <button onClick={() => { haptic.tap(); window.dispatchEvent(new CustomEvent('open-favorites-panel')); }} aria-label="View favorites" className={`touch-feedback flex flex-col items-center gap-1 flex-1 py-1 transition-colors relative ${favCtx.favoritesCount > 0 ? activeIconColor : inactiveIconColor}`}>
+                    <button onClick={() => { haptic.tap(); window.dispatchEvent(new CustomEvent('open-favorites-panel')); }} aria-label="View favorites" className={`touch-feedback flex flex-col items-center gap-0.5 flex-1 py-2 min-h-[48px] transition-colors relative ${favCtx.favoritesCount > 0 ? activeIconColor : inactiveIconColor}`}>
                         <div className="relative">
                             <Heart size={24} strokeWidth={2.5} className={favCtx.favoritesCount > 0 ? 'fill-current' : ''} />
                             {favCtx.favoritesCount > 0 && (
@@ -771,12 +771,12 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                                 </span>
                             )}
                         </div>
-                        <span className="text-[10px] font-bold tracking-wide mt-0.5">Favorites</span>
+                        <span className="text-[10px] font-bold tracking-wide">Favorites</span>
                     </button>
 
-                    <button onClick={() => { haptic.tap(); setIsMobileMapOpen(true); }} aria-label="Open map controls" className={`touch-feedback flex flex-col items-center gap-1 flex-1 py-1 ${inactiveIconColor} transition-colors`}>
+                    <button onClick={() => { haptic.tap(); setIsMobileMapOpen(true); }} aria-label="Open map controls" className={`touch-feedback flex flex-col items-center gap-0.5 flex-1 py-2 min-h-[48px] ${inactiveIconColor} transition-colors`}>
                         <MapIcon size={24} strokeWidth={2.5} />
-                        <span className="text-[10px] font-bold tracking-wide mt-0.5">Map</span>
+                        <span className="text-[10px] font-bold tracking-wide">Map</span>
                     </button>
                 </div>
             </div>
