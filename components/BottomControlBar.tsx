@@ -397,12 +397,12 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
 
     const isAnyFilterActive = propertyType !== 'All' || developerFilter !== 'All' || statusFilter !== 'All';
 
-    const selectCls = "w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-base md:text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer shadow-sm appearance-none";
+    const selectCls = "w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-base lg:text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer shadow-sm appearance-none";
 
     return (
         <>
             {/* ─────────────────── DESKTOP DOCK ─────────────────── */}
-            <div className="hidden md:flex fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-xl border-t border-slate-200 z-[6000] px-4 py-3 items-center justify-between gap-4 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+            <div className="hidden lg:flex fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-xl border-t border-slate-200 z-[6000] px-4 py-3 items-center justify-between gap-4 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
                 {/* Brand / Reset */}
                 <button onClick={onGlobalReset} title="Reset to UAE overview" className="flex items-center gap-3 shrink-0 group">
                     <div className="w-10 h-10 relative flex items-center justify-center shrink-0 transition-transform group-hover:scale-110">
@@ -476,7 +476,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                 )}
 
                 {/* Search + Play + Dropdowns */}
-                <div className="hidden md:flex items-center gap-2 flex-1 max-w-4xl justify-center">
+                <div className="hidden lg:flex items-center gap-2 flex-1 max-w-4xl justify-center">
                     {/* ── Play/Pause Button (moved here — right before search) ── */}
                     <div
                         className="relative shrink-0"
@@ -741,7 +741,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
 
             {/* ─────────────────── MOBILE TAB BAR ─────────────────── */}
             <div
-                className={`md:hidden fixed bottom-0 left-0 w-full border-t z-[6000] transition-colors duration-300 ${activeThemeClass}`}
+                className={`lg:hidden fixed bottom-0 left-0 w-full border-t z-[6000] transition-colors duration-300 ${activeThemeClass}`}
                 style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 12px)' }}
             >
                 <div className="flex justify-between items-center px-1 pt-2">
@@ -783,8 +783,8 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
 
             {/* ─────────────────── MOBILE SEARCH MODAL ─────────────────── */}
             {isMobileSearchOpen && (
-                <div className="fixed inset-0 z-[7000] bg-slate-900/60 backdrop-blur-sm flex items-end md:hidden" onClick={(e) => { if (e.target === e.currentTarget) { haptic.tap(); setIsMobileSearchOpen(false); } }}>
-                    <div className="bg-white w-full rounded-t-3xl p-6 space-y-5 shadow-2xl pb-10" style={{ animation: 'slideUpSheet 0.35s cubic-bezier(0.32, 0.72, 0, 1) forwards', paddingBottom: 'max(40px, calc(24px + env(safe-area-inset-bottom)))' }}>
+                <div className="fixed inset-0 z-[7000] bg-slate-900/60 backdrop-blur-sm flex items-end lg:hidden" onClick={(e) => { if (e.target === e.currentTarget) { haptic.tap(); setIsMobileSearchOpen(false); } }}>
+                    <div className="bg-white w-full rounded-t-3xl p-6 space-y-5 shadow-2xl pb-10 max-h-[85vh] overflow-y-auto" style={{ animation: 'slideUpSheet 0.35s cubic-bezier(0.32, 0.72, 0, 1) forwards', paddingBottom: 'max(40px, calc(24px + env(safe-area-inset-bottom)))' }}>
                         <div className="bottom-sheet-handle" />
                         <div className="flex justify-between items-center">
                             <h3 className="text-base font-black text-slate-900 uppercase tracking-widest">Find Property</h3>
@@ -844,8 +844,8 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
 
             {/* ─────────────────── MOBILE FILTER MODAL ─────────────────── */}
             {isMobileFilterOpen && (
-                <div className="fixed inset-0 z-[7000] bg-slate-900/60 backdrop-blur-sm flex items-end md:hidden" onClick={(e) => { if (e.target === e.currentTarget) { haptic.tap(); setIsMobileFilterOpen(false); } }}>
-                    <div className="bg-white w-full rounded-t-3xl p-6 space-y-5 shadow-2xl" style={{ animation: 'slideUpSheet 0.35s cubic-bezier(0.32, 0.72, 0, 1) forwards', paddingBottom: 'max(40px, calc(24px + env(safe-area-inset-bottom)))' }}>
+                <div className="fixed inset-0 z-[7000] bg-slate-900/60 backdrop-blur-sm flex items-end lg:hidden" onClick={(e) => { if (e.target === e.currentTarget) { haptic.tap(); setIsMobileFilterOpen(false); } }}>
+                    <div className="bg-white w-full rounded-t-3xl p-6 space-y-4 shadow-2xl max-h-[85vh] overflow-y-auto" style={{ animation: 'slideUpSheet 0.35s cubic-bezier(0.32, 0.72, 0, 1) forwards', paddingBottom: 'max(40px, calc(24px + env(safe-area-inset-bottom)))' }}>
                         <div className="bottom-sheet-handle" />
                         <div className="flex justify-between items-center">
                             <h3 className="text-base font-black text-slate-900 uppercase tracking-widest">Map Filters</h3>
@@ -932,8 +932,8 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
 
             {/* ─────────────────── MOBILE MAP MODAL ─────────────────── */}
             {isMobileMapOpen && (
-                <div className="fixed inset-0 z-[7000] bg-slate-900/60 backdrop-blur-sm flex items-end md:hidden" onClick={(e) => { if (e.target === e.currentTarget) { haptic.tap(); setIsMobileMapOpen(false); } }}>
-                    <div className="bg-white w-full rounded-t-3xl p-6 space-y-5 shadow-2xl" style={{ animation: 'slideUpSheet 0.35s cubic-bezier(0.32, 0.72, 0, 1) forwards', paddingBottom: 'max(40px, calc(24px + env(safe-area-inset-bottom)))' }}>
+                <div className="fixed inset-0 z-[7000] bg-slate-900/60 backdrop-blur-sm flex items-end lg:hidden" onClick={(e) => { if (e.target === e.currentTarget) { haptic.tap(); setIsMobileMapOpen(false); } }}>
+                    <div className="bg-white w-full rounded-t-3xl p-6 space-y-5 shadow-2xl max-h-[85vh] overflow-y-auto" style={{ animation: 'slideUpSheet 0.35s cubic-bezier(0.32, 0.72, 0, 1) forwards', paddingBottom: 'max(40px, calc(24px + env(safe-area-inset-bottom)))' }}>
                         <div className="bottom-sheet-handle" />
                         <div className="flex justify-between items-center">
                             <h3 className="text-base font-black text-slate-900 uppercase tracking-widest">Map Controls</h3>

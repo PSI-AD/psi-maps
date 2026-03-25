@@ -51,7 +51,7 @@ const PropertyResultsList: React.FC<PropertyResultsListProps> = ({
     }, [projects, landmark]);
 
     return (
-        <div className="fixed top-1/2 right-4 -translate-y-1/2 md:top-1/2 md:right-4 md:-translate-y-1/2 z-[5500] w-72 bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-slate-100 overflow-hidden animate-in slide-in-from-right-4 fade-in duration-300 max-sm:top-auto max-sm:bottom-[calc(env(safe-area-inset-bottom,0px)+80px)] max-sm:right-3 max-sm:left-3 max-sm:w-auto max-sm:translate-y-0 max-sm:rounded-2xl max-sm:max-h-[40vh]">
+        <div className="fixed top-1/2 right-4 -translate-y-1/2 lg:top-1/2 lg:right-4 lg:-translate-y-1/2 z-[5500] w-72 bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-slate-100 overflow-hidden animate-in slide-in-from-right-4 fade-in duration-300 max-sm:top-auto max-sm:bottom-[calc(env(safe-area-inset-bottom,0px)+80px)] max-sm:right-3 max-sm:left-3 max-sm:w-auto max-sm:translate-y-0 max-sm:rounded-2xl max-sm:max-h-[40vh]">
             {/* Header */}
             <div className="px-5 py-4 bg-amber-50 border-b border-amber-100 flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">

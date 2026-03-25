@@ -310,7 +310,7 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
     // Show skeleton placeholders during initial data load
     if (isVisible && projects.length === 0 && isLoading && !isTourMode) {
         return (
-            <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+72px)] left-0 right-0 z-[3400] md:absolute md:bottom-6 md:left-6 md:right-auto md:w-[380px]">
+            <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+72px)] left-0 right-0 z-[3400] lg:absolute lg:bottom-6 lg:left-6 lg:right-auto lg:w-[380px]">
                 <CarouselSkeleton count={3} />
             </div>
         );
@@ -392,19 +392,19 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                 }}
                 className={`
                     shrink-0 w-[82vw] sm:w-[300px] snap-center
-                    md:w-full md:shrink-0 md:rounded-none
-                    ${idx === 0 ? '' : 'md:border-t md:border-slate-100'}
+                    lg:w-full lg:shrink-0 lg:rounded-none
+                    ${idx === 0 ? '' : 'lg:border-t lg:border-slate-100'}
                     bg-white rounded-2xl p-3 flex gap-3 cursor-pointer
                     transition-all duration-200 border-2
                     ${isSelected
-                        ? 'border-blue-500 shadow-lg shadow-blue-500/15 md:bg-blue-50/60 md:border-0 md:border-l-4 md:border-l-blue-500'
-                        : 'border-slate-100 shadow-md hover:border-blue-300 hover:shadow-lg md:border-0 md:border-l-4 md:border-l-transparent hover:md:border-l-blue-300 hover:md:bg-slate-50/60'
+                        ? 'border-blue-500 shadow-lg shadow-blue-500/15 lg:bg-blue-50/60 lg:border-0 lg:border-l-4 lg:border-l-blue-500'
+                        : 'border-slate-100 shadow-md hover:border-blue-300 hover:shadow-lg lg:border-0 lg:border-l-4 lg:border-l-transparent hover:lg:border-l-blue-300 hover:lg:bg-slate-50/60'
                     }
                     group
                 `}
             >
                 {/* Thumbnail — skeleton shimmer shows while image loads */}
-                <div className="w-[88px] h-[88px] md:w-20 md:h-20 shrink-0 rounded-xl overflow-hidden skeleton relative shadow-sm">
+                <div className="w-[88px] h-[88px] lg:w-20 lg:h-20 shrink-0 rounded-xl overflow-hidden skeleton relative shadow-sm">
                     <img
                         src={getOptimizedImageUrl(
                             (project as any).thumbnailUrl || ((project as any).images?.[0]) || '',
@@ -480,23 +480,23 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
         <div className={`
             absolute z-[4000] pointer-events-none
             bottom-[calc(env(safe-area-inset-bottom,0px)+72px)] left-0 w-full
-            md:bottom-[96px] md:top-[80px] md:left-0 md:w-[360px]
+            lg:bottom-[96px] lg:top-[80px] lg:left-0 lg:w-[360px]
             flex flex-col
             transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]
-            ${(isCollapsed || isAiChatOpen) ? 'md:-translate-x-full' : 'md:translate-x-6'}
+            ${(isCollapsed || isAiChatOpen) ? 'lg:-translate-x-full' : 'lg:translate-x-6'}
         `}>
             {/* ── Desktop: Collapse toggle button — sticks out from right edge ── */}
             <button
                 onClick={(e) => { e.stopPropagation(); setIsCollapsed(!isCollapsed); }}
                 aria-label={isCollapsed ? 'Show property panel' : 'Collapse property panel'}
-                className="hidden md:flex absolute top-1/2 -right-11 -translate-y-1/2 w-11 h-16 bg-white/95 backdrop-blur-xl border border-slate-200/80 rounded-r-2xl items-center justify-center shadow-[4px_0_15px_rgba(0,0,0,0.06)] pointer-events-auto hover:bg-slate-50 transition-colors z-20"
+                className="hidden lg:flex absolute top-1/2 -right-11 -translate-y-1/2 w-11 h-16 bg-white/95 backdrop-blur-xl border border-slate-200/80 rounded-r-2xl items-center justify-center shadow-[4px_0_15px_rgba(0,0,0,0.06)] pointer-events-auto hover:bg-slate-50 transition-colors z-20"
                 title={isCollapsed ? 'Show panel' : 'Hide panel'}
             >
                 <ChevronLeft className={`w-5 h-5 text-slate-500 transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`} />
             </button>
 
             {/* ── Desktop panel header ── */}
-            <div className="hidden md:flex items-center justify-between px-5 py-3.5 bg-white/95 backdrop-blur-xl border border-slate-200/80 rounded-t-3xl pointer-events-auto shadow-lg shrink-0">
+            <div className="hidden lg:flex items-center justify-between px-5 py-3.5 bg-white/95 backdrop-blur-xl border border-slate-200/80 rounded-t-3xl pointer-events-auto shadow-lg shrink-0">
                 <div>
                     <p className={`text-[9px] font-black uppercase tracking-[0.2em] ${isTourMode ? 'text-amber-500' : 'text-blue-500'}`}>
                         {isTourMode ? 'Client Presentation' : 'Filtered Results'}
@@ -533,7 +533,7 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
             </div>
 
             {/* ── Mobile count badge + dismiss ── */}
-            <div className="flex md:hidden items-center justify-center gap-2 mb-2 pointer-events-auto">
+            <div className="flex lg:hidden items-center justify-center gap-2 mb-2 pointer-events-auto">
                 <div className={`flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.18em] px-3 py-1.5 rounded-full shadow-md border ${isTourMode
                     ? 'bg-amber-50/90 text-amber-700 border-amber-100'
                     : 'bg-white/90 text-slate-700 border-slate-100'
@@ -571,14 +571,14 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                         flex gap-3 overflow-x-auto
                         snap-x snap-mandatory
                         pb-3 pt-1 px-3
-                        md:flex-col md:overflow-y-auto md:overflow-x-hidden
-                        md:snap-none
-                        md:h-full md:max-h-full
-                        md:px-0 md:pb-0 md:pt-0 md:gap-0
-                        md:bg-white/90 md:backdrop-blur-xl
-                        md:rounded-b-3xl
-                        md:border-b md:border-x md:border-slate-200/80
-                        md:shadow-2xl md:shadow-slate-300/30
+                        lg:flex-col lg:overflow-y-auto lg:overflow-x-hidden
+                        lg:snap-none
+                        lg:h-full lg:max-h-full
+                        lg:px-0 lg:pb-0 lg:pt-0 lg:gap-0
+                        lg:bg-white/90 lg:backdrop-blur-xl
+                        lg:rounded-b-3xl
+                        lg:border-b lg:border-x lg:border-slate-200/80
+                        lg:shadow-2xl lg:shadow-slate-300/30
                         pointer-events-auto hide-scrollbar scroll-smooth
                     "
                     style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x' }}
@@ -590,7 +590,7 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                         return (
                             <React.Fragment key={communityName}>
                                 {/* Desktop-only sticky community header with Play Tour button */}
-                                <div className="hidden md:flex sticky top-0 z-10 bg-slate-50/95 backdrop-blur-md py-2 px-3 border-b border-slate-100 items-center gap-2 shrink-0">
+                                <div className="hidden lg:flex sticky top-0 z-10 bg-slate-50/95 backdrop-blur-md py-2 px-3 border-b border-slate-100 items-center gap-2 shrink-0">
                                     <MapPin className="w-3 h-3 text-blue-500 shrink-0" />
                                     <span className="text-[9px] font-black text-slate-600 uppercase tracking-[0.18em] truncate flex-1">
                                         {communityName}

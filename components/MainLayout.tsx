@@ -300,7 +300,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
   const showCarousel = isAnyFilterActive || !!selectedProject;
   // Chips: lift above carousel when it's showing
   const chipsBottomClass = showCarousel
-    ? 'bottom-[210px] md:bottom-[96px]'
+    ? 'bottom-[210px] lg:bottom-[96px]'
     : 'bottom-[80px]';
 
   // ── Lightweight project focus — for tour playback & carousel clicks ──
@@ -410,7 +410,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
       </div>
 
       {/* Breadcrumbs Navigation — pushed below notch on mobile */}
-      <div className="absolute top-4 md:top-6 left-4 md:left-6 z-[4000] flex items-center gap-1.5 text-slate-800 text-sm font-bold bg-white/80 backdrop-blur-md px-4 py-2 rounded-full shadow-sm border border-slate-200 max-w-[calc(100vw-112px)] overflow-hidden" style={{ top: 'max(env(safe-area-inset-top, 16px), 16px)' }}>
+      <div className="absolute top-4 lg:top-6 left-4 lg:left-6 z-[4000] flex items-center gap-1.5 text-slate-800 text-sm font-bold bg-white/80 backdrop-blur-md px-4 py-2 rounded-full shadow-sm border border-slate-200 max-w-[calc(100vw-112px)] overflow-hidden" style={{ top: 'max(env(safe-area-inset-top, 16px), 16px)' }}>
         <button onClick={() => { props.setSelectedCity(''); props.setSelectedCommunity(''); props.onCloseProject(); props.handleLocationSelect('city', '', props.liveProjects); }} className="hover:text-blue-600 transition-colors shrink-0">UAE</button>
         {props.selectedCity && (
           <>
@@ -436,7 +436,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
       {sidebarMounted && selectedProject && (
         <div
           data-nav-scroll="sidebar"
-          className={`absolute top-0 right-0 w-full md:w-[380px] z-[5000] shadow-2xl bg-white border-l border-slate-200 overflow-hidden flex flex-col`}
+          className={`absolute top-0 right-0 w-full lg:w-[380px] z-[5000] shadow-2xl bg-white border-l border-slate-200 overflow-hidden flex flex-col`}
           style={{
             bottom: 'max(56px, calc(56px + env(safe-area-inset-bottom, 0px)))',
             transform: sidebarVisible ? 'translate3d(0, 0, 0)' : 'translate3d(100%, 0, 0)',
@@ -471,7 +471,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
 
       {/* Active Filter Chips — floating above the bottom dock (desktop) */}
       {(developerFilter !== 'All' && developerFilter !== '' || statusFilter !== 'All' && statusFilter !== '' || selectedCity || selectedCommunity) && (
-        <div className={`absolute ${chipsBottomClass} left-1/2 -translate-x-1/2 z-[4500] hidden md:flex flex-wrap gap-2 pointer-events-none justify-center px-4 w-full max-w-3xl transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]`}>
+        <div className={`absolute ${chipsBottomClass} left-1/2 -translate-x-1/2 z-[4500] hidden lg:flex flex-wrap gap-2 pointer-events-none justify-center px-4 w-full max-w-3xl transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]`}>
 
           {/* Properties Count & Reset */}
           <div className="pointer-events-auto flex items-center gap-4 bg-white py-1.5 px-2 pr-4 rounded-xl shadow-lg border border-slate-200">
@@ -563,7 +563,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
 
       {/* NearbyPanel — floats above the bottom dock (desktop only, hidden on mobile) */}
       {showNearbyPanel && selectedProject && (
-        <div className="hidden md:block">
+        <div className="hidden lg:block">
           <NearbyPanel
             project={selectedProject}
             landmarks={projectSpecificLandmarks}
@@ -575,7 +575,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
       {/* Mobile Filter Tags — clean compact chips */}
       {isAnyFilterActive && (
         <div
-          className={`md:hidden flex items-center gap-1.5 px-3 py-1 fixed ${showCarousel ? 'bottom-[200px]' : 'bottom-[72px]'} left-0 right-0 z-[4400] overflow-x-auto whitespace-nowrap hide-scrollbar transition-all duration-300`}
+          className={`lg:hidden flex items-center gap-1.5 px-3 py-1 fixed ${showCarousel ? 'bottom-[200px]' : 'bottom-[72px]'} left-0 right-0 z-[4400] overflow-x-auto whitespace-nowrap hide-scrollbar transition-all duration-300`}
           style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
           {/* Count + Reset — icon and number only, no "Properties" text */}
@@ -638,7 +638,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
       {selectedProject && isAnalysisOpen && (
         <button
           onClick={() => { onCloseProject(); closePanelViaBack(); }}
-          className="md:hidden fixed z-[5500] w-12 h-12 rounded-full bg-blue-600 text-white shadow-xl shadow-blue-600/30 flex items-center justify-center active:scale-95 transition-all border-2 border-white/30"
+          className="lg:hidden fixed z-[5500] w-12 h-12 rounded-full bg-blue-600 text-white shadow-xl shadow-blue-600/30 flex items-center justify-center active:scale-95 transition-all border-2 border-white/30"
           style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 68px)', right: '16px' }}
           aria-label="Show map"
         >

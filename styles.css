@@ -315,7 +315,7 @@ body {
 }
 
 /* ── 9. MOBILE SIDEBAR / PANEL TRANSITIONS ─────────────────────────────────── */
-@media (max-width: 767px) {
+@media (max-width: 1023px) {
     .mobile-panel-right {
         transform: translate3d(100%, 0, 0);
         transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
@@ -356,7 +356,7 @@ body {
 }
 
 /* ── 11. INPUT FOCUS — prevent zoom on iOS (16px minimum) ──────────────────── */
-@media (max-width: 767px) {
+@media (max-width: 1023px) {
 
     input[type="text"],
     input[type="email"],
@@ -712,6 +712,22 @@ body.is-presentation #root {
 
     .bottom-sheet {
         max-height: calc(100vh - 20px);
+    }
+
+    /* Compact bottom tab bar for landscape phones */
+    .landscape-compact-bar {
+        padding-top: 4px !important;
+        padding-bottom: max(env(safe-area-inset-bottom), 4px) !important;
+    }
+}
+
+/* ── 20b. TABLET LANDSCAPE & IPHONE LANDSCAPE — responsive layout overhaul ─── */
+@media (max-width: 1023px) and (orientation: landscape) {
+    /* Bottom sheet modals should not exceed 70% height in landscape */
+    .bottom-sheet,
+    [style*="slideUpSheet"] {
+        max-height: 70vh !important;
+        overflow-y: auto !important;
     }
 }
 
