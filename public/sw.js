@@ -3,7 +3,7 @@
 // Advanced caching strategies, push notifications, background sync, offline
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const CACHE_VERSION = 'psi-maps-v3';
+const CACHE_VERSION = 'psi-maps-v4';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `images-${CACHE_VERSION}`;
@@ -133,7 +133,13 @@ self.addEventListener('fetch', (event) => {
 
     // ── Strategy 5: Network-First for JS/CSS (hashed filenames change every deploy) ─
     if (isStaticAsset(url)) {
-        event.respondWith(networkFirst(event.request, STATIC_CACHE));
+        event.respondWith(networkFirstJS(event.request, STATIC_CACHE));
+        return;
+    }
+
+    // ── Strategy 6: Network-always for index.html (ensures fresh chunk hashes) ──────
+    if (url.pathname === '/' || url.pathname === '/index.html') {
+        event.respondWith(networkAlways(event.request, STATIC_CACHE));
         return;
     }
 
@@ -175,6 +181,70 @@ async function cacheFirst(request, cacheName) {
             );
         }
         return new Response('Offline', { status: 503, statusText: 'Offline' });
+    }
+}
+
+/**
+ * Network-First for JS/CSS: validates content-type before caching.
+ * If server returns HTML (Firebase SPA 404 fallback) for a JS chunk,
+ * returns a proper JS error instead — prevents MIME type crash.
+ */
+async function networkFirstJS(request, cacheName) {
+    try {
+        const networkResponse = await fetch(request);
+        const contentType = networkResponse.headers.get('content-type') || '';
+        const isJS = request.url.match(/\.(js|mjs)(\?.*)?$/i);
+        const isCSS = request.url.match(/\.css(\?.*)?$/i);
+
+        // If we got HTML back for a JS/CSS file — the chunk no longer exists on server
+        // Return a proper error instead of caching & serving garbage HTML as a module
+        if ((isJS || isCSS) && contentType.includes('text/html')) {
+            console.warn('[SW] Got HTML for JS asset — chunk missing:', request.url);
+            // Evict any stale cache entry for this URL
+            const cache = await caches.open(cacheName);
+            await cache.delete(request);
+            return new Response(
+                `throw new Error('SW: JS chunk not found on server — please reload. URL: ${request.url}');`,
+                { status: 404, headers: { 'Content-Type': 'application/javascript' } }
+            );
+        }
+
+        if (networkResponse.ok) {
+            const cache = await caches.open(cacheName);
+            cache.put(request, networkResponse.clone());
+        }
+        return networkResponse;
+    } catch (error) {
+        // Offline fallback — serve from cache only if content-type was JS
+        const cached = await caches.match(request);
+        if (cached) {
+            const cachedType = cached.headers.get('content-type') || '';
+            if (!cachedType.includes('text/html')) return cached;
+        }
+        // Return a minimal JS error so the dynamic import() fails gracefully
+        return new Response(
+            `throw new Error('SW: Offline or chunk missing: ${request.url}');`,
+            { status: 503, headers: { 'Content-Type': 'application/javascript' } }
+        );
+    }
+}
+
+/**
+ * Network-Always: always fetches from network, no cache read, updates cache.
+ * Used for index.html to ensure freshest chunk references.
+ */
+async function networkAlways(request, cacheName) {
+    try {
+        const networkResponse = await fetch(request);
+        if (networkResponse.ok) {
+            const cache = await caches.open(cacheName);
+            cache.put(request, networkResponse.clone());
+        }
+        return networkResponse;
+    } catch {
+        // Offline: fall back to cached index.html
+        const cached = await caches.match('/index.html');
+        return cached || new Response('Offline', { status: 503 });
     }
 }
 

@@ -13,7 +13,7 @@ import {
 
 // Intercepts the PSI API image URL and forces it to return a fast, compressed thumbnail
 const getOptimizedImage = (url: string, width: number, height: number) => {
-    if (!url) return 'https://images.unsplash.com/photo-1600607687969-b6139b5f40bb?auto=format&fit=crop&w=800&q=80';
+    if (!url) return 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80';
     if (url.includes('width=0&height=0')) {
         return url.replace('width=0&height=0', `width=${width}&height=${height}`);
     }
