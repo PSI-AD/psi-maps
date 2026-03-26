@@ -108,6 +108,7 @@ const LandmarkInfoModal: React.FC<Props> = ({ landmark, allLandmarks, onClose, o
     const [imageFailed, setImageFailed] = useState(false);
     const [isAutoPlaying, setIsAutoPlaying] = useState(false);
     const autoPlayRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const playlistRef = useRef<(Landmark & { _dist: number })[] | null>(null);
 
     const facts = getFacts(landmark);
     const catStyle = CATEGORY_STYLES[landmark.category?.toLowerCase()] ?? defaultStyle;
@@ -115,18 +116,24 @@ const LandmarkInfoModal: React.FC<Props> = ({ landmark, allLandmarks, onClose, o
     const hasDbImages = (landmark.images && landmark.images.length > 0) || !!landmark.imageUrl;
     const dbImage = landmark.images?.[0] || landmark.imageUrl;
 
-    // Compute sorted nearby landmarks (sorted by distance from current landmark)
+    // Build a STABLE playlist: computed once from the first landmark opened.
+    // The playlist order stays fixed as you navigate through it.
     const nearbyLandmarks = useMemo(() => {
+        // If we already have a playlist, keep it stable
+        if (playlistRef.current) return playlistRef.current;
+
         if (!allLandmarks || allLandmarks.length === 0) return [];
         const currentCoord: [number, number] = [Number(landmark.longitude), Number(landmark.latitude)];
-        return allLandmarks
+        const sorted = allLandmarks
             .filter(l => l.id !== landmark.id && !l.isHidden && !isNaN(Number(l.latitude)) && !isNaN(Number(l.longitude)))
             .map(l => ({
                 ...l,
                 _dist: turfDistance(currentCoord, [Number(l.longitude), Number(l.latitude)], { units: 'kilometers' }),
             }))
             .sort((a, b) => a._dist - b._dist);
-    }, [landmark.id, landmark.longitude, landmark.latitude, allLandmarks]);
+        playlistRef.current = sorted;
+        return sorted;
+    }, [allLandmarks]); // Only recompute if allLandmarks changes, NOT on landmark navigation
 
     // Wikipedia image fetch
     useEffect(() => {
@@ -150,21 +157,22 @@ const LandmarkInfoModal: React.FC<Props> = ({ landmark, allLandmarks, onClose, o
     const thumbnailUrl = dbImage || wikiImage;
     const showImage = thumbnailUrl && !imageFailed;
 
-    // Navigate to the next nearby landmark
+    // Track position in the playlist
+    const playlistIdx = useRef(0);
+
+    // Navigate to the next landmark in the playlist
     const goNext = useCallback(() => {
         if (nearbyLandmarks.length === 0) return;
-        const idx = nearbyLandmarks.findIndex(l => l.id === landmark.id);
-        const nextIdx = idx >= 0 ? (idx + 1) % nearbyLandmarks.length : 0;
-        onNavigate(nearbyLandmarks[nextIdx]);
-    }, [nearbyLandmarks, landmark.id, onNavigate]);
+        playlistIdx.current = (playlistIdx.current + 1) % nearbyLandmarks.length;
+        onNavigate(nearbyLandmarks[playlistIdx.current]);
+    }, [nearbyLandmarks, onNavigate]);
 
-    // Navigate to the previous nearby landmark
+    // Navigate to the previous landmark in the playlist
     const goPrev = useCallback(() => {
         if (nearbyLandmarks.length === 0) return;
-        const idx = nearbyLandmarks.findIndex(l => l.id === landmark.id);
-        const prevIdx = idx > 0 ? idx - 1 : nearbyLandmarks.length - 1;
-        onNavigate(nearbyLandmarks[prevIdx]);
-    }, [nearbyLandmarks, landmark.id, onNavigate]);
+        playlistIdx.current = playlistIdx.current > 0 ? playlistIdx.current - 1 : nearbyLandmarks.length - 1;
+        onNavigate(nearbyLandmarks[playlistIdx.current]);
+    }, [nearbyLandmarks, onNavigate]);
 
     // Auto-play: cycle through nearby landmarks
     useEffect(() => {
@@ -200,15 +208,10 @@ const LandmarkInfoModal: React.FC<Props> = ({ landmark, allLandmarks, onClose, o
             ? `${landmark.city} Area`
             : 'Nearby Area';
 
-    // Next landmark preview info
-    const nextLandmark = nearbyLandmarks.length > 0 ? nearbyLandmarks[0] : null;
-    const nextLandmarkDistance = nextLandmark
-        ? turfDistance(
-            [Number(landmark.longitude), Number(landmark.latitude)],
-            [Number(nextLandmark.longitude), Number(nextLandmark.latitude)],
-            { units: 'kilometers' }
-        ).toFixed(1)
-        : null;
+    // Next landmark preview info — based on stable playlist position
+    const nextPlaylistIdx = nearbyLandmarks.length > 0 ? (playlistIdx.current + 1) % nearbyLandmarks.length : -1;
+    const nextLandmark = nextPlaylistIdx >= 0 ? nearbyLandmarks[nextPlaylistIdx] : null;
+    const currentPlaylistPosition = `${playlistIdx.current + 1}/${nearbyLandmarks.length}`;
 
     return (
         <>
@@ -225,41 +228,45 @@ const LandmarkInfoModal: React.FC<Props> = ({ landmark, allLandmarks, onClose, o
             <div className={`
                 fixed z-[9999] animate-in fade-in duration-300
                 left-3 right-3 bottom-[calc(env(safe-area-inset-bottom,0px)+80px)]
-                lg:left-auto lg:right-6 lg:bottom-20 lg:w-[340px]
+                lg:left-auto lg:right-6 lg:bottom-20 lg:w-[420px]
                 slide-in-from-bottom-4
             `}>
                 <div className="bg-slate-950 border border-slate-700/60 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden">
 
                     {/* Neighborhood header strip */}
-                    <div className={`px-3 py-1.5 bg-gradient-to-r ${catStyle.gradient} flex items-center justify-between`}>
+                    <div className={`px-4 py-2 bg-gradient-to-r ${catStyle.gradient} flex items-center justify-between`}>
                         <div className="flex items-center gap-2 min-w-0">
-                            <Navigation className="w-3 h-3 text-white/80" />
-                            <span className="text-[9px] font-black uppercase tracking-[0.15em] text-white/90 truncate">
+                            <Navigation className="w-3.5 h-3.5 text-white/80" />
+                            <span className="text-[10px] font-black uppercase tracking-[0.12em] text-white/90 truncate">
                                 {neighborhoodLabel}
                             </span>
                         </div>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1.5">
+                            {/* Playlist position */}
+                            {nearbyLandmarks.length > 0 && (
+                                <span className="text-[9px] font-bold text-white/50 mr-1">{currentPlaylistPosition}</span>
+                            )}
                             {/* Play/Pause auto-tour */}
                             {nearbyLandmarks.length > 0 && (
                                 <button
                                     onClick={toggleAutoPlay}
-                                    className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${isAutoPlaying
+                                    className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${isAutoPlaying
                                         ? 'bg-white/30 text-white shadow-lg shadow-white/10'
                                         : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
                                         }`}
                                     title={isAutoPlaying ? 'Pause neighborhood tour' : 'Play neighborhood tour'}
                                 >
                                     {isAutoPlaying
-                                        ? <Pause className="w-3 h-3" />
-                                        : <Play className="w-3 h-3 ml-0.5" />
+                                        ? <Pause className="w-3.5 h-3.5" />
+                                        : <Play className="w-3.5 h-3.5 ml-0.5" />
                                     }
                                 </button>
                             )}
                             <button
                                 onClick={onClose}
-                                className="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white transition-colors"
+                                className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white transition-colors"
                             >
-                                <X className="w-3 h-3" />
+                                <X className="w-3.5 h-3.5" />
                             </button>
                         </div>
                     </div>
@@ -268,7 +275,7 @@ const LandmarkInfoModal: React.FC<Props> = ({ landmark, allLandmarks, onClose, o
                     <div className="flex lg:flex-row flex-col">
                         {/* Image — small thumbnail on desktop, strip on mobile */}
                         {showImage && (
-                            <div className="relative lg:w-[100px] lg:h-auto h-20 w-full overflow-hidden shrink-0">
+                            <div className="relative lg:w-[120px] lg:h-auto h-24 w-full overflow-hidden shrink-0">
                                 <img
                                     src={thumbnailUrl!}
                                     alt={landmark.name}
@@ -279,25 +286,25 @@ const LandmarkInfoModal: React.FC<Props> = ({ landmark, allLandmarks, onClose, o
                                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent lg:bg-gradient-to-r lg:from-transparent lg:to-slate-950/40" />
 
                                 {/* Category badge */}
-                                <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-full bg-slate-950/70 backdrop-blur text-[8px] font-black uppercase tracking-widest text-slate-200 border border-slate-600/40">
+                                <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-slate-950/70 backdrop-blur text-[9px] font-black uppercase tracking-widest text-slate-200 border border-slate-600/40">
                                     {landmark.category}
                                 </div>
                             </div>
                         )}
 
                         {/* Text content */}
-                        <div className="p-3 flex-1 min-w-0">
+                        <div className="p-4 flex-1 min-w-0">
                             {/* Header — name + location */}
-                            <div className="mb-2">
+                            <div className="mb-2.5">
                                 {!showImage && (
-                                    <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r ${catStyle.gradient} mb-1.5`}>
-                                        <span className="text-white text-[8px] font-black uppercase tracking-widest">{landmark.category}</span>
+                                    <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r ${catStyle.gradient} mb-2`}>
+                                        <span className="text-white text-[9px] font-black uppercase tracking-widest">{landmark.category}</span>
                                     </div>
                                 )}
-                                <h3 className="text-sm font-black text-white leading-tight mb-0.5">{landmark.name}</h3>
-                                <div className="flex items-center gap-1">
-                                    <MapPin className={`w-2.5 h-2.5 ${catStyle.accent}`} />
-                                    <span className={`text-[9px] font-bold uppercase tracking-wider ${catStyle.accent}`}>
+                                <h3 className="text-base font-black text-white leading-tight mb-1">{landmark.name}</h3>
+                                <div className="flex items-center gap-1.5">
+                                    <MapPin className={`w-3 h-3 ${catStyle.accent}`} />
+                                    <span className={`text-[10px] font-bold uppercase tracking-wider ${catStyle.accent}`}>
                                         {landmark.community}{landmark.city ? `, ${landmark.city}` : ''}
                                     </span>
                                 </div>
@@ -306,20 +313,20 @@ const LandmarkInfoModal: React.FC<Props> = ({ landmark, allLandmarks, onClose, o
                                         href={`https://${landmark.domain}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1 mt-0.5 text-[9px] text-slate-400 hover:text-blue-400 transition-colors"
+                                        className="inline-flex items-center gap-1 mt-1 text-[10px] text-slate-400 hover:text-blue-400 transition-colors"
                                     >
-                                        <ExternalLink className="w-2.5 h-2.5" />
+                                        <ExternalLink className="w-3 h-3" />
                                         {landmark.domain}
                                     </a>
                                 )}
                             </div>
 
-                            {/* Facts — max 3 bullet points, compact */}
-                            <div className={`space-y-1 p-2 rounded-lg ${catStyle.bg} ${catStyle.border} border`}>
+                            {/* Facts — max 3 bullet points */}
+                            <div className={`space-y-1.5 p-3 rounded-xl ${catStyle.bg} ${catStyle.border} border`}>
                                 {facts.map((fact, idx) => (
-                                    <div key={idx} className="flex items-start gap-1.5">
-                                        <div className="w-1 h-1 rounded-full bg-white/60 mt-[6px] shrink-0" />
-                                        <p className="text-[11px] leading-snug text-white/90 font-medium">
+                                    <div key={idx} className="flex items-start gap-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-white/60 mt-[6px] shrink-0" />
+                                        <p className="text-[12px] leading-snug text-white/90 font-medium">
                                             {fact}
                                         </p>
                                     </div>
@@ -330,23 +337,23 @@ const LandmarkInfoModal: React.FC<Props> = ({ landmark, allLandmarks, onClose, o
 
                     {/* Navigation: Prev / Next nearby landmark — compact row */}
                     {nearbyLandmarks.length > 0 && (
-                        <div className="flex items-center gap-2 border-t border-slate-700/50 px-3 py-2">
+                        <div className="flex items-center gap-2 border-t border-slate-700/50 px-4 py-2.5">
                             <button
                                 onClick={goPrev}
-                                className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-white transition-colors shrink-0"
-                                title="Previous nearby landmark"
+                                className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-white transition-colors shrink-0"
+                                title="Previous in playlist"
                             >
-                                <ChevronLeft className="w-3.5 h-3.5" />
+                                <ChevronLeft className="w-4 h-4" />
                             </button>
 
                             {/* Next landmark preview */}
                             <div className="flex-1 min-w-0 text-center">
                                 {nextLandmark && (
                                     <div className="flex flex-col items-center gap-0">
-                                        <span className="text-[7px] font-black uppercase tracking-widest text-slate-500">
-                                            Next • {nextLandmarkDistance} km
+                                        <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">
+                                            Next in playlist
                                         </span>
-                                        <span className="text-[10px] font-bold text-slate-300 truncate max-w-full">
+                                        <span className="text-[11px] font-bold text-slate-300 truncate max-w-full">
                                             {nextLandmark.name}
                                         </span>
                                     </div>
@@ -355,10 +362,10 @@ const LandmarkInfoModal: React.FC<Props> = ({ landmark, allLandmarks, onClose, o
 
                             <button
                                 onClick={goNext}
-                                className="w-7 h-7 rounded-lg bg-blue-600 hover:bg-blue-500 flex items-center justify-center text-white transition-colors shrink-0"
-                                title="Next nearby landmark"
+                                className="w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-500 flex items-center justify-center text-white transition-colors shrink-0"
+                                title="Next in playlist"
                             >
-                                <ChevronRight className="w-3.5 h-3.5" />
+                                <ChevronRight className="w-4 h-4" />
                             </button>
                         </div>
                     )}
