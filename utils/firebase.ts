@@ -3,7 +3,7 @@ import { getFirestore, Firestore } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCt5DngU6nykCcp7Lklm2xUgpzOFLB7KKY",
+  apiKey: "AIzaSyB6JvSC_BlZBpki5qf0Z7X_EqUG43BV2vQ",
   authDomain: "psimaps-pro.firebaseapp.com",
   projectId: "psimaps-pro",
   storageBucket: "psimaps-pro.firebasestorage.app",
