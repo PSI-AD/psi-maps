@@ -33,6 +33,7 @@ const LandmarkInfoModal = React.lazy(() => import('./components/LandmarkInfoModa
 const StreetViewPanel = React.lazy(() => import('./components/StreetViewPanel'));
 const ARView = React.lazy(() => import('./components/ARView'));
 const TimelineBar = React.lazy(() => import('./components/TimeSlider'));
+const TimeMachine = React.lazy(() => import('./components/TimeMachine'));
 
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -74,9 +75,10 @@ const AppInner: React.FC = () => {
   const [enableIsochrone, setEnableIsochrone] = useState(false); // Phase 2
   const [enableLasso, setEnableLasso] = useState(false);         // Phase 2
 
-  // ── ROI Heatmap + Timeline states ──────────────────────────────────────────
+  // ── ROI Heatmap + Timeline + Time Machine states ──────────────────────────
   const [enableROIHeatmap, setEnableROIHeatmap] = useState(false);
   const [showTimeline, setShowTimeline] = useState(false);
+  const [timeMachineData, setTimeMachineData] = useState<{ lat: number; lng: number; name: string } | null>(null);
 
   const [activeBoundary, setActiveBoundary] = useState<any>(null);
 
@@ -113,9 +115,20 @@ const AppInner: React.FC = () => {
     };
     window.addEventListener('toggle-roi-heatmap', handleROI);
     window.addEventListener('toggle-timeline', handleTimeline);
+
+    // Time Machine
+    const handleTimeMachine = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      setTimeMachineData({ lat: detail.lat, lng: detail.lng, name: detail.name });
+      setShowTimeline(false);
+      setEnableROIHeatmap(false);
+    };
+    window.addEventListener('start-time-machine', handleTimeMachine);
+
     return () => {
       window.removeEventListener('toggle-roi-heatmap', handleROI);
       window.removeEventListener('toggle-timeline', handleTimeline);
+      window.removeEventListener('start-time-machine', handleTimeMachine);
     };
   }, []);
 
@@ -755,6 +768,19 @@ const AppInner: React.FC = () => {
           <TimelineBar
             mapRef={mapRef}
             onClose={() => setShowTimeline(false)}
+          />
+        </Suspense>
+      )}
+
+      {/* Time Machine — Cinematic satellite timelapse with 360° rotation */}
+      {timeMachineData && (
+        <Suspense fallback={null}>
+          <TimeMachine
+            mapRef={mapRef}
+            lat={timeMachineData.lat}
+            lng={timeMachineData.lng}
+            projectName={timeMachineData.name}
+            onClose={() => setTimeMachineData(null)}
           />
         </Suspense>
       )}

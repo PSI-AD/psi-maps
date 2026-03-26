@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import SearchBar from './SearchBar';
 import { Project, Landmark } from '../types';
-import { Settings, Filter as FilterIcon, X, Pencil, Search, Map as MapIcon, Box, RefreshCw, Layers, ZoomIn, ZoomOut, Play, Pause, Landmark as LandmarkIcon, MapPin, Navigation, Heart } from 'lucide-react';
+import { Settings, Filter as FilterIcon, X, Pencil, Search, Map as MapIcon, Box, RefreshCw, Layers, ZoomIn, ZoomOut, Play, Pause, Landmark as LandmarkIcon, MapPin, Navigation, Heart, Clock } from 'lucide-react';
 import { MapCommandCenter } from './MapCommandCenter';
 import { calculateDistance } from '../utils/geo';
 import { useFavoritesContext } from '../hooks/useFavorites';
@@ -262,6 +262,26 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                 color: 'bg-emerald-100',
                 onClick: () => {
                     window.dispatchEvent(new CustomEvent('ai-open-neighborhood-tour'));
+                    setShowTourPanel(false);
+                },
+            });
+        }
+
+        // Time Machine — always show if a project is selected
+        if (selectedProject?.latitude && selectedProject?.longitude) {
+            results.push({
+                label: 'Time Machine',
+                sublabel: '2014 → 2026 satellite timelapse',
+                icon: <Clock className="w-4 h-4 text-indigo-600" />,
+                color: 'bg-indigo-100',
+                onClick: () => {
+                    window.dispatchEvent(new CustomEvent('start-time-machine', {
+                        detail: {
+                            lat: Number(selectedProject.latitude),
+                            lng: Number(selectedProject.longitude),
+                            name: selectedProject.name,
+                        }
+                    }));
                     setShowTourPanel(false);
                 },
             });

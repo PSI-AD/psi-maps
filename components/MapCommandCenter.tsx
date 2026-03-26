@@ -68,10 +68,10 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
     };
 
     return (
-        <div className="bg-white/95 backdrop-blur-xl border border-slate-200 shadow-2xl rounded-2xl p-4 flex gap-4 animate-in slide-in-from-bottom-2 duration-200 origin-bottom-left text-slate-700 max-w-full overflow-x-auto hide-scrollbar lg:flex-wrap">
+        <div className="bg-white/95 backdrop-blur-xl border border-slate-200 shadow-2xl rounded-2xl p-4 flex flex-wrap gap-4 animate-in slide-in-from-bottom-2 duration-200 origin-bottom-left text-slate-700 max-w-full overflow-x-auto">
 
             {/* ── Camera Controls ──────────────────────────────── */}
-            <div className="flex flex-col gap-2 border-r border-slate-200 pr-4 shrink-0">
+            <div className="flex flex-col gap-2 border-r border-slate-200 pr-4">
                 <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1 text-center">Camera</span>
 
                 <button
@@ -110,7 +110,7 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
             </div>
 
             {/* ── Map Styles Matrix ─────────────────────────────── */}
-            <div className="flex flex-col gap-2 border-r border-slate-200 pr-4 shrink-0">
+            <div className="flex flex-col gap-2 border-r border-slate-200 pr-4">
                 <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1 text-center">Style</span>
 
                 {/* Light Minimal */}
@@ -163,7 +163,7 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
             </div>
 
             {/* ── Tools: Altitude + Export ──────────────────────── */}
-            <div className="flex flex-col gap-2 shrink-0">
+            <div className="flex flex-col gap-2">
                 <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1 text-center">Tools</span>
 
                 <button
@@ -202,7 +202,7 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
             </div>
 
             {/* ── Lasso Spatial Filter ────────────────────────────────────── */}
-            <div className="flex flex-col gap-2 border-l border-slate-200 pl-4 shrink-0">
+            <div className="flex flex-col gap-2 border-l border-slate-200 pl-4">
                 <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1 text-center">Lasso</span>
 
                 <button
@@ -232,7 +232,7 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
             </div>
 
             {/* ── Insights: ROI + Timeline ───────────────── */}
-            <div className="flex flex-col gap-2 border-l border-slate-200 pl-4 shrink-0">
+            <div className="flex flex-col gap-2 border-l border-slate-200 pl-4">
                 <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1 text-center">Insights</span>
 
                 <button
