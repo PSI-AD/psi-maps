@@ -532,26 +532,14 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                 </div>
             </div>
 
-            {/* ── Mobile count badge + dismiss ── */}
-            <div className="flex lg:hidden items-center justify-center gap-2 mb-2 pointer-events-auto">
-                <div className={`flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.18em] px-3 py-1.5 rounded-full shadow-md border ${isTourMode
-                    ? 'bg-amber-50/90 text-amber-700 border-amber-100'
-                    : 'bg-white/90 text-slate-700 border-slate-100'
-                    } backdrop-blur-md`}>
-                    {isTourMode ? activePresentation!.title : (
-                        <><Building className="w-3 h-3" /><span>{projects.length}</span></>
-                    )}
+            {/* ── Mobile count badge — ONLY shown in Tour mode (non-tour uses filter tags row in MainLayout) ── */}
+            {isTourMode && (
+              <div className="flex lg:hidden items-center justify-center gap-2 mb-2 pointer-events-auto">
+                <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.18em] px-3 py-1.5 rounded-full shadow-md border bg-amber-50/90 text-amber-700 border-amber-100 backdrop-blur-md">
+                    {activePresentation!.title}
                 </div>
-                {onDismiss && (
-                    <button
-                        onClick={onDismiss}
-                        aria-label="Clear all filters"
-                        className="p-1.5 bg-white/90 backdrop-blur-md text-slate-400 hover:text-slate-700 rounded-full shadow-md border border-slate-100 transition-colors pointer-events-auto"
-                    >
-                        <X className="w-3.5 h-3.5" />
-                    </button>
-                )}
-            </div>
+              </div>
+            )}
 
             {/* ── Scroll containers ── */}
             <div className="relative flex-1 min-h-0 pointer-events-auto w-full">

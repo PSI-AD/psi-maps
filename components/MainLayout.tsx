@@ -575,7 +575,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
       {/* Mobile Filter Tags — clean compact chips */}
       {isAnyFilterActive && (
         <div
-          className={`lg:hidden flex items-center gap-1.5 px-3 py-1 fixed ${showCarousel ? 'bottom-[200px]' : 'bottom-[72px]'} left-0 right-0 z-[4400] overflow-x-auto whitespace-nowrap hide-scrollbar transition-all duration-300`}
+          className={`lg:hidden flex flex-nowrap items-center gap-1.5 px-3 py-1 fixed ${showCarousel ? 'bottom-[210px]' : 'bottom-[72px]'} left-0 right-0 z-[4400] overflow-x-auto whitespace-nowrap hide-scrollbar transition-all duration-300`}
           style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
           {/* Count + Reset — icon and number only, no "Properties" text */}
