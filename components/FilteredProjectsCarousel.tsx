@@ -384,16 +384,17 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                     group
                 `}
             >
-                {/* Thumbnail — skeleton shimmer shows while image loads */}
-                <div className="w-[88px] h-[88px] lg:w-20 lg:h-20 shrink-0 rounded-xl overflow-hidden skeleton relative shadow-sm">
+                {/* Thumbnail — eager for first 4, lazy for the rest */}
+                <div className="w-[88px] h-[88px] lg:w-20 lg:h-20 shrink-0 rounded-xl overflow-hidden skeleton relative shadow-sm bg-slate-100">
                     <img
                         src={getOptimizedImageUrl(
                             (project as any).thumbnailUrl || ((project as any).images?.[0]) || '',
-                            200, 200
+                            160, 160
                         )}
                         alt={project.name}
-                        loading="eager"
-                        decoding="async"
+                        loading={idx < 4 ? 'eager' : 'lazy'}
+                        decoding={idx < 4 ? 'sync' : 'async'}
+                        fetchPriority={idx < 2 ? 'high' : 'auto'}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                     />

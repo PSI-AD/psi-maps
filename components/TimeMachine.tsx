@@ -235,9 +235,9 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
   };
 
   return (
-    /* ── Fixed to BOTTOM — right above the nav bar ── */
-    <div className="fixed bottom-0 left-0 right-0 z-[5500] animate-in slide-in-from-bottom-2 duration-300"
-         style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 0px)' }}>
+    /* ── Fixed to BOTTOM — sits ABOVE the nav bar ── */
+    <div className="fixed left-0 right-0 z-[6200] animate-in slide-in-from-bottom-2 duration-300"
+         style={{ bottom: 'calc(max(env(safe-area-inset-bottom, 0px), 12px) + 68px)' }}>
       {/* ── Settings panel — opens upward ───────────────────── */}
       {showSettings && (
         <div className="flex justify-center px-3 pb-1">
