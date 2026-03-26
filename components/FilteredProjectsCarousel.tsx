@@ -460,7 +460,7 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
     return (
         <div className={`
             absolute z-[4000]
-            bottom-[calc(env(safe-area-inset-bottom,0px)+96px)] left-0 w-full pointer-events-auto
+            bottom-[calc(env(safe-area-inset-bottom,0px)+76px)] left-0 w-full pointer-events-auto
             lg:bottom-[96px] lg:top-[80px] lg:left-0 lg:w-[360px] lg:pointer-events-none
             flex flex-col
             transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]
@@ -513,10 +513,10 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                 </div>
             </div>
 
-            {/* ── Mobile count badge — ONLY shown in Tour mode (non-tour uses filter tags row in MainLayout) ── */}
+            {/* ── Mobile count badge — ONLY shown in Tour mode ── */}
             {isTourMode && (
-              <div className="flex lg:hidden items-center justify-center gap-2 mb-2 pointer-events-auto">
-                <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.18em] px-3 py-1.5 rounded-full shadow-md border bg-amber-50/90 text-amber-700 border-amber-100 backdrop-blur-md">
+              <div className="flex lg:hidden items-center justify-center gap-2 mb-1 pointer-events-auto">
+                <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.18em] px-3 py-1 rounded-full shadow-md border bg-amber-50/90 text-amber-700 border-amber-100 backdrop-blur-md">
                     {activePresentation!.title}
                 </div>
               </div>
@@ -550,7 +550,7 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                         lg:shadow-2xl lg:shadow-slate-300/30
                         pointer-events-auto hide-scrollbar scroll-smooth
                     "
-                    style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x' }}
+                    style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x pan-y' }}
                 >
                     {displayGroups.map(([communityName, commProjects]) => {
                         // Sync: exact match for community header tours, OR any external tour running

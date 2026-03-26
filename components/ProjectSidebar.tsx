@@ -848,11 +848,9 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
           onMouseEnter={() => setIsPlaying(false)}
           onMouseLeave={() => { /* only resume if already playing via user action */ }}
         >
-          {/* Header action bar: Compare · Favourite · Flag · Share · PDF · Close
-              z-50 keeps buttons above thumbnails (z-40) and hero image (z-0). */}
-          <div className="absolute top-0 right-0 flex flex-wrap justify-end items-center gap-1 z-50 pointer-events-auto max-w-[85%] md:max-w-none p-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
-            {/* Play slideshow — inline with other controls, on the image top bar */}
-            {hasMultipleImages && (
+          {/* ── Play slideshow — FAR LEFT of image, standalone ── */}
+          {hasMultipleImages && (
+            <div className="absolute top-0 left-0 z-50 pointer-events-auto p-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
               <button
                 onClick={(e) => { e.stopPropagation(); setIsPlaying(p => !p); }}
                 aria-label={isPlaying ? 'Pause slideshow' : 'Play slideshow'}
@@ -870,7 +868,24 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                   <Play className="w-4 h-4 fill-current ml-0.5" />
                 )}
               </button>
-            )}
+            </div>
+          )}
+
+          {/* ── Right action bar: Map · Compare · Heart · Flag · Share · PDF · Close ── */}
+          <div className="absolute top-0 right-0 flex flex-wrap justify-end items-center gap-1 z-50 pointer-events-auto max-w-[85%] md:max-w-none p-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
+            {/* Fly-to-map — first on right side, replacing the old heart-by-name */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                const lng = Number(project.longitude);
+                const lat = Number(project.latitude);
+                if (!isNaN(lng) && !isNaN(lat)) onFlyTo(lng, lat, 17);
+              }}
+              className="pointer-events-auto p-2 rounded-full bg-blue-600/80 hover:bg-blue-600 backdrop-blur-md text-white border border-blue-400/40 transition-all"
+              title="Show on map" aria-label="Fly to on map"
+            >
+              <Navigation className="w-4 h-4" />
+            </button>
             <button
               onClick={() => handleSaveLocal('compare')}
               className="pointer-events-auto p-2 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md text-white border border-white/20 transition-all"
@@ -981,25 +996,10 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
           {/* 2. Name → Location → Developer */}
           <div className="sticky top-0 z-20 bg-white px-6 pt-6 pb-5 border-b border-slate-100 shadow-sm" style={{ paddingTop: 'max(env(safe-area-inset-top), 24px)' }}>
 
-            {/* 1. Project Name + Fly-to-map */}
-            <div className="flex items-start gap-2">
-              <h1 className="text-[26px] font-black text-slate-900 leading-tight mb-1.5 truncate flex-1">
-                {project.name}
-              </h1>
-              {/* Fly-to button — heart is already on the hero image, no need to duplicate */}
-              <button
-                onClick={() => {
-                  const lng = Number(project.longitude);
-                  const lat = Number(project.latitude);
-                  if (!isNaN(lng) && !isNaN(lat)) onFlyTo(lng, lat, 17);
-                }}
-                className="shrink-0 mt-1 w-9 h-9 rounded-xl flex items-center justify-center transition-all bg-blue-50 text-blue-500 hover:bg-blue-100 hover:text-blue-700"
-                title="Show on map"
-                aria-label="Fly to on map"
-              >
-                <Navigation className="w-4 h-4" />
-              </button>
-            </div>
+            {/* 1. Project Name — clean, no extra icons (Navigation is in the image top bar) */}
+            <h1 className="text-[26px] font-black text-slate-900 leading-tight mb-1.5 truncate">
+              {project.name}
+            </h1>
 
             {/* 2. Location */}
             <div className="flex items-center text-slate-500 text-sm font-semibold mb-2 truncate">
