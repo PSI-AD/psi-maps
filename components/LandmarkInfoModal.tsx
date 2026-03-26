@@ -89,7 +89,7 @@ const LandmarkInfoModal: React.FC<Props> = ({
     const hasDbImages = (landmark.images && landmark.images.length > 0) || !!landmark.imageUrl;
     const dbImage = landmark.images?.[0] || landmark.imageUrl;
 
-    // Reset view when landmark changes
+    // Reset ALL state when landmark changes (including the cached playlist)
     useEffect(() => {
         setView('landmark');
         setImageFailed(false);
@@ -97,20 +97,43 @@ const LandmarkInfoModal: React.FC<Props> = ({
         setIsPropPlaying(false);
         playlistIdx.current = 0;
         propPlayIdx.current = 0;
+        playlistRef.current = null; // force playlist rebuild for new landmark
     }, [landmark.id]);
 
-    // Build STABLE playlist once
+    // ── Playlist: same community/city only, sequential order ──────────────
     const nearbyLandmarks = useMemo(() => {
-        if (playlistRef.current) return playlistRef.current;
         if (!allLandmarks || allLandmarks.length === 0) return [];
+        const sameCommunity = landmark.community?.toLowerCase().trim();
+        const sameCity = landmark.city?.toLowerCase().trim();
+
+        // Filter to same community first, fall back to same city, min 2 items
+        let pool = allLandmarks.filter(l =>
+            l.id !== landmark.id &&
+            !l.isHidden &&
+            !isNaN(Number(l.latitude)) &&
+            !isNaN(Number(l.longitude)) &&
+            (sameCommunity
+                ? l.community?.toLowerCase().trim() === sameCommunity
+                : sameCity ? l.city?.toLowerCase().trim() === sameCity : false)
+        );
+
+        // If same-community gave fewer than 2, widen to same city
+        if (pool.length < 2 && sameCity) {
+            pool = allLandmarks.filter(l =>
+                l.id !== landmark.id &&
+                !l.isHidden &&
+                !isNaN(Number(l.latitude)) &&
+                !isNaN(Number(l.longitude)) &&
+                l.city?.toLowerCase().trim() === sameCity
+            );
+        }
+
+        // Sort by distance for a logical walking order
         const coord: [number, number] = [Number(landmark.longitude), Number(landmark.latitude)];
-        const sorted = allLandmarks
-            .filter(l => l.id !== landmark.id && !l.isHidden && !isNaN(Number(l.latitude)) && !isNaN(Number(l.longitude)))
+        return pool
             .map(l => ({ ...l, _dist: turfDistance(coord, [Number(l.longitude), Number(l.latitude)], { units: 'kilometers' }) }))
             .sort((a, b) => a._dist - b._dist);
-        playlistRef.current = sorted;
-        return sorted;
-    }, [allLandmarks]);
+    }, [allLandmarks, landmark.id, landmark.community, landmark.city, landmark.longitude, landmark.latitude]);
 
     // Sort nearby projects by distance
     const sortedProjects = useMemo(() => {
@@ -161,16 +184,18 @@ const LandmarkInfoModal: React.FC<Props> = ({
         return () => { if (autoPlayRef.current) clearInterval(autoPlayRef.current); };
     }, [isAutoPlaying, goNext, nearbyLandmarks.length]);
 
-    // Property auto-play
+    // Property auto-play — loops forever using stable ref-based index
     useEffect(() => {
-        if (isPropPlaying && sortedProjects.length > 0 && onSelectProject) {
-            propPlayRef.current = setInterval(() => {
-                propPlayIdx.current = (propPlayIdx.current + 1) % sortedProjects.length;
-                onSelectProject(sortedProjects[propPlayIdx.current].id);
-            }, 4000);
-        }
+        if (!isPropPlaying || sortedProjects.length === 0 || !onSelectProject) return;
+        // Select first immediately so user sees it start
+        onSelectProject(sortedProjects[propPlayIdx.current].id);
+        propPlayRef.current = setInterval(() => {
+            propPlayIdx.current = (propPlayIdx.current + 1) % sortedProjects.length;
+            onSelectProject(sortedProjects[propPlayIdx.current].id);
+        }, 4000);
         return () => { if (propPlayRef.current) clearInterval(propPlayRef.current); };
-    }, [isPropPlaying, sortedProjects, onSelectProject]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isPropPlaying]);
 
     // Keyboard
     useEffect(() => {
