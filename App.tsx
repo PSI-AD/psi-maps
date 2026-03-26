@@ -116,19 +116,28 @@ const AppInner: React.FC = () => {
     window.addEventListener('toggle-roi-heatmap', handleROI);
     window.addEventListener('toggle-timeline', handleTimeline);
 
-    // Time Machine
+    // Time Machine — also auto-disable 3D buildings for cleaner satellite view
     const handleTimeMachine = (e: Event) => {
       const detail = (e as CustomEvent).detail;
       setTimeMachineData({ lat: detail.lat, lng: detail.lng, name: detail.name });
       setShowTimeline(false);
       setEnableROIHeatmap(false);
+      setMapFeatures(prev => ({ ...prev, show3D: false })); // turn off 3D buildings
     };
     window.addEventListener('start-time-machine', handleTimeMachine);
+
+    // 3D Buildings toggle from MapCommandCenter
+    const handle3DBuildings = (e: Event) => {
+      const enabled = (e as CustomEvent).detail?.enabled;
+      setMapFeatures(prev => ({ ...prev, show3D: typeof enabled === 'boolean' ? enabled : !prev.show3D }));
+    };
+    window.addEventListener('toggle-3d-buildings', handle3DBuildings);
 
     return () => {
       window.removeEventListener('toggle-roi-heatmap', handleROI);
       window.removeEventListener('toggle-timeline', handleTimeline);
       window.removeEventListener('start-time-machine', handleTimeMachine);
+      window.removeEventListener('toggle-3d-buildings', handle3DBuildings);
     };
   }, []);
 

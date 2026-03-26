@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Layers, Box, Compass, RefreshCw, Bird, Map as MapIcon, Sun, TreePine, ZoomIn, ZoomOut, Crosshair, Camera, PenTool, Trash2, TrendingUp, Clock } from 'lucide-react';
+import { Layers, Box, Compass, RefreshCw, Bird, Map as MapIcon, Sun, TreePine, ZoomIn, ZoomOut, Crosshair, Camera, PenTool, Trash2, TrendingUp, Building2 } from 'lucide-react';
 
 interface MapCommandCenterProps {
     mapRef: React.MutableRefObject<any>;
@@ -12,6 +12,7 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
     const [isRotating, setIsRotating] = useState(false);
     const [is3D, setIs3D] = useState(false);
     const [isLassoActive, setIsLassoActive] = useState(false);
+    const [is3DBuildings, setIs3DBuildings] = useState(true);
     const animationRef = useRef<number | undefined>(undefined);
 
     useEffect(() => {
@@ -55,7 +56,6 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
         if (action === 'zoomOut') map.zoomOut({ duration: 500 });
         if (action === 'export') {
             if (!map) return;
-            // preserveDrawingBuffer must be true on the Map component for this to work
             const canvas = map.getCanvas();
             const dataURL = canvas.toDataURL('image/png');
             const a = document.createElement('a');
@@ -67,188 +67,104 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
         }
     };
 
+    /* ── Btn helper for consistency ──────────────────────────── */
+    const Btn: React.FC<{ onClick: () => void; active?: boolean; title: string; children: React.ReactNode }> = ({ onClick, active, title, children }) => (
+        <button
+            onClick={onClick}
+            className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all shrink-0 ${active
+                ? 'bg-purple-100 text-purple-600 shadow-inner border border-purple-200'
+                : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
+            }`}
+            title={title}
+        >
+            {children}
+        </button>
+    );
+
     return (
-        <div className="bg-white/95 backdrop-blur-xl border border-slate-200 shadow-2xl rounded-2xl p-4 flex flex-wrap gap-4 animate-in slide-in-from-bottom-2 duration-200 origin-bottom-left text-slate-700 max-w-full overflow-x-auto">
+        /* ─── HORIZONTAL ROW — never wraps, scrolls if needed ─── */
+        <div className="bg-white/95 backdrop-blur-xl border border-slate-200 shadow-2xl rounded-2xl p-3 flex flex-row flex-nowrap gap-3 animate-in slide-in-from-bottom-2 duration-200 origin-bottom-left text-slate-700 overflow-x-auto max-w-[90vw]">
 
-            {/* ── Camera Controls ──────────────────────────────── */}
-            <div className="flex flex-col gap-2 border-r border-slate-200 pr-4">
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1 text-center">Camera</span>
-
-                <button
-                    onClick={() => execute('bird')}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-blue-50 text-slate-600 hover:text-blue-600 transition-all group"
-                    title="Community Bird's Eye"
-                >
-                    <Bird className="w-5 h-5 group-hover:-translate-y-0.5 transition-transform" />
-                </button>
-
-                <button
-                    onClick={() => execute('3d')}
-                    className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${is3D ? 'bg-purple-100 text-purple-600 shadow-inner border border-purple-200' : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
-                        }`}
-                    title="Toggle 3D Perspective"
-                >
-                    <Box className="w-5 h-5" />
-                </button>
-
-                <button
-                    onClick={() => setIsRotating(r => !r)}
-                    className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${isRotating ? 'bg-amber-100 text-amber-600 shadow-inner' : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
-                        }`}
-                    title="Cinematic Orbit"
-                >
-                    <RefreshCw className={`w-5 h-5 ${isRotating ? 'animate-spin' : ''}`} style={{ animationDuration: '4s' }} />
-                </button>
-
-                <button
-                    onClick={() => execute('north')}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 transition-all"
-                    title="Reset Compass"
-                >
-                    <Compass className="w-5 h-5" />
-                </button>
+            {/* ── Camera ───────────────────────────────── */}
+            <div className="flex flex-col gap-1.5 border-r border-slate-200 pr-3 shrink-0">
+                <span className="text-[8px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">Camera</span>
+                <Btn onClick={() => execute('bird')} title="Bird's Eye"><Bird className="w-4.5 h-4.5" /></Btn>
+                <Btn onClick={() => execute('3d')} active={is3D} title="3D Perspective"><Box className="w-4.5 h-4.5" /></Btn>
+                <Btn onClick={() => setIsRotating(r => !r)} active={isRotating} title="Orbit"><RefreshCw className={`w-4.5 h-4.5 ${isRotating ? 'animate-spin' : ''}`} style={{ animationDuration: '4s' }} /></Btn>
+                <Btn onClick={() => execute('north')} title="Reset North"><Compass className="w-4.5 h-4.5" /></Btn>
             </div>
 
-            {/* ── Map Styles Matrix ─────────────────────────────── */}
-            <div className="flex flex-col gap-2 border-r border-slate-200 pr-4">
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1 text-center">Style</span>
-
-                {/* Light Minimal */}
-                <button
-                    onClick={() => setMapStyle('mapbox://styles/mapbox/light-v11')}
-                    className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${(mapStyle || '').includes('light')
-                        ? 'bg-purple-100 text-purple-600 shadow-inner border border-purple-200'
-                        : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
-                        }`}
-                    title="Light Minimal"
-                >
-                    <Sun className="w-5 h-5" />
-                </button>
-
-                {/* Outdoors & Terrain */}
-                <button
-                    onClick={() => setMapStyle('mapbox://styles/mapbox/outdoors-v12')}
-                    className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${(mapStyle || '').includes('outdoors')
-                        ? 'bg-purple-100 text-purple-600 shadow-inner border border-purple-200'
-                        : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
-                        }`}
-                    title="Outdoors & Terrain"
-                >
-                    <TreePine className="w-5 h-5" />
-                </button>
-
-                {/* Satellite View */}
-                <button
-                    onClick={() => setMapStyle('mapbox://styles/mapbox/satellite-streets-v12')}
-                    className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${(mapStyle || '').includes('satellite')
-                        ? 'bg-purple-100 text-purple-600 shadow-inner border border-purple-200'
-                        : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
-                        }`}
-                    title="Satellite View"
-                >
-                    <Layers className="w-5 h-5" />
-                </button>
-
-                {/* Standard Streets */}
-                <button
-                    onClick={() => setMapStyle('mapbox://styles/mapbox/streets-v12')}
-                    className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${(mapStyle || '').includes('streets') && !(mapStyle || '').includes('satellite')
-                        ? 'bg-purple-100 text-purple-600 shadow-inner border border-purple-200'
-                        : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
-                        }`}
-                    title="Standard Streets"
-                >
-                    <MapIcon className="w-5 h-5" />
-                </button>
+            {/* ── Style ──────────────────────────────── */}
+            <div className="flex flex-col gap-1.5 border-r border-slate-200 pr-3 shrink-0">
+                <span className="text-[8px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">Style</span>
+                <Btn onClick={() => setMapStyle('mapbox://styles/mapbox/light-v11')} active={(mapStyle || '').includes('light')} title="Light"><Sun className="w-4.5 h-4.5" /></Btn>
+                <Btn onClick={() => setMapStyle('mapbox://styles/mapbox/outdoors-v12')} active={(mapStyle || '').includes('outdoors')} title="Outdoors"><TreePine className="w-4.5 h-4.5" /></Btn>
+                <Btn onClick={() => setMapStyle('mapbox://styles/mapbox/satellite-streets-v12')} active={(mapStyle || '').includes('satellite')} title="Satellite"><Layers className="w-4.5 h-4.5" /></Btn>
+                <Btn onClick={() => setMapStyle('mapbox://styles/mapbox/streets-v12')} active={(mapStyle || '').includes('streets') && !(mapStyle || '').includes('satellite')} title="Streets"><MapIcon className="w-4.5 h-4.5" /></Btn>
             </div>
 
-            {/* ── Tools: Altitude + Export ──────────────────────── */}
-            <div className="flex flex-col gap-2">
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1 text-center">Tools</span>
-
-                <button
-                    onClick={() => execute('zoomIn')}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-slate-200 text-slate-700 transition-all border border-slate-200"
-                    title="Zoom In"
+            {/* ── Tools ──────────────────────────────── */}
+            <div className="flex flex-col gap-1.5 border-r border-slate-200 pr-3 shrink-0">
+                <span className="text-[8px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">Tools</span>
+                <Btn onClick={() => execute('zoomIn')} title="Zoom In"><ZoomIn className="w-4.5 h-4.5" /></Btn>
+                <Btn onClick={() => execute('zoomOut')} title="Zoom Out"><ZoomOut className="w-4.5 h-4.5" /></Btn>
+                <Btn onClick={() => execute('bird')} title="Centre Focus"><Crosshair className="w-4.5 h-4.5" /></Btn>
+                <Btn
+                    onClick={() => {
+                        setIs3DBuildings(prev => {
+                            const next = !prev;
+                            window.dispatchEvent(new CustomEvent('toggle-3d-buildings', { detail: { enabled: next } }));
+                            return next;
+                        });
+                    }}
+                    active={is3DBuildings}
+                    title={is3DBuildings ? 'Hide 3D Buildings' : 'Show 3D Buildings'}
                 >
-                    <ZoomIn className="w-5 h-5" />
-                </button>
-
-                <button
-                    onClick={() => execute('zoomOut')}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-slate-200 text-slate-700 transition-all border border-slate-200"
-                    title="Zoom Out"
-                >
-                    <ZoomOut className="w-5 h-5" />
-                </button>
-
-                {/* Crosshair center focus — re-runs bird's eye to snap back to current position */}
-                <button
-                    onClick={() => execute('bird')}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition-all"
-                    title="Center Focus"
-                >
-                    <Crosshair className="w-5 h-5" />
-                </button>
-
-                {/* Export screenshot */}
+                    <Building2 className="w-4.5 h-4.5" />
+                </Btn>
                 <button
                     onClick={() => execute('export')}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-600 transition-all group mt-auto border border-blue-100"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-600 transition-all group border border-blue-100 shrink-0"
                     title="Export Map as PNG"
                 >
-                    <Camera className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                    <Camera className="w-4.5 h-4.5 group-hover:scale-110 transition-transform" />
                 </button>
             </div>
 
-            {/* ── Lasso Spatial Filter ────────────────────────────────────── */}
-            <div className="flex flex-col gap-2 border-l border-slate-200 pl-4">
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1 text-center">Lasso</span>
-
-                <button
+            {/* ── Lasso ──────────────────────────────── */}
+            <div className="flex flex-col gap-1.5 border-r border-slate-200 pr-3 shrink-0">
+                <span className="text-[8px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">Lasso</span>
+                <Btn
                     onClick={() => {
                         setIsLassoActive(prev => !prev);
                         window.dispatchEvent(new CustomEvent('lasso-toggle'));
                     }}
-                    className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${isLassoActive
-                        ? 'bg-violet-100 text-violet-600 shadow-inner border border-violet-200'
-                        : 'bg-slate-50 hover:bg-violet-50 text-slate-600 hover:text-violet-600'
-                        }`}
+                    active={isLassoActive}
                     title={isLassoActive ? 'Exit lasso mode' : 'Draw lasso selection'}
                 >
-                    <PenTool className="w-5 h-5" />
-                </button>
-
+                    <PenTool className="w-4.5 h-4.5" />
+                </Btn>
                 <button
                     onClick={() => {
                         setIsLassoActive(false);
                         window.dispatchEvent(new CustomEvent('lasso-clear'));
                     }}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-rose-50 text-slate-500 hover:text-rose-500 transition-all"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-rose-50 text-slate-500 hover:text-rose-500 transition-all shrink-0"
                     title="Clear lasso selection"
                 >
-                    <Trash2 className="w-5 h-5" />
+                    <Trash2 className="w-4.5 h-4.5" />
                 </button>
             </div>
 
-            {/* ── Insights: ROI + Timeline ───────────────── */}
-            <div className="flex flex-col gap-2 border-l border-slate-200 pl-4">
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1 text-center">Insights</span>
-
+            {/* ── Insights ───────────────────────────── */}
+            <div className="flex flex-col gap-1.5 shrink-0">
+                <span className="text-[8px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">Insights</span>
                 <button
                     onClick={() => window.dispatchEvent(new CustomEvent('toggle-roi-heatmap'))}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-red-50 text-slate-600 hover:text-red-600 transition-all"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-red-50 text-slate-600 hover:text-red-600 transition-all shrink-0"
                     title="ROI Investment Zones"
                 >
-                    <TrendingUp className="w-5 h-5" />
-                </button>
-
-                <button
-                    onClick={() => window.dispatchEvent(new CustomEvent('toggle-timeline'))}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-violet-50 text-slate-600 hover:text-violet-600 transition-all"
-                    title="Timeline — Historical Satellite Imagery"
-                >
-                    <Clock className="w-5 h-5" />
+                    <TrendingUp className="w-4.5 h-4.5" />
                 </button>
             </div>
         </div>
