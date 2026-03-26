@@ -626,7 +626,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                             <span className="text-[10px] font-black uppercase tracking-widest hidden lg:block">Map</span>
                         </button>
                         {showMap && mapRef && (
-                            <div className="absolute bottom-full mb-3 left-0 z-50">
+                            <div className="absolute bottom-full mb-3 right-0 z-50 max-w-[calc(100vw-2rem)]">
                                 {/* Invisible bridge — keeps hover active across the mb-3 gap */}
                                 <div className="absolute top-full left-0 w-full h-4 bg-transparent" />
                                 <MapCommandCenter
@@ -634,6 +634,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                                     mapStyle={mapStyle}
                                     setMapStyle={setMapStyle || (() => { })}
                                     onClose={() => { setIsMapClicked(false); setIsMapHovered(false); }}
+                                    selectedProject={selectedProject}
                                 />
                             </div>
                         )}
@@ -813,30 +814,6 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                         <MapIcon size={24} strokeWidth={2.5} />
                         <span className="text-[10px] font-bold tracking-wide">Map</span>
                     </button>
-
-                    <button
-                        onClick={() => {
-                            haptic.tap();
-                            if (selectedProject?.latitude && selectedProject?.longitude) {
-                                window.dispatchEvent(new CustomEvent('start-time-machine', {
-                                    detail: {
-                                        lat: Number(selectedProject.latitude),
-                                        lng: Number(selectedProject.longitude),
-                                        name: selectedProject.name,
-                                    }
-                                }));
-                            } else {
-                                // No project — open map controls as fallback
-                                setIsMobileMapOpen(true);
-                            }
-                        }}
-                        aria-label="Launch Time Machine"
-                        className={`touch-feedback flex flex-col items-center gap-0.5 flex-1 py-2 min-h-[48px] transition-colors ${selectedProject ? 'text-indigo-500' : inactiveIconColor}`}
-                        title={selectedProject ? `Time Machine: ${selectedProject.name}` : 'Select a property first'}
-                    >
-                        <Clock size={24} strokeWidth={2.5} />
-                        <span className="text-[10px] font-bold tracking-wide">Time</span>
-                    </button>
                 </div>
             </div>
 
@@ -1006,6 +983,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                                 mapStyle={mapStyle}
                                 setMapStyle={setMapStyle || (() => { })}
                                 onClose={() => { haptic.tap(); setIsMobileMapOpen(false); }}
+                                selectedProject={selectedProject}
                             />
                         </div>
                         <button onClick={() => { haptic.success(); setIsMobileMapOpen(false); }} className="touch-feedback w-full py-5 bg-blue-600 text-white hover:bg-blue-700 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] shadow-xl transition-all">

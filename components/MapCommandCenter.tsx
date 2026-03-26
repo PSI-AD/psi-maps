@@ -1,30 +1,42 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { Layers, Box, Compass, RefreshCw, Bird, Map as MapIcon, Sun, TreePine, ZoomIn, ZoomOut, Crosshair, Camera, PenTool, Trash2, TrendingUp, Building2 } from 'lucide-react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { Layers, Box, Compass, RefreshCw, Bird, Map as MapIcon, Sun, TreePine, ZoomIn, ZoomOut, Crosshair, Camera, PenTool, Trash2, TrendingUp, Building2, Clock } from 'lucide-react';
 
 interface MapCommandCenterProps {
     mapRef: React.MutableRefObject<any>;
     mapStyle: string;
     setMapStyle: (style: string) => void;
     onClose: () => void;
+    selectedProject?: { latitude?: number | string; longitude?: number | string; name?: string } | null;
 }
 
-export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapStyle, setMapStyle, onClose }) => {
+export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapStyle, setMapStyle, onClose, selectedProject }) => {
     const [isRotating, setIsRotating] = useState(false);
     const [is3D, setIs3D] = useState(false);
     const [isLassoActive, setIsLassoActive] = useState(false);
     const [is3DBuildings, setIs3DBuildings] = useState(true);
+    const [mapReady, setMapReady] = useState(false);
     const animationRef = useRef<number | undefined>(undefined);
 
+    // Deferred map readiness check — prevents freeze when the mobile sheet is still animating open
     useEffect(() => {
-        const map = mapRef?.current?.getMap?.();
-        if (!map) {
-            // Map not ready yet — clean up any stale rAF
-            if (animationRef.current !== undefined) {
-                cancelAnimationFrame(animationRef.current);
-                animationRef.current = undefined;
+        let cancelled = false;
+        const check = () => {
+            const map = mapRef?.current?.getMap?.();
+            if (map && !cancelled) {
+                setMapReady(true);
+            } else if (!cancelled) {
+                setTimeout(check, 150);
             }
-            return;
-        }
+        };
+        const timer = setTimeout(check, 100);
+        return () => { cancelled = true; clearTimeout(timer); };
+    }, [mapRef]);
+
+    // Rotation loop — only starts once map is confirmed ready
+    useEffect(() => {
+        if (!mapReady) return;
+        const map = mapRef?.current?.getMap?.();
+        if (!map) return;
 
         if (isRotating) {
             let bearing = 0;
@@ -33,7 +45,7 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
                 try {
                     bearing = (bearing + 0.15) % 360;
                     map.setBearing(bearing);
-                } catch { /* map unmounted */ return; }
+                } catch { return; }
                 animationRef.current = requestAnimationFrame(rotateCamera);
             };
             animationRef.current = requestAnimationFrame(rotateCamera);
@@ -49,10 +61,12 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
                 animationRef.current = undefined;
             }
         };
-    }, [isRotating, mapRef]);
+    }, [isRotating, mapReady]);
+
+    const getMap = useCallback(() => mapRef?.current?.getMap?.(), [mapRef]);
 
     const execute = (action: 'bird' | '3d' | 'north' | 'zoomIn' | 'zoomOut' | 'export') => {
-        const map = mapRef?.current?.getMap?.();
+        const map = getMap();
         if (!map && action !== 'export') return;
 
         setIsRotating(false);
@@ -184,6 +198,33 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
                     title="ROI Investment Zones"
                 >
                     <TrendingUp className="w-4.5 h-4.5" />
+                </button>
+                {/* Time Machine — launches for the selected project or prompts to pick one */}
+                <button
+                    onClick={() => {
+                        const lat = Number(selectedProject?.latitude);
+                        const lng = Number(selectedProject?.longitude);
+                        if (selectedProject && !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+                            window.dispatchEvent(new CustomEvent('start-time-machine', {
+                                detail: { lat, lng, name: selectedProject.name || 'Location' }
+                            }));
+                            onClose();
+                        } else {
+                            // No project selected — fly to map centre and launch with current view
+                            const map = getMap();
+                            if (map) {
+                                const center = map.getCenter();
+                                window.dispatchEvent(new CustomEvent('start-time-machine', {
+                                    detail: { lat: center.lat, lng: center.lng, name: 'Current View' }
+                                }));
+                                onClose();
+                            }
+                        }
+                    }}
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-600 transition-all shrink-0 border border-indigo-100"
+                    title={selectedProject ? `Time Machine: ${selectedProject.name}` : 'Time Machine (current view)'}
+                >
+                    <Clock className="w-4.5 h-4.5" />
                 </button>
             </div>
         </div>
