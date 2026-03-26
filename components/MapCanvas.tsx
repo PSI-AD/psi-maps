@@ -58,8 +58,7 @@ interface MapCanvasProps {
     enableROIHeatmap?: boolean;
     roiZones?: ROIZone[];
     onCloseROIHeatmap?: () => void;
-    /** Time slider: selected year for layer swapping */
-    selectedTimeYear?: number;
+
 }
 
 // 🚨 PERMANENT FIX: Base64 decoded token. Passed only via component prop.
@@ -147,7 +146,6 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
     onLandmarkInfo,
     auditReviewProject,
     enableROIHeatmap = false, roiZones = [], onCloseROIHeatmap,
-    selectedTimeYear,
 }) => {
 
     // Safety check for valid GPS coordinates

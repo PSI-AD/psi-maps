@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Layers, Box, Compass, RefreshCw, Bird, Map as MapIcon, Sun, TreePine, ZoomIn, ZoomOut, Crosshair, Camera, PenTool, Trash2, TrendingUp, Clock, SplitSquareVertical } from 'lucide-react';
+import { Layers, Box, Compass, RefreshCw, Bird, Map as MapIcon, Sun, TreePine, ZoomIn, ZoomOut, Crosshair, Camera, PenTool, Trash2, TrendingUp } from 'lucide-react';
 
 interface MapCommandCenterProps {
     mapRef: React.MutableRefObject<any>;
@@ -231,7 +231,7 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
                 </button>
             </div>
 
-            {/* ── Insights: ROI / Timeline / Compare ───────────────── */}
+            {/* ── Insights: ROI Zones ───────────────── */}
             <div className="flex flex-col gap-2 border-l border-slate-200 pl-4">
                 <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1 text-center">Insights</span>
 
@@ -241,22 +241,6 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
                     title="ROI Investment Zones"
                 >
                     <TrendingUp className="w-5 h-5" />
-                </button>
-
-                <button
-                    onClick={() => window.dispatchEvent(new CustomEvent('toggle-time-slider'))}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-violet-50 text-slate-600 hover:text-violet-600 transition-all"
-                    title="Timeline View"
-                >
-                    <Clock className="w-5 h-5" />
-                </button>
-
-                <button
-                    onClick={() => window.dispatchEvent(new CustomEvent('toggle-before-after'))}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-amber-50 text-slate-600 hover:text-amber-600 transition-all"
-                    title="Before / After Compare"
-                >
-                    <SplitSquareVertical className="w-5 h-5" />
                 </button>
             </div>
         </div>

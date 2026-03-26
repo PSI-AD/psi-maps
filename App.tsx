@@ -32,8 +32,7 @@ const PresentationShowcase = React.lazy(() => import('./components/PresentationS
 const LandmarkInfoModal = React.lazy(() => import('./components/LandmarkInfoModal'));
 const StreetViewPanel = React.lazy(() => import('./components/StreetViewPanel'));
 const ARView = React.lazy(() => import('./components/ARView'));
-const TimeSlider = React.lazy(() => import('./components/TimeSlider'));
-const BeforeAfterSlider = React.lazy(() => import('./components/BeforeAfterSlider'));
+
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from './utils/firebase';
@@ -74,11 +73,8 @@ const AppInner: React.FC = () => {
   const [enableIsochrone, setEnableIsochrone] = useState(false); // Phase 2
   const [enableLasso, setEnableLasso] = useState(false);         // Phase 2
 
-  // ── Phase 1–2: Time-Based Map + ROI Heatmap states ────────────────────────
+  // ── ROI Heatmap state ────────────────────────────────────────────────────
   const [enableROIHeatmap, setEnableROIHeatmap] = useState(false);
-  const [showTimeSlider, setShowTimeSlider] = useState(false);
-  const [selectedTimeYear, setSelectedTimeYear] = useState(2025);
-  const [showBeforeAfter, setShowBeforeAfter] = useState(false);
 
   const [activeBoundary, setActiveBoundary] = useState<any>(null);
 
@@ -98,35 +94,11 @@ const AppInner: React.FC = () => {
     };
   }, []);
 
-  // Listen for Insights CustomEvents dispatched by MapCommandCenter
-  // MUTUAL EXCLUSIVITY: only one Insight can be active at a time
+  // Listen for ROI toggle from MapCommandCenter
   useEffect(() => {
-    const handleROI = () => {
-      setEnableROIHeatmap(prev => {
-        if (!prev) { setShowTimeSlider(false); setShowBeforeAfter(false); }
-        return !prev;
-      });
-    };
-    const handleTimeline = () => {
-      setShowTimeSlider(prev => {
-        if (!prev) { setEnableROIHeatmap(false); setShowBeforeAfter(false); }
-        return !prev;
-      });
-    };
-    const handleCompare = () => {
-      setShowBeforeAfter(prev => {
-        if (!prev) { setEnableROIHeatmap(false); setShowTimeSlider(false); }
-        return !prev;
-      });
-    };
+    const handleROI = () => setEnableROIHeatmap(prev => !prev);
     window.addEventListener('toggle-roi-heatmap', handleROI);
-    window.addEventListener('toggle-time-slider', handleTimeline);
-    window.addEventListener('toggle-before-after', handleCompare);
-    return () => {
-      window.removeEventListener('toggle-roi-heatmap', handleROI);
-      window.removeEventListener('toggle-time-slider', handleTimeline);
-      window.removeEventListener('toggle-before-after', handleCompare);
-    };
+    return () => window.removeEventListener('toggle-roi-heatmap', handleROI);
   }, []);
 
   // ── Restore persisted state (last session) ──────────────────────────────
@@ -708,7 +680,6 @@ const AppInner: React.FC = () => {
           enableROIHeatmap={enableROIHeatmap}
           roiZones={sampleROIZones}
           onCloseROIHeatmap={() => setEnableROIHeatmap(false)}
-          selectedTimeYear={selectedTimeYear}
         />
       </ErrorBoundary>
 
@@ -727,40 +698,6 @@ const AppInner: React.FC = () => {
           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 group-hover:rotate-90 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           <span className="text-xs font-bold uppercase tracking-wider">Exit Route</span>
         </button>
-      )}
-
-      {/* Floating Time Slider Panel — RIGHT side, not center */}
-      {showTimeSlider && (
-        <Suspense fallback={null}>
-          <div className="fixed bottom-20 right-4 z-[6000] w-[260px] lg:w-[280px]">
-            <TimeSlider
-              selectedYear={selectedTimeYear}
-              onYearChange={setSelectedTimeYear}
-              growthData={{
-                2015: 0,
-                2018: 18,
-                2020: 25,
-                2022: 42,
-                2024: 58,
-                2025: 65,
-              }}
-              onClose={() => setShowTimeSlider(false)}
-            />
-          </div>
-        </Suspense>
-      )}
-
-      {/* Floating Before/After Slider — RIGHT side */}
-      {showBeforeAfter && (
-        <Suspense fallback={null}>
-          <div className="fixed bottom-20 right-4 z-[6000] w-[260px] lg:w-[280px]">
-            <BeforeAfterSlider
-              beforeYear={2015}
-              afterYear={2025}
-              onClose={() => setShowBeforeAfter(false)}
-            />
-          </div>
-        </Suspense>
       )}
       {/* Reverse Search: floating nearby projects panel */}
       {selectedLandmarkForSearch && nearbyProjects.length > 0 && (
