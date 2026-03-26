@@ -521,7 +521,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                             return (
                                 <Marker key={`cluster-${cluster.id}`} latitude={latitude} longitude={longitude}>
                                     <div
-                                        className="w-10 h-10 bg-slate-900/90 backdrop-blur border-2 border-white rounded-full flex items-center justify-center text-white font-bold shadow-xl cursor-pointer hover:scale-110 transition-transform"
+                                        className="w-10 h-10 bg-emerald-800/90 backdrop-blur border-2 border-white rounded-full flex items-center justify-center text-white font-bold shadow-xl cursor-pointer hover:scale-110 transition-transform"
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             if (!supercluster) return;
