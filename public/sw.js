@@ -3,7 +3,7 @@
 // Advanced caching strategies, push notifications, background sync, offline
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const CACHE_VERSION = 'psi-maps-v4';
+const CACHE_VERSION = 'psi-maps-v5';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `images-${CACHE_VERSION}`;
@@ -57,12 +57,22 @@ function isAPIRequest(url) {
 
 function isMapTileRequest(url) {
     return url.hostname.includes('tiles.mapbox.com') ||
-        url.hostname.includes('api.mapbox.com') && url.pathname.includes('/styles/');
+        (url.hostname.includes('api.mapbox.com') && url.pathname.includes('/styles/'));
+}
+
+/**
+ * Esri Wayback tiles: fetched by Mapbox GL as opaque WebGL textures.
+ * Their CDN REDIRECT drops CORS headers, so SW fetch() in CORS mode fails.
+ * Must be passed through to the browser's native fetch, not intercepted.
+ */
+function isEsriWaybackTile(url) {
+    return url.hostname.includes('wayback.maptiles.arcgis.com') ||
+        url.hostname.includes('maptiles.arcgis.com');
 }
 
 // ── INSTALL: Pre-cache app shell ─────────────────────────────────────────────
 self.addEventListener('install', (event) => {
-    console.log('[SW] Installing PSI Maps Pro Service Worker v2');
+    console.log('[SW] Installing PSI Maps Pro Service Worker v5');
     event.waitUntil(
         caches.open(STATIC_CACHE)
             .then((cache) => {
@@ -106,6 +116,13 @@ self.addEventListener('fetch', (event) => {
     if (event.request.method !== 'GET') return;
     if (url.protocol === 'chrome-extension:') return;
     if (url.protocol === 'chrome:') return;
+
+    // ── BYPASS: Let sw.js itself always pass through (prevents self-update block) ─
+    if (url.pathname === '/sw.js' || url.pathname.endsWith('/sw.js')) return;
+
+    // ── BYPASS: Esri Wayback tiles — SW fetch() triggers CORS on redirect ────
+    // Mapbox GL fetches these as WebGL textures (no-cors), not through SW
+    if (isEsriWaybackTile(url)) return;
 
     // ── Strategy 1: Stale-While-Revalidate for Map Tiles ────────────────────
     if (isMapTileRequest(url)) {
