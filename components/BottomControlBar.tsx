@@ -106,17 +106,28 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
     const rotationAnimRef = useRef<number | undefined>(undefined);
 
     useEffect(() => {
-        const map = mapRef?.current?.getMap?.();
-        if (!map) {
+        if (!isQuickRotating) {
             if (rotationAnimRef.current !== undefined) {
                 cancelAnimationFrame(rotationAnimRef.current);
                 rotationAnimRef.current = undefined;
             }
             return;
         }
-        if (isQuickRotating) {
+
+        // Retry getting the map — it may still be initializing
+        let retries = 0;
+        const tryStart = () => {
+            const map = mapRef?.current?.getMap?.();
+            if (!map) {
+                if (retries++ < 15) setTimeout(tryStart, 150);
+                return;
+            }
+            // Cancel any previous loop
+            if (rotationAnimRef.current !== undefined) {
+                cancelAnimationFrame(rotationAnimRef.current);
+            }
             let bearing = 0;
-            try { bearing = map.getBearing?.() ?? 0; } catch { bearing = 0; }
+            try { bearing = map.getBearing?.() ?? 0; } catch { /* */ }
             const rotateCamera = () => {
                 try {
                     bearing = (bearing + 0.15) % 360;
@@ -125,17 +136,16 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                 rotationAnimRef.current = requestAnimationFrame(rotateCamera);
             };
             rotationAnimRef.current = requestAnimationFrame(rotateCamera);
-        } else if (rotationAnimRef.current !== undefined) {
-            cancelAnimationFrame(rotationAnimRef.current);
-            rotationAnimRef.current = undefined;
-        }
+        };
+        tryStart();
+
         return () => {
             if (rotationAnimRef.current !== undefined) {
                 cancelAnimationFrame(rotationAnimRef.current);
                 rotationAnimRef.current = undefined;
             }
         };
-    }, [isQuickRotating, mapRef]);
+    }, [isQuickRotating]); // mapRef intentionally omitted — ref objects never change identity
 
     // ── Global tour state — track global + neighborhood separately for proper sync ──
     const [isTourPlaying, setIsTourPlaying] = useState(false);

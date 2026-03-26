@@ -261,10 +261,9 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
             <SkipBack className="w-3 h-3" />
           </button>
 
-          <div className="bg-indigo-600 rounded-lg px-3 py-0.5 min-w-[58px] text-center shrink-0">
+          <div className="bg-indigo-600 rounded-lg px-3 py-0.5 w-[62px] text-center shrink-0">
             <span className="text-sm font-black text-white tracking-tight leading-none">
               {currentYear.year}
-              {isLoadingTile && <span className="ml-1 inline-block w-1 h-1 bg-white/50 rounded-full animate-pulse align-middle" />}
             </span>
           </div>
 

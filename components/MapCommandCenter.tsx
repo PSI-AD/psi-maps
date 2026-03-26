@@ -66,14 +66,26 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
         return () => { cancelled = true; clearTimeout(timer); };
     }, [mapRef]);
 
-    // Rotation loop — runs when isRotating changes; mapReady is pre-checked
+    // Rotation loop with map-ready retry
     useEffect(() => {
-        const map = mapRef?.current?.getMap?.();
-        if (!map) return;
+        if (!isRotating) {
+            if (animationRef.current !== undefined) {
+                cancelAnimationFrame(animationRef.current);
+                animationRef.current = undefined;
+            }
+            return;
+        }
 
-        if (isRotating) {
+        let retries = 0;
+        const tryStart = () => {
+            const map = mapRef?.current?.getMap?.();
+            if (!map) {
+                if (retries++ < 15) setTimeout(tryStart, 150);
+                return;
+            }
+            if (animationRef.current !== undefined) cancelAnimationFrame(animationRef.current);
             let bearing = 0;
-            try { bearing = map.getBearing?.() ?? 0; } catch { bearing = 0; }
+            try { bearing = map.getBearing?.() ?? 0; } catch { /* */ }
             const rotateCamera = () => {
                 try {
                     bearing = (bearing + 0.15) % 360;
@@ -82,19 +94,16 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
                 animationRef.current = requestAnimationFrame(rotateCamera);
             };
             animationRef.current = requestAnimationFrame(rotateCamera);
-        } else {
-            if (animationRef.current !== undefined) {
-                cancelAnimationFrame(animationRef.current);
-                animationRef.current = undefined;
-            }
-        }
+        };
+        tryStart();
+
         return () => {
             if (animationRef.current !== undefined) {
                 cancelAnimationFrame(animationRef.current);
                 animationRef.current = undefined;
             }
         };
-    }, [isRotating]); // intentionally omit mapReady — we only care when toggle changes
+    }, [isRotating]); // mapRef omitted intentionally — ref objects never change identity
 
     const getMap = useCallback(() => mapRef?.current?.getMap?.(), [mapRef]);
 

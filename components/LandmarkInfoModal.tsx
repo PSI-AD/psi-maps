@@ -204,7 +204,7 @@ const LandmarkInfoModal: React.FC<Props> = ({
             <div className={`
                 fixed z-[9999] animate-in fade-in duration-300
                 left-3 right-3 bottom-[calc(env(safe-area-inset-bottom,0px)+115px)]
-                lg:left-auto lg:right-6 lg:bottom-20 lg:w-[420px]
+                lg:right-auto lg:left-6 lg:bottom-20 lg:w-[420px]
                 slide-in-from-bottom-4
             `}>
 
@@ -264,7 +264,7 @@ const LandmarkInfoModal: React.FC<Props> = ({
                                     title="View nearby properties"
                                 >
                                     <Building2 className="w-2.5 h-2.5" />
-                                    <span>{nearbyProjects.length}prop</span>
+                                    <span>Properties</span>
                                 </button>
                             )}
                             <button onClick={onClose}
