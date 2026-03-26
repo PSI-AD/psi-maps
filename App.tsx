@@ -24,6 +24,7 @@ import { loadAppState } from './utils/performanceEngine';
 import { recordRecentView, addSearchEntry } from './utils/localPersistence';
 import { warmUpPreloader, preloadProjectScreen, recordNavigation, preloadPredictedScreens, preloadVisibleProjects } from './utils/predictivePreloader';
 import { AnalyticsEvents, PerfTraces } from './utils/firebasePlatform';
+import { sampleROIZones } from './data/roiZones';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 // ── Lazy-loaded components (only downloaded when user triggers them) ─────────
@@ -31,6 +32,8 @@ const PresentationShowcase = React.lazy(() => import('./components/PresentationS
 const LandmarkInfoModal = React.lazy(() => import('./components/LandmarkInfoModal'));
 const StreetViewPanel = React.lazy(() => import('./components/StreetViewPanel'));
 const ARView = React.lazy(() => import('./components/ARView'));
+const TimeSlider = React.lazy(() => import('./components/TimeSlider'));
+const BeforeAfterSlider = React.lazy(() => import('./components/BeforeAfterSlider'));
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from './utils/firebase';
@@ -70,6 +73,12 @@ const AppInner: React.FC = () => {
   const [enableSunlight, setEnableSunlight] = useState(false);
   const [enableIsochrone, setEnableIsochrone] = useState(false); // Phase 2
   const [enableLasso, setEnableLasso] = useState(false);         // Phase 2
+
+  // ── Phase 1–2: Time-Based Map + ROI Heatmap states ────────────────────────
+  const [enableROIHeatmap, setEnableROIHeatmap] = useState(false);
+  const [showTimeSlider, setShowTimeSlider] = useState(false);
+  const [selectedTimeYear, setSelectedTimeYear] = useState(2025);
+  const [showBeforeAfter, setShowBeforeAfter] = useState(false);
 
   const [activeBoundary, setActiveBoundary] = useState<any>(null);
 
@@ -665,6 +674,10 @@ const AppInner: React.FC = () => {
           setDrawnCoordinates={setDrawnCoordinates}
           onLandmarkInfo={handleLandmarkInfoClick}
           auditReviewProject={showCoordReview ? auditReviewProject : null}
+          enableROIHeatmap={enableROIHeatmap}
+          roiZones={sampleROIZones}
+          onCloseROIHeatmap={() => setEnableROIHeatmap(false)}
+          selectedTimeYear={selectedTimeYear}
         />
       </ErrorBoundary>
 
@@ -683,6 +696,85 @@ const AppInner: React.FC = () => {
           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 group-hover:rotate-90 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           <span className="text-xs font-bold uppercase tracking-wider">Exit Route</span>
         </button>
+      )}
+
+      {/* ═══ Phase 1: Floating Map Controls — Time Slider, Before/After, ROI Toggle ═══ */}
+      <div className="fixed top-20 right-4 z-[5500] flex flex-col gap-2">
+        {/* ROI Heatmap Toggle */}
+        <button
+          onClick={() => setEnableROIHeatmap(!enableROIHeatmap)}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-lg ${
+            enableROIHeatmap
+              ? 'bg-red-500 text-white hover:bg-red-600'
+              : 'bg-slate-900/90 backdrop-blur-lg text-white hover:bg-slate-800 border border-white/10'
+          }`}
+          title="Toggle ROI Heatmap"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M2 12h20"/><path d="m4.93 4.93 14.14 14.14M19.07 4.93 4.93 19.07"/></svg>
+          <span>ROI Zones</span>
+        </button>
+
+        {/* Time Slider Toggle */}
+        <button
+          onClick={() => setShowTimeSlider(!showTimeSlider)}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-lg ${
+            showTimeSlider
+              ? 'bg-violet-600 text-white hover:bg-violet-700'
+              : 'bg-slate-900/90 backdrop-blur-lg text-white hover:bg-slate-800 border border-white/10'
+          }`}
+          title="Time Slider"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span>Timeline</span>
+        </button>
+
+        {/* Before/After Toggle */}
+        <button
+          onClick={() => setShowBeforeAfter(!showBeforeAfter)}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-lg ${
+            showBeforeAfter
+              ? 'bg-amber-500 text-white hover:bg-amber-600'
+              : 'bg-slate-900/90 backdrop-blur-lg text-white hover:bg-slate-800 border border-white/10'
+          }`}
+          title="Before/After Comparison"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+          <span>Compare</span>
+        </button>
+      </div>
+
+      {/* Floating Time Slider Panel */}
+      {showTimeSlider && (
+        <Suspense fallback={null}>
+          <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-[6000] w-[340px] md:w-[420px]">
+            <TimeSlider
+              selectedYear={selectedTimeYear}
+              onYearChange={setSelectedTimeYear}
+              growthData={{
+                2015: 0,
+                2018: 18,
+                2020: 25,
+                2022: 42,
+                2024: 58,
+                2025: 65,
+              }}
+              onClose={() => setShowTimeSlider(false)}
+            />
+          </div>
+        </Suspense>
+      )}
+
+      {/* Floating Before/After Slider */}
+      {showBeforeAfter && (
+        <Suspense fallback={null}>
+          <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-[6000] w-[340px] md:w-[480px]">
+            <BeforeAfterSlider
+              beforeYear={2015}
+              afterYear={2025}
+              onClose={() => setShowBeforeAfter(false)}
+            />
+          </div>
+        </Suspense>
       )}
       {/* Reverse Search: floating nearby projects panel */}
       {selectedLandmarkForSearch && nearbyProjects.length > 0 && (

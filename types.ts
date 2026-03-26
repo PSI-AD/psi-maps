@@ -34,6 +34,83 @@ export interface Project {
   auditDistanceMeters?: number;
   auditMapboxPlaceName?: string;
   auditStatus?: 'pending' | 'approved' | 'rejected';
+  // ── Phase 1–3: Time-Based Map + Advanced Features ─────────────────────────
+  constructionProgress?: ConstructionProgress;
+  walkabilityScore?: WalkabilityScore;
+  viewSimulation?: ViewSimulationEntry[];
+  noiseLevel?: 'Quiet' | 'Moderate' | 'Busy' | 'Noisy';
+  trafficDensity?: number; // 1–10 scale
+  investmentStory?: InvestmentStory;
+}
+
+// ── Construction Progress Tracking ──────────────────────────────────────────
+export interface ConstructionMilestone {
+  label: string;
+  targetDate: string;       // ISO date or "Q# YYYY"
+  completedDate?: string;   // ISO date if completed
+  status: 'completed' | 'in-progress' | 'upcoming' | 'delayed';
+}
+
+export interface MonthlySnapshot {
+  month: string;        // "2024-01", "2025-03"
+  percentComplete: number;
+  imageUrl?: string;
+  notes?: string;
+}
+
+export interface ConstructionProgress {
+  overallPercent: number;
+  milestones: ConstructionMilestone[];
+  monthlySnapshots: MonthlySnapshot[];
+  expectedCompletion: string;
+  isOnSchedule: boolean;
+}
+
+// ── Walkability & Lifestyle Score ───────────────────────────────────────────
+export interface WalkabilityScore {
+  overall: number;    // 0–10
+  schools: number;
+  hospitals: number;
+  dining: number;
+  transit: number;
+  parks: number;
+  shopping: number;
+}
+
+// ── View Simulation ─────────────────────────────────────────────────────────
+export interface ViewSimulationEntry {
+  floor: number;
+  floorLabel: string;            // "Floor 3", "Penthouse"
+  viewType: 'city' | 'sea' | 'garden' | 'skyline' | 'mixed' | 'pool' | 'park';
+  visibility: number;            // 0–100 score
+  premium: string;               // "+5%", "+15%"
+  imageUrl?: string;
+}
+
+// ── Investment Story Mode ───────────────────────────────────────────────────
+export interface InvestmentStoryPhase {
+  year: number;
+  pricePerSqft: number;
+  areaDescription: string;
+  highlights: string[];
+  imageUrl?: string;
+}
+
+export interface InvestmentStory {
+  past: InvestmentStoryPhase;
+  present: InvestmentStoryPhase;
+  future: InvestmentStoryPhase;
+}
+
+// ── ROI / Future Value Zones ────────────────────────────────────────────────
+export interface ROIZone {
+  id: string;
+  name: string;
+  center: [number, number];       // [lng, lat]
+  growthRate: number;             // annual % e.g. 12.5
+  rating: 'Hot' | 'Warm' | 'Emerging' | 'Stable';
+  color: string;                  // hex color
+  radius?: number;                // km
 }
 
 export type LandmarkCategory = 'School' | 'Retail' | 'Culture' | 'Hospital' | 'Hotel' | 'Leisure' | 'Airport' | 'Port';

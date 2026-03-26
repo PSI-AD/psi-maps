@@ -12,6 +12,11 @@ import { getRelatedProjects, getClosestCategorizedAmenities } from '../utils/pro
 import LightboxGallery from './LightboxGallery';
 import { useFavoritesContext } from '../hooks/useFavorites';
 import { recordProjectView } from '../utils/smartCache';
+import WalkabilityRadial from './WalkabilityRadial';
+import ConstructionTimeline from './ConstructionTimeline';
+import ViewSimulator from './ViewSimulator';
+import NoiseTrafficBadge from './NoiseTrafficBadge';
+import InvestmentStoryPanel from './InvestmentStoryPanel';
 
 const DEV_DOMAINS: Record<string, string> = {
   'emaar': 'emaar.com',
@@ -1389,6 +1394,58 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* ═══════════════ PHASE 2–3: Advanced Analysis Sections ═══════════════ */}
+
+          {/* Investment Story Mode — Past / Present / Future */}
+          {project.investmentStory && (
+            <div className="px-6 pt-4">
+              <InvestmentStoryPanel
+                story={project.investmentStory}
+                projectName={project.name}
+              />
+            </div>
+          )}
+
+          {/* Walkability & Lifestyle Score */}
+          {project.walkabilityScore && (
+            <div className="px-6 pt-4">
+              <WalkabilityRadial
+                score={project.walkabilityScore}
+                projectName={project.name}
+              />
+            </div>
+          )}
+
+          {/* Construction Progress Tracking */}
+          {project.constructionProgress && (
+            <div className="px-6 pt-4">
+              <ConstructionTimeline
+                progress={project.constructionProgress}
+                projectName={project.name}
+              />
+            </div>
+          )}
+
+          {/* Floor View Simulator */}
+          {project.viewSimulation && project.viewSimulation.length > 0 && (
+            <div className="px-6 pt-4">
+              <ViewSimulator
+                views={project.viewSimulation}
+                projectName={project.name}
+              />
+            </div>
+          )}
+
+          {/* Noise & Traffic Indicators */}
+          {(project.noiseLevel || project.trafficDensity) && (
+            <div className="px-6 pt-4">
+              <NoiseTrafficBadge
+                noiseLevel={project.noiseLevel}
+                trafficDensity={project.trafficDensity}
+              />
             </div>
           )}
 

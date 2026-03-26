@@ -2,9 +2,10 @@ import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { Map, AttributionControl, Source, Layer, Popup, Marker } from 'react-map-gl';
 import type { CircleLayer, SymbolLayer, FillLayer, LineLayer } from 'react-map-gl';
 import useSupercluster from 'use-supercluster';
-import { Project, Landmark } from '../types';
+import { Project, Landmark, ROIZone } from '../types';
 import DrawControl from './DrawControl';
 import AmenityMarker from './AmenityMarker';
+import ROIHeatmapOverlay from './ROIHeatmapOverlay';
 import { getOptimizedImageUrl } from '../utils/imageHelpers';
 import { MapPin, Crosshair } from 'lucide-react';
 
@@ -53,6 +54,12 @@ interface MapCanvasProps {
     onLandmarkInfo?: (landmark: Landmark) => void;
     /** Project currently being reviewed in the Coordinate Review Tool */
     auditReviewProject?: Project | null;
+    /** ROI Heatmap overlay */
+    enableROIHeatmap?: boolean;
+    roiZones?: ROIZone[];
+    onCloseROIHeatmap?: () => void;
+    /** Time slider: selected year for layer swapping */
+    selectedTimeYear?: number;
 }
 
 // 🚨 PERMANENT FIX: Base64 decoded token. Passed only via component prop.
@@ -139,6 +146,8 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
     isLassoMode = false, drawnCoordinates = [], setDrawnCoordinates,
     onLandmarkInfo,
     auditReviewProject,
+    enableROIHeatmap = false, roiZones = [], onCloseROIHeatmap,
+    selectedTimeYear,
 }) => {
 
     // Safety check for valid GPS coordinates
@@ -749,6 +758,13 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                     </Marker>
                 </>
             )}
+
+            {/* ROI Heatmap Overlay — investment growth zones */}
+            <ROIHeatmapOverlay
+                zones={roiZones}
+                isVisible={enableROIHeatmap}
+                onClose={onCloseROIHeatmap}
+            />
         </Map>
     );
 };
