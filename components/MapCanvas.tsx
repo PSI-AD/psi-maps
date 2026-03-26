@@ -148,6 +148,77 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
     enableROIHeatmap = false, roiZones = [], onCloseROIHeatmap,
 }) => {
 
+    // ── Mobile touch-tap handler — fires immediately on touchend ──────────
+    // Mapbox's built-in click event has a 300ms delay on mobile and often
+    // gets swallowed by drag/pan handlers. This taps into raw touchstart/end
+    // to register quick taps (<300ms, <15px movement) and fires immediately.
+    const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+
+    useEffect(() => {
+        const map = mapRef?.current?.getMap?.();
+        if (!map) return;
+        const canvas = map.getCanvas();
+
+        const onTouchStart = (e: TouchEvent) => {
+            if (e.touches.length !== 1) { touchStartRef.current = null; return; }
+            touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, time: Date.now() };
+        };
+
+        const onTouchEnd = (e: TouchEvent) => {
+            if (!touchStartRef.current) return;
+            if (e.changedTouches.length !== 1) { touchStartRef.current = null; return; }
+            const t = e.changedTouches[0];
+            const dx = Math.abs(t.clientX - touchStartRef.current.x);
+            const dy = Math.abs(t.clientY - touchStartRef.current.y);
+            const dt = Date.now() - touchStartRef.current.time;
+            touchStartRef.current = null;
+
+            // Quick tap: less than 300ms and < 15px movement
+            if (dt > 300 || dx > 15 || dy > 15) return;
+
+            if (isLassoMode) return; // handled separately
+
+            // Convert screen coordinates to map point
+            const rect = canvas.getBoundingClientRect();
+            const point: [number, number] = [t.clientX - rect.left, t.clientY - rect.top];
+
+            // Query with a generous bbox for fat fingers
+            const bbox: [[number, number], [number, number]] = [
+                [point[0] - 20, point[1] - 20],
+                [point[0] + 20, point[1] + 20]
+            ];
+
+            const features = map.queryRenderedFeatures(bbox, {
+                layers: ['unclustered-point', 'unclustered-point-hit', 'clusters', 'cluster-count'].filter(id => {
+                    try { return !!map.getLayer(id); } catch { return false; }
+                })
+            });
+
+            if (features.length > 0) {
+                const feature = features[0];
+                const clusterId = feature.properties?.cluster_id;
+                if (clusterId) {
+                    const source: any = map.getSource('projects');
+                    source?.getClusterExpansionZoom?.(clusterId, (err: any, zoom: number) => {
+                        if (err) return;
+                        map.flyTo({ center: (feature.geometry as any).coordinates, zoom: zoom + 0.5, duration: 1200 });
+                    });
+                } else if (feature.properties?.id) {
+                    onMarkerClick(feature.properties.id);
+                }
+                // Prevent the default click from also firing
+                e.preventDefault();
+            }
+        };
+
+        canvas.addEventListener('touchstart', onTouchStart, { passive: true });
+        canvas.addEventListener('touchend', onTouchEnd, { passive: false });
+        return () => {
+            canvas.removeEventListener('touchstart', onTouchStart);
+            canvas.removeEventListener('touchend', onTouchEnd);
+        };
+    }, [mapRef, isLassoMode, onMarkerClick]);
+
     // Safety check for valid GPS coordinates
     const coordMap = new globalThis.Map<string, number>();
     const validMapProjects = (projects || []).filter(p => {
@@ -323,7 +394,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
         <Map
             {...viewState}
             ref={mapRef}
-            clickTolerance={4}
+            clickTolerance={10}
             doubleClickZoom={true}
             onMove={evt => {
                 setViewState(evt.viewState);
