@@ -739,16 +739,7 @@ const AppInner: React.FC = () => {
           <span className="text-xs font-bold uppercase tracking-wider">Exit Route</span>
         </button>
       )}
-      {/* Reverse Search: floating nearby projects panel */}
-      {selectedLandmarkForSearch && nearbyProjects.length > 0 && (
-        <PropertyResultsList
-          landmark={selectedLandmarkForSearch}
-          projects={nearbyProjects}
-          onClose={() => setSelectedLandmarkForSearch(null)}
-          onHoverProject={setHoveredProjectId}
-          onSelectProject={handleFocusProjectFromReverseSearch}
-        />
-      )}
+      {/* NOTE: PropertyResultsList is now embedded inside LandmarkInfoModal as the 'Properties' flip face */}
       {/* Landmark Info Modal — single-card with neighborhood navigation */}
       {infoLandmark && (
         <Suspense fallback={null}>
@@ -764,6 +755,9 @@ const AppInner: React.FC = () => {
                 handleFlyTo(Number(l.longitude), Number(l.latitude), 15);
               }
             }}
+            nearbyProjects={nearbyProjects}
+            onSelectProject={handleFocusProjectFromReverseSearch}
+            onHoverProject={setHoveredProjectId}
           />
         </Suspense>
       )}
