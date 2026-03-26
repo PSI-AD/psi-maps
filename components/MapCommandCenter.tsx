@@ -17,15 +17,21 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
 
     useEffect(() => {
         const map = mapRef?.current?.getMap?.();
-        const rotateCamera = (timestamp: number) => {
-            if (!map) return;
-            map.rotateTo(360 - (timestamp / 150) % 360, { duration: 0 });
+        if (!map) return;
+        
+        if (isRotating) {
+            let bearing = map.getBearing();
+            const rotateCamera = () => {
+                bearing = (bearing + 0.15) % 360;
+                map.setBearing(bearing);
+                animationRef.current = requestAnimationFrame(rotateCamera);
+            };
             animationRef.current = requestAnimationFrame(rotateCamera);
-        };
-        if (isRotating && map) {
-            animationRef.current = requestAnimationFrame(rotateCamera);
-        } else if (animationRef.current !== undefined) {
-            cancelAnimationFrame(animationRef.current);
+        } else {
+            if (animationRef.current !== undefined) {
+                cancelAnimationFrame(animationRef.current);
+                animationRef.current = undefined;
+            }
         }
         return () => {
             if (animationRef.current !== undefined) cancelAnimationFrame(animationRef.current);
