@@ -850,7 +850,27 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
         >
           {/* Header action bar: Compare · Favourite · Flag · Share · PDF · Close
               z-50 keeps buttons above thumbnails (z-40) and hero image (z-0). */}
-          <div className="absolute top-0 right-0 flex flex-wrap justify-end items-center gap-1 z-50 pointer-events-auto max-w-[70%] md:max-w-none p-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
+          <div className="absolute top-0 right-0 flex flex-wrap justify-end items-center gap-1 z-50 pointer-events-auto max-w-[85%] md:max-w-none p-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
+            {/* Play slideshow — inline with other controls, on the image top bar */}
+            {hasMultipleImages && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setIsPlaying(p => !p); }}
+                aria-label={isPlaying ? 'Pause slideshow' : 'Play slideshow'}
+                className="pointer-events-auto p-2 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md text-white border border-white/20 transition-all flex items-center justify-center w-9 h-9"
+              >
+                {isPlaying ? (
+                  <div className="relative w-full h-full flex items-center justify-center">
+                    <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 36 36">
+                      <circle cx="18" cy="18" r="14" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="2.5" />
+                      <circle cx="18" cy="18" r="14" fill="none" stroke="white" strokeWidth="2.5" strokeDasharray="88" strokeDashoffset={88 - (88 * tick) / MAX_TICKS} strokeLinecap="round" />
+                    </svg>
+                    <Pause className="w-3.5 h-3.5 fill-current relative z-10" />
+                  </div>
+                ) : (
+                  <Play className="w-4 h-4 fill-current ml-0.5" />
+                )}
+              </button>
+            )}
             <button
               onClick={() => handleSaveLocal('compare')}
               className="pointer-events-auto p-2 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md text-white border border-white/20 transition-all"
@@ -910,33 +930,6 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
             onError={(e) => { e.currentTarget.src = '/placeholder-image.png'; }}
           />
 
-          {/* Play/Pause button with circular SVG progress ring */}
-          {hasMultipleImages && (
-            <button
-              onClick={(e) => { e.stopPropagation(); setIsPlaying(p => !p); }}
-              aria-label={isPlaying ? 'Pause slideshow' : 'Play slideshow'}
-              className="absolute top-4 left-4 bg-black/40 hover:bg-black/70 backdrop-blur-md text-white rounded-full transition-all border border-white/20 z-50 pointer-events-auto flex items-center justify-center w-9 h-9"
-            >
-              {isPlaying ? (
-                <div className="relative w-full h-full flex items-center justify-center">
-                  <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 36 36">
-                    <circle cx="18" cy="18" r="14" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="2.5" />
-                    <circle
-                      cx="18" cy="18" r="14"
-                      fill="none" stroke="white" strokeWidth="2.5"
-                      strokeDasharray="88"
-                      strokeDashoffset={88 - (88 * tick) / MAX_TICKS}
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <Pause className="w-3.5 h-3.5 fill-current relative z-10" />
-                </div>
-              ) : (
-                <Play className="w-4 h-4 fill-current ml-0.5" />
-              )}
-            </button>
-          )}
-
           {/* Prev / Next arrows — visible on hover */}
           {hasMultipleImages && (
             <>
@@ -988,20 +981,23 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
           {/* 2. Name → Location → Developer */}
           <div className="sticky top-0 z-20 bg-white px-6 pt-6 pb-5 border-b border-slate-100 shadow-sm" style={{ paddingTop: 'max(env(safe-area-inset-top), 24px)' }}>
 
-            {/* 1. Project Name + Heart */}
+            {/* 1. Project Name + Fly-to-map */}
             <div className="flex items-start gap-2">
               <h1 className="text-[26px] font-black text-slate-900 leading-tight mb-1.5 truncate flex-1">
                 {project.name}
               </h1>
+              {/* Fly-to button — heart is already on the hero image, no need to duplicate */}
               <button
-                onClick={() => favCtx.toggleFavorite(project.id)}
-                className={`shrink-0 mt-1 w-9 h-9 rounded-xl flex items-center justify-center transition-all ${favCtx.isFavorite(project.id)
-                  ? 'bg-rose-100 text-rose-500 shadow-sm'
-                  : 'bg-slate-100 text-slate-400 hover:bg-rose-50 hover:text-rose-400'
-                  }`}
-                title={favCtx.isFavorite(project.id) ? 'Remove from favorites' : 'Add to favorites'}
+                onClick={() => {
+                  const lng = Number(project.longitude);
+                  const lat = Number(project.latitude);
+                  if (!isNaN(lng) && !isNaN(lat)) onFlyTo(lng, lat, 17);
+                }}
+                className="shrink-0 mt-1 w-9 h-9 rounded-xl flex items-center justify-center transition-all bg-blue-50 text-blue-500 hover:bg-blue-100 hover:text-blue-700"
+                title="Show on map"
+                aria-label="Fly to on map"
               >
-                <Heart className={`w-4 h-4 ${favCtx.isFavorite(project.id) ? 'fill-current' : ''}`} />
+                <Navigation className="w-4 h-4" />
               </button>
             </div>
 

@@ -107,18 +107,33 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
 
     useEffect(() => {
         const map = mapRef?.current?.getMap?.();
-        const rotateCamera = (timestamp: number) => {
-            if (!map) return;
-            map.rotateTo(360 - (timestamp / 150) % 360, { duration: 0 });
-            rotationAnimRef.current = requestAnimationFrame(rotateCamera);
-        };
-        if (isQuickRotating && map) {
+        if (!map) {
+            if (rotationAnimRef.current !== undefined) {
+                cancelAnimationFrame(rotationAnimRef.current);
+                rotationAnimRef.current = undefined;
+            }
+            return;
+        }
+        if (isQuickRotating) {
+            let bearing = 0;
+            try { bearing = map.getBearing?.() ?? 0; } catch { bearing = 0; }
+            const rotateCamera = () => {
+                try {
+                    bearing = (bearing + 0.15) % 360;
+                    map.setBearing(bearing);
+                } catch { return; }
+                rotationAnimRef.current = requestAnimationFrame(rotateCamera);
+            };
             rotationAnimRef.current = requestAnimationFrame(rotateCamera);
         } else if (rotationAnimRef.current !== undefined) {
             cancelAnimationFrame(rotationAnimRef.current);
+            rotationAnimRef.current = undefined;
         }
         return () => {
-            if (rotationAnimRef.current !== undefined) cancelAnimationFrame(rotationAnimRef.current);
+            if (rotationAnimRef.current !== undefined) {
+                cancelAnimationFrame(rotationAnimRef.current);
+                rotationAnimRef.current = undefined;
+            }
         };
     }, [isQuickRotating, mapRef]);
 

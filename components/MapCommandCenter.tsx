@@ -17,13 +17,23 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
 
     useEffect(() => {
         const map = mapRef?.current?.getMap?.();
-        if (!map) return;
-        
+        if (!map) {
+            // Map not ready yet — clean up any stale rAF
+            if (animationRef.current !== undefined) {
+                cancelAnimationFrame(animationRef.current);
+                animationRef.current = undefined;
+            }
+            return;
+        }
+
         if (isRotating) {
-            let bearing = map.getBearing();
+            let bearing = 0;
+            try { bearing = map.getBearing?.() ?? 0; } catch { bearing = 0; }
             const rotateCamera = () => {
-                bearing = (bearing + 0.15) % 360;
-                map.setBearing(bearing);
+                try {
+                    bearing = (bearing + 0.15) % 360;
+                    map.setBearing(bearing);
+                } catch { /* map unmounted */ return; }
                 animationRef.current = requestAnimationFrame(rotateCamera);
             };
             animationRef.current = requestAnimationFrame(rotateCamera);
@@ -34,7 +44,10 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
             }
         }
         return () => {
-            if (animationRef.current !== undefined) cancelAnimationFrame(animationRef.current);
+            if (animationRef.current !== undefined) {
+                cancelAnimationFrame(animationRef.current);
+                animationRef.current = undefined;
+            }
         };
     }, [isRotating, mapRef]);
 

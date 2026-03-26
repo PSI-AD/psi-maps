@@ -392,7 +392,7 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                             200, 200
                         )}
                         alt={project.name}
-                        loading={idx < 4 ? 'eager' : 'lazy'}
+                        loading="eager"
                         decoding="async"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
@@ -459,9 +459,9 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
 
     return (
         <div className={`
-            absolute z-[4000] pointer-events-none
-            bottom-[calc(env(safe-area-inset-bottom,0px)+96px)] left-0 w-full
-            lg:bottom-[96px] lg:top-[80px] lg:left-0 lg:w-[360px]
+            absolute z-[4000]
+            bottom-[calc(env(safe-area-inset-bottom,0px)+96px)] left-0 w-full pointer-events-auto
+            lg:bottom-[96px] lg:top-[80px] lg:left-0 lg:w-[360px] lg:pointer-events-none
             flex flex-col
             transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]
             ${(isCollapsed || isAiChatOpen) ? 'lg:-translate-x-full' : 'lg:translate-x-6'}
