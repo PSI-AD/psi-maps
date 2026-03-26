@@ -813,6 +813,30 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                         <MapIcon size={24} strokeWidth={2.5} />
                         <span className="text-[10px] font-bold tracking-wide">Map</span>
                     </button>
+
+                    <button
+                        onClick={() => {
+                            haptic.tap();
+                            if (selectedProject?.latitude && selectedProject?.longitude) {
+                                window.dispatchEvent(new CustomEvent('start-time-machine', {
+                                    detail: {
+                                        lat: Number(selectedProject.latitude),
+                                        lng: Number(selectedProject.longitude),
+                                        name: selectedProject.name,
+                                    }
+                                }));
+                            } else {
+                                // No project — open map controls as fallback
+                                setIsMobileMapOpen(true);
+                            }
+                        }}
+                        aria-label="Launch Time Machine"
+                        className={`touch-feedback flex flex-col items-center gap-0.5 flex-1 py-2 min-h-[48px] transition-colors ${selectedProject ? 'text-indigo-500' : inactiveIconColor}`}
+                        title={selectedProject ? `Time Machine: ${selectedProject.name}` : 'Select a property first'}
+                    >
+                        <Clock size={24} strokeWidth={2.5} />
+                        <span className="text-[10px] font-bold tracking-wide">Time</span>
+                    </button>
                 </div>
             </div>
 

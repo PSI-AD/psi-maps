@@ -3,7 +3,7 @@
 // Advanced caching strategies, push notifications, background sync, offline
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const CACHE_VERSION = 'psi-maps-v2';
+const CACHE_VERSION = 'psi-maps-v3';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `images-${CACHE_VERSION}`;
@@ -131,9 +131,9 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // ── Strategy 5: Cache-First for static assets (JS/CSS) ─────────────────
+    // ── Strategy 5: Network-First for JS/CSS (hashed filenames change every deploy) ─
     if (isStaticAsset(url)) {
-        event.respondWith(cacheFirst(event.request, STATIC_CACHE));
+        event.respondWith(networkFirst(event.request, STATIC_CACHE));
         return;
     }
 
