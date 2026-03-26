@@ -98,6 +98,21 @@ const AppInner: React.FC = () => {
     };
   }, []);
 
+  // Listen for Insights CustomEvents dispatched by MapCommandCenter
+  useEffect(() => {
+    const handleROI = () => setEnableROIHeatmap(prev => !prev);
+    const handleTimeline = () => setShowTimeSlider(prev => !prev);
+    const handleCompare = () => setShowBeforeAfter(prev => !prev);
+    window.addEventListener('toggle-roi-heatmap', handleROI);
+    window.addEventListener('toggle-time-slider', handleTimeline);
+    window.addEventListener('toggle-before-after', handleCompare);
+    return () => {
+      window.removeEventListener('toggle-roi-heatmap', handleROI);
+      window.removeEventListener('toggle-time-slider', handleTimeline);
+      window.removeEventListener('toggle-before-after', handleCompare);
+    };
+  }, []);
+
   // ── Restore persisted state (last session) ──────────────────────────────
   useEffect(() => {
     const saved = loadAppState();
@@ -698,55 +713,10 @@ const AppInner: React.FC = () => {
         </button>
       )}
 
-      {/* ═══ Phase 1: Floating Map Controls — Time Slider, Before/After, ROI Toggle ═══ */}
-      <div className="fixed top-20 right-4 z-[5500] flex flex-col gap-2">
-        {/* ROI Heatmap Toggle */}
-        <button
-          onClick={() => setEnableROIHeatmap(!enableROIHeatmap)}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-lg ${
-            enableROIHeatmap
-              ? 'bg-red-500 text-white hover:bg-red-600'
-              : 'bg-slate-900/90 backdrop-blur-lg text-white hover:bg-slate-800 border border-white/10'
-          }`}
-          title="Toggle ROI Heatmap"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M2 12h20"/><path d="m4.93 4.93 14.14 14.14M19.07 4.93 4.93 19.07"/></svg>
-          <span>ROI Zones</span>
-        </button>
-
-        {/* Time Slider Toggle */}
-        <button
-          onClick={() => setShowTimeSlider(!showTimeSlider)}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-lg ${
-            showTimeSlider
-              ? 'bg-violet-600 text-white hover:bg-violet-700'
-              : 'bg-slate-900/90 backdrop-blur-lg text-white hover:bg-slate-800 border border-white/10'
-          }`}
-          title="Time Slider"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          <span>Timeline</span>
-        </button>
-
-        {/* Before/After Toggle */}
-        <button
-          onClick={() => setShowBeforeAfter(!showBeforeAfter)}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-lg ${
-            showBeforeAfter
-              ? 'bg-amber-500 text-white hover:bg-amber-600'
-              : 'bg-slate-900/90 backdrop-blur-lg text-white hover:bg-slate-800 border border-white/10'
-          }`}
-          title="Before/After Comparison"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
-          <span>Compare</span>
-        </button>
-      </div>
-
-      {/* Floating Time Slider Panel */}
+      {/* Floating Time Slider Panel — RIGHT side, not center */}
       {showTimeSlider && (
         <Suspense fallback={null}>
-          <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-[6000] w-[340px] md:w-[420px]">
+          <div className="fixed bottom-20 right-4 z-[6000] w-[260px] lg:w-[280px]">
             <TimeSlider
               selectedYear={selectedTimeYear}
               onYearChange={setSelectedTimeYear}
@@ -764,10 +734,10 @@ const AppInner: React.FC = () => {
         </Suspense>
       )}
 
-      {/* Floating Before/After Slider */}
+      {/* Floating Before/After Slider — RIGHT side */}
       {showBeforeAfter && (
         <Suspense fallback={null}>
-          <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-[6000] w-[340px] md:w-[480px]">
+          <div className="fixed bottom-20 right-4 z-[6000] w-[260px] lg:w-[280px]">
             <BeforeAfterSlider
               beforeYear={2015}
               afterYear={2025}
