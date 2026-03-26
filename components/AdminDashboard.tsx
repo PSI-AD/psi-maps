@@ -1068,6 +1068,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                             <th className="px-5 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Source</th>
                             <th className="px-5 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Date</th>
                             <th className="px-5 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Status</th>
+                            <th className="px-5 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Actions</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
@@ -1140,12 +1141,29 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
                                     {lead.status || 'new'}
                                   </span>
                                 </td>
+                                <td className="px-5 py-4 text-right">
+                                  <button
+                                    onClick={async () => {
+                                      if (window.confirm('Permanently delete this lead?')) {
+                                        try {
+                                          await deleteDoc(doc(db, 'leads', lead.id));
+                                        } catch (e) {
+                                          console.error('Error deleting lead:', e);
+                                        }
+                                      }
+                                    }}
+                                    className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
+                                    title="Delete lead"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </td>
                               </tr>
                             );
                           })}
                           {filteredLeads.length === 0 && (
                             <tr>
-                              <td colSpan={8} className="px-6 py-16 text-center">
+                              <td colSpan={9} className="px-6 py-16 text-center">
                                 <div className="text-slate-400 font-medium">No leads match the current filters.</div>
                                 <div className="text-slate-300 text-sm mt-1">Leads will appear here when users submit forms on the map.</div>
                               </td>

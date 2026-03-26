@@ -99,10 +99,26 @@ const AppInner: React.FC = () => {
   }, []);
 
   // Listen for Insights CustomEvents dispatched by MapCommandCenter
+  // MUTUAL EXCLUSIVITY: only one Insight can be active at a time
   useEffect(() => {
-    const handleROI = () => setEnableROIHeatmap(prev => !prev);
-    const handleTimeline = () => setShowTimeSlider(prev => !prev);
-    const handleCompare = () => setShowBeforeAfter(prev => !prev);
+    const handleROI = () => {
+      setEnableROIHeatmap(prev => {
+        if (!prev) { setShowTimeSlider(false); setShowBeforeAfter(false); }
+        return !prev;
+      });
+    };
+    const handleTimeline = () => {
+      setShowTimeSlider(prev => {
+        if (!prev) { setEnableROIHeatmap(false); setShowBeforeAfter(false); }
+        return !prev;
+      });
+    };
+    const handleCompare = () => {
+      setShowBeforeAfter(prev => {
+        if (!prev) { setEnableROIHeatmap(false); setShowTimeSlider(false); }
+        return !prev;
+      });
+    };
     window.addEventListener('toggle-roi-heatmap', handleROI);
     window.addEventListener('toggle-time-slider', handleTimeline);
     window.addEventListener('toggle-before-after', handleCompare);

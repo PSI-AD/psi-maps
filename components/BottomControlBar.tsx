@@ -941,7 +941,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
-                        <div className="w-full max-h-[60vh] overflow-y-auto hide-scrollbar native-scroll">
+                        <div className="w-full overflow-x-auto overflow-y-auto hide-scrollbar native-scroll">
                             <MapCommandCenter
                                 mapRef={mapRef}
                                 mapStyle={mapStyle}

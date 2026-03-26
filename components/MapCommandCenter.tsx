@@ -68,7 +68,7 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
     };
 
     return (
-        <div className="bg-white/95 backdrop-blur-xl border border-slate-200 shadow-2xl rounded-2xl p-4 flex gap-4 animate-in slide-in-from-bottom-2 duration-200 origin-bottom-left text-slate-700">
+        <div className="bg-white/95 backdrop-blur-xl border border-slate-200 shadow-2xl rounded-2xl p-4 flex flex-wrap gap-4 animate-in slide-in-from-bottom-2 duration-200 origin-bottom-left text-slate-700 max-w-full overflow-x-auto">
 
             {/* ── Camera Controls ──────────────────────────────── */}
             <div className="flex flex-col gap-2 border-r border-slate-200 pr-4">
