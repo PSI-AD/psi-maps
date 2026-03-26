@@ -740,12 +740,21 @@ const AppInner: React.FC = () => {
           onSelectProject={handleFocusProjectFromReverseSearch}
         />
       )}
-      {/* Landmark 3D Info Modal */}
+      {/* Landmark Info Modal — single-card with neighborhood navigation */}
       {infoLandmark && (
         <Suspense fallback={null}>
           <LandmarkInfoModal
             landmark={infoLandmark}
+            allLandmarks={liveLandmarks}
             onClose={() => setInfoLandmark(null)}
+            onNavigate={(l) => {
+              setInfoLandmark(l);
+              setSelectedLandmarkId(l.id);
+              setSelectedLandmarkForSearch(l as Landmark);
+              if (l.latitude && l.longitude && !isNaN(Number(l.latitude)) && !isNaN(Number(l.longitude))) {
+                handleFlyTo(Number(l.longitude), Number(l.latitude), 15);
+              }
+            }}
           />
         </Suspense>
       )}
