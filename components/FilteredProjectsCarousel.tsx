@@ -366,32 +366,13 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                 key={project.id}
                 ref={el => {
                     itemRefs.current[project.id] = el;
-                    // Proximity-based preloading — preload when card enters viewport
                     if (el) getProximityRef(project.id, (project as any).thumbnailUrl)(el);
                 }}
                 onClick={() => onSelectProject(project)}
                 onMouseEnter={preloadHandlers.onMouseEnter}
                 onMouseLeave={preloadHandlers.onMouseLeave}
-                onTouchStart={(e) => {
-                    const t = e.touches[0];
-                    touchStartRef.current = { x: t.clientX, y: t.clientY };
-                    // Predictive preload: start loading sidebar data on touch-down
-                    preloadHandlers.onTouchStart();
-                }}
-                onTouchEnd={(e) => {
-                    if (!touchStartRef.current) return;
-                    const t = e.changedTouches[0];
-                    const dx = Math.abs(t.clientX - touchStartRef.current.x);
-                    const dy = Math.abs(t.clientY - touchStartRef.current.y);
-                    // Only fire if movement < 10px (a real tap, not a scroll)
-                    if (dx < 10 && dy < 10) {
-                        e.preventDefault();
-                        onSelectProject(project);
-                    }
-                    touchStartRef.current = null;
-                }}
                 className={`
-                    shrink-0 w-[82vw] sm:w-[300px] snap-center
+                    shrink-0 w-[82vw] sm:w-[300px] snap-center pointer-events-auto
                     lg:w-full lg:shrink-0 lg:rounded-none
                     ${idx === 0 ? '' : 'lg:border-t lg:border-slate-100'}
                     bg-white rounded-2xl p-3 flex gap-3 cursor-pointer
@@ -411,7 +392,7 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                             200, 200
                         )}
                         alt={project.name}
-                        loading={idx < 6 ? 'eager' : 'lazy'}
+                        loading="eager"
                         decoding="async"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
@@ -479,7 +460,7 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
     return (
         <div className={`
             absolute z-[4000] pointer-events-none
-            bottom-[calc(env(safe-area-inset-bottom,0px)+72px)] left-0 w-full
+            bottom-[calc(env(safe-area-inset-bottom,0px)+96px)] left-0 w-full
             lg:bottom-[96px] lg:top-[80px] lg:left-0 lg:w-[360px]
             flex flex-col
             transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]

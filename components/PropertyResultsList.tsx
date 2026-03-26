@@ -57,9 +57,9 @@ const PropertyResultsList: React.FC<PropertyResultsListProps> = ({
         */
         <div className={`
             fixed z-[5500] animate-in fade-in duration-300
-            left-3 right-3 bottom-[calc(env(safe-area-inset-bottom,0px)+80px)]
+            left-3 right-3 top-[100px] bottom-auto
             lg:left-auto lg:right-6 lg:top-6 lg:bottom-auto lg:w-[340px]
-            slide-in-from-right-4
+            slide-in-from-top-4 lg:slide-in-from-right-4
             bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-100 overflow-hidden
         `}>
             {/* Header */}

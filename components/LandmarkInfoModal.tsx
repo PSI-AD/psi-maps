@@ -227,7 +227,7 @@ const LandmarkInfoModal: React.FC<Props> = ({ landmark, allLandmarks, onClose, o
             */}
             <div className={`
                 fixed z-[9999] animate-in fade-in duration-300
-                left-3 right-3 bottom-[calc(env(safe-area-inset-bottom,0px)+80px)]
+                left-3 right-3 bottom-[calc(env(safe-area-inset-bottom,0px)+115px)]
                 lg:left-auto lg:right-6 lg:bottom-20 lg:w-[420px]
                 slide-in-from-bottom-4
             `}>
