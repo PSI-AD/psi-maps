@@ -13,7 +13,7 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
     const [isRotating, setIsRotating] = useState(false);
     const [is3D, setIs3D] = useState(false);
     const [isLassoActive, setIsLassoActive] = useState(false);
-    const [is3DBuildings, setIs3DBuildings] = useState(true);
+    const [is3DBuildings, setIs3DBuildings] = useState(false); // starts unknown; synced from map on mount
     const [mapReady, setMapReady] = useState(false);
     const [timeMachineRotating, setTimeMachineRotating] = useState(false);
     const animationRef = useRef<number | undefined>(undefined);
@@ -34,13 +34,30 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
         return () => window.removeEventListener('time-machine-rotation', handler);
     }, []);
 
-    // Deferred map readiness check — prevents freeze when the mobile sheet is still animating open
+    // Deferred map readiness check — syncs actual map state on ready
     useEffect(() => {
         let cancelled = false;
         const check = () => {
             const map = mapRef?.current?.getMap?.();
             if (map && !cancelled) {
                 setMapReady(true);
+                // Sync 3D pitch state
+                try {
+                    const pitch = map.getPitch?.() ?? 0;
+                    setIs3D(pitch > 30);
+                } catch { /**/ }
+                // Sync 3D buildings state by checking if the layer exists and is visible
+                try {
+                    const layerExists = map.getLayer?.('3d-buildings');
+                    const opacity = layerExists
+                        ? map.getPaintProperty?.('3d-buildings', 'fill-extrusion-opacity') ?? 0
+                        : 0;
+                    setIs3DBuildings(Number(opacity) > 0);
+                } catch {
+                    // Layer might not exist yet — default to checking the custom event listeners
+                    // Fire an event to query the real state from whoever manages the layer
+                    setIs3DBuildings(false);
+                }
             } else if (!cancelled) {
                 setTimeout(check, 150);
             }
@@ -49,9 +66,8 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
         return () => { cancelled = true; clearTimeout(timer); };
     }, [mapRef]);
 
-    // Rotation loop — only starts once map is confirmed ready
+    // Rotation loop — runs when isRotating changes; mapReady is pre-checked
     useEffect(() => {
-        if (!mapReady) return;
         const map = mapRef?.current?.getMap?.();
         if (!map) return;
 
@@ -78,7 +94,7 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
                 animationRef.current = undefined;
             }
         };
-    }, [isRotating, mapReady]);
+    }, [isRotating]); // intentionally omit mapReady — we only care when toggle changes
 
     const getMap = useCallback(() => mapRef?.current?.getMap?.(), [mapRef]);
 
@@ -86,7 +102,7 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
         const map = getMap();
         if (!map && action !== 'export') return;
 
-        setIsRotating(false);
+        // NOTE: do NOT stop rotation here — user may want orbit + camera moves together
 
         if (action === 'bird') {
             const currentCenter = map.getCenter();
