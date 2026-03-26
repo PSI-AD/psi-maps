@@ -15,7 +15,24 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
     const [isLassoActive, setIsLassoActive] = useState(false);
     const [is3DBuildings, setIs3DBuildings] = useState(true);
     const [mapReady, setMapReady] = useState(false);
+    const [timeMachineRotating, setTimeMachineRotating] = useState(false);
     const animationRef = useRef<number | undefined>(undefined);
+
+    // Listen for Time Machine rotation events
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const active = (e as CustomEvent).detail?.active ?? false;
+            setTimeMachineRotating(active);
+            // If Time Machine is taking over rotation, stop our own rAF
+            if (active && animationRef.current !== undefined) {
+                cancelAnimationFrame(animationRef.current);
+                animationRef.current = undefined;
+                setIsRotating(false);
+            }
+        };
+        window.addEventListener('time-machine-rotation', handler);
+        return () => window.removeEventListener('time-machine-rotation', handler);
+    }, []);
 
     // Deferred map readiness check — prevents freeze when the mobile sheet is still animating open
     useEffect(() => {
@@ -123,7 +140,7 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
                 <span className="text-[8px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">Camera</span>
                 <Btn onClick={() => execute('bird')} title="Bird's Eye"><Bird className="w-4.5 h-4.5" /></Btn>
                 <Btn onClick={() => execute('3d')} active={is3D} title="3D Perspective"><Box className="w-4.5 h-4.5" /></Btn>
-                <Btn onClick={() => setIsRotating(r => !r)} active={isRotating} title="Orbit"><RefreshCw className={`w-4.5 h-4.5 ${isRotating ? 'animate-spin' : ''}`} style={{ animationDuration: '4s' }} /></Btn>
+                <Btn onClick={() => setIsRotating(r => !r)} active={isRotating || timeMachineRotating} title="Orbit"><RefreshCw className={`w-4.5 h-4.5 ${(isRotating || timeMachineRotating) ? 'animate-spin' : ''}`} style={{ animationDuration: '4s' }} /></Btn>
                 <Btn onClick={() => execute('north')} title="Reset North"><Compass className="w-4.5 h-4.5" /></Btn>
             </div>
 
