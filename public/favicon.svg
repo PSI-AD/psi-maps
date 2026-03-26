@@ -1,4 +1,16 @@
 <svg viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M50 115C50 115 92 72 92 46C92 22.804 73.196 4 50 4C26.804 4 8 22.804 8 46C8 72 50 115 50 115Z" fill="#2563EB" stroke="#1D4ED8" stroke-width="2.5" />
-  <text x="50" y="58" fill="#FFFFFF" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="28" text-anchor="middle" letter-spacing="-1">PSI</text>
+  <defs>
+    <linearGradient id="bg" x1="50" y1="0" x2="50" y2="120" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1e3a5f"/>
+      <stop offset="1" stop-color="#0f1b33"/>
+    </linearGradient>
+    <filter id="shadow" x="-4" y="-2" width="108" height="128">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  <rect width="100" height="120" rx="16" fill="url(#bg)"/>
+  <path d="M50 108C50 108 88 68 88 44C88 23.013 71.987 6 50 6C28.013 6 12 23.013 12 44C12 68 50 108 50 108Z" fill="white" filter="url(#shadow)"/>
+  <circle cx="50" cy="44" r="24" fill="url(#bg)"/>
+  <text x="50" y="50" fill="#FFFFFF" font-family="Georgia, 'Times New Roman', serif" font-weight="700" font-size="22" text-anchor="middle" letter-spacing="-0.5">PSI</text>
+  <circle cx="50" cy="60" r="2.5" fill="#e07930"/>
 </svg>
