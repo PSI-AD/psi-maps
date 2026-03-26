@@ -10,7 +10,8 @@ interface TimeMachineProps {
   onClose: () => void;
 }
 
-// Tile-ready checker — resolves when the first visible tile for this year/zoom loads
+// Tile-ready checker — resolves when the primary tile for this year/zoom loads
+// NOTE: No crossOrigin — Esri wayback redirects drop CORS headers, causing block
 function preloadTileAndWait(tileUrl: string, z: number, lat: number, lng: number): Promise<void> {
   return new Promise(resolve => {
     const n = Math.pow(2, z);
@@ -18,8 +19,7 @@ function preloadTileAndWait(tileUrl: string, z: number, lat: number, lng: number
     const latRad = (lat * Math.PI) / 180;
     const y = Math.floor(((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n);
     const url = tileUrl.replace('{z}', String(z)).replace('{y}', String(y)).replace('{x}', String(x));
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
+    const img = new Image(); // no crossOrigin — avoids CORS preflight on Esri redirect
     img.onload = () => resolve();
     img.onerror = () => resolve(); // resolve anyway — don't block on failure
     img.src = url;
@@ -28,16 +28,15 @@ function preloadTileAndWait(tileUrl: string, z: number, lat: number, lng: number
   });
 }
 
-// Preload surrounding tiles for a year (fire-and-forget)
+// Preload surrounding tiles (fire-and-forget, no CORS mode)
 function preloadSurroundingTiles(tileUrl: string, z: number, lat: number, lng: number) {
   const n = Math.pow(2, z);
   const x = Math.floor(((lng + 180) / 360) * n);
   const latRad = (lat * Math.PI) / 180;
   const y = Math.floor(((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n);
-  for (let dx = -2; dx <= 2; dx++) {
-    for (let dy = -2; dy <= 2; dy++) {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
+  for (let dx = -1; dx <= 1; dx++) {
+    for (let dy = -1; dy <= 1; dy++) {
+      const img = new Image(); // no crossOrigin — avoids CORS preflight
       img.src = tileUrl.replace('{z}', String(z)).replace('{y}', String(y + dy)).replace('{x}', String(x + dx));
     }
   }
@@ -96,14 +95,27 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
   const applyYear = useCallback((yearEntry: WaybackYear, animate = true) => {
     const map = mapRef.current?.getMap?.();
     if (!map) return;
+    // Wait until the style is fully loaded before touching sources/layers
+    if (!map.isStyleLoaded()) {
+      map.once('style.load', () => applyYear(yearEntry, animate));
+      return;
+    }
     if (fadeTimerRef.current) { clearInterval(fadeTimerRef.current); fadeTimerRef.current = null; }
     const NEXT_ID = 'wayback-next', CURRENT_ID = 'wayback-current';
-    try { if (map.getLayer(NEXT_ID)) map.removeLayer(NEXT_ID); if (map.getSource(NEXT_ID)) map.removeSource(NEXT_ID); } catch { /**/ }
-    map.addSource(NEXT_ID, { type: 'raster', tiles: [yearEntry.tileUrl], tileSize: 256 });
-    const firstSymbol = map.getStyle()?.layers?.find((l: any) => l.type === 'symbol');
-    map.addLayer({ id: NEXT_ID, type: 'raster', source: NEXT_ID, paint: { 'raster-opacity': 0 } }, firstSymbol?.id);
+    try {
+      if (map.getLayer(NEXT_ID)) map.removeLayer(NEXT_ID);
+      if (map.getSource(NEXT_ID)) map.removeSource(NEXT_ID);
+    } catch { /**/ }
+    try {
+      map.addSource(NEXT_ID, { type: 'raster', tiles: [yearEntry.tileUrl], tileSize: 256 });
+      const firstSymbol = map.getStyle()?.layers?.find((l: any) => l.type === 'symbol');
+      map.addLayer({ id: NEXT_ID, type: 'raster', source: NEXT_ID, paint: { 'raster-opacity': 0 } }, firstSymbol?.id);
+    } catch (err) {
+      console.warn('[TimeMachine] addSource/addLayer failed:', err);
+      return;
+    }
     if (!animate) {
-      map.setPaintProperty(NEXT_ID, 'raster-opacity', 1);
+      try { map.setPaintProperty(NEXT_ID, 'raster-opacity', 1); } catch { /**/ }
       try { if (map.getLayer(CURRENT_ID)) map.removeLayer(CURRENT_ID); if (map.getSource(CURRENT_ID)) map.removeSource(CURRENT_ID); } catch { /**/ }
       return;
     }
