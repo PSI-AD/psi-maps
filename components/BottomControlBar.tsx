@@ -531,7 +531,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                                     <p className="text-[9px] font-bold text-blue-400 uppercase tracking-[0.2em]">Explore Around</p>
                                     <h4 className="text-sm font-black text-white truncate mt-0.5">{selectedProject.name}</h4>
                                 </div>
-                                <div className="p-2 space-y-1 max-h-[320px] overflow-y-auto">
+                                <div className="p-2 space-y-1 max-h-[calc(100vh-140px)] overflow-y-auto">
                                     {unifiedTourOptions.map((opt, i) => (
                                         <button
                                             key={i}
