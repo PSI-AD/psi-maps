@@ -32,6 +32,7 @@ const PresentationShowcase = React.lazy(() => import('./components/PresentationS
 const LandmarkInfoModal = React.lazy(() => import('./components/LandmarkInfoModal'));
 const StreetViewPanel = React.lazy(() => import('./components/StreetViewPanel'));
 const ARView = React.lazy(() => import('./components/ARView'));
+const TimelineBar = React.lazy(() => import('./components/TimeSlider'));
 
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -73,8 +74,9 @@ const AppInner: React.FC = () => {
   const [enableIsochrone, setEnableIsochrone] = useState(false); // Phase 2
   const [enableLasso, setEnableLasso] = useState(false);         // Phase 2
 
-  // ── ROI Heatmap state ────────────────────────────────────────────────────
+  // ── ROI Heatmap + Timeline states ──────────────────────────────────────────
   const [enableROIHeatmap, setEnableROIHeatmap] = useState(false);
+  const [showTimeline, setShowTimeline] = useState(false);
 
   const [activeBoundary, setActiveBoundary] = useState<any>(null);
 
@@ -94,11 +96,27 @@ const AppInner: React.FC = () => {
     };
   }, []);
 
-  // Listen for ROI toggle from MapCommandCenter
+  // Listen for ROI + Timeline toggles from MapCommandCenter
+  // Mutual exclusivity: ROI and Timeline cancel each other
   useEffect(() => {
-    const handleROI = () => setEnableROIHeatmap(prev => !prev);
+    const handleROI = () => {
+      setEnableROIHeatmap(prev => {
+        if (!prev) setShowTimeline(false); // close timeline when opening ROI
+        return !prev;
+      });
+    };
+    const handleTimeline = () => {
+      setShowTimeline(prev => {
+        if (!prev) setEnableROIHeatmap(false); // close ROI when opening timeline
+        return !prev;
+      });
+    };
     window.addEventListener('toggle-roi-heatmap', handleROI);
-    return () => window.removeEventListener('toggle-roi-heatmap', handleROI);
+    window.addEventListener('toggle-timeline', handleTimeline);
+    return () => {
+      window.removeEventListener('toggle-roi-heatmap', handleROI);
+      window.removeEventListener('toggle-timeline', handleTimeline);
+    };
   }, []);
 
   // ── Restore persisted state (last session) ──────────────────────────────
@@ -727,6 +745,16 @@ const AppInner: React.FC = () => {
             lng={streetViewData.lng}
             projectName={streetViewData.name}
             onClose={() => setStreetViewData(null)}
+          />
+        </Suspense>
+      )}
+
+      {/* Timeline Bar — Esri Wayback historical satellite imagery */}
+      {showTimeline && (
+        <Suspense fallback={null}>
+          <TimelineBar
+            mapRef={mapRef}
+            onClose={() => setShowTimeline(false)}
           />
         </Suspense>
       )}
