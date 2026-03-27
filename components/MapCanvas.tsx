@@ -147,6 +147,8 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
     auditReviewProject,
     enableROIHeatmap = false, roiZones = [], onCloseROIHeatmap,
 }) => {
+    // Stable ref — avoids creating a new Map() on every render
+    const coordMapRef = useRef<Map<string, number>>(new globalThis.Map<string, number>());
 
     // ── Mobile touch-tap handler — fires immediately on touchend ──────────
     // Mapbox's built-in click event has a 300ms delay on mobile and often
@@ -219,8 +221,8 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
         };
     }, [mapRef, isLassoMode, onMarkerClick]);
 
-    // Safety check for valid GPS coordinates
-    const coordMap = new globalThis.Map<string, number>();
+    // Safety check for valid GPS coordinates — stable coordMap via ref (not re-created each render)
+    coordMapRef.current.clear();
     const validMapProjects = (projects || []).filter(p => {
         if (!p) return false;
         const lat = Number(p.latitude);
@@ -231,8 +233,8 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
         let lng = Number(p.longitude);
         // Group pins that are virtually on top of each other
         const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
-        const count = coordMap.get(key) || 0;
-        coordMap.set(key, count + 1);
+        const count = coordMapRef.current.get(key) || 0;
+        coordMapRef.current.set(key, count + 1);
 
         if (count > 0) {
             // Spiral offset math
@@ -283,11 +285,13 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
             },
         })), [filteredAmenities]);
 
+    // Adaptive radius: tighter at high zoom (detail), looser at low zoom (performance)
+    const clusterRadius = viewState.zoom > 12 ? 60 : viewState.zoom > 8 ? 80 : 120;
     const { clusters, supercluster } = useSupercluster({
         points,
         bounds,
         zoom: viewState.zoom,
-        options: { radius: 100, maxZoom: 14 }
+        options: { radius: clusterRadius, maxZoom: 14 }
     });
 
 
@@ -395,7 +399,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
         <Map
             {...viewState}
             ref={mapRef}
-            clickTolerance={10}
+            clickTolerance={20} /* 20px = fat-finger friendly on touch (was 10) */
             doubleClickZoom={true}
             onMove={evt => {
                 setViewState(evt.viewState);

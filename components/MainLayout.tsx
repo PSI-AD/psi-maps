@@ -237,9 +237,21 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
       setSidebarMounted(true);
       // Trigger enter animation on next frame
       requestAnimationFrame(() => requestAnimationFrame(() => setSidebarVisible(true)));
+      // On desktop split layout: resize map after sidebar slides in (220ms transition)
+      if (window.innerWidth >= 1024) {
+        setTimeout(() => {
+          try { props.mapRef?.current?.getMap?.()?.resize(); } catch { /* */ }
+        }, 220);
+      }
     } else if (sidebarVisible) {
       setSidebarVisible(false);
-      const timer = setTimeout(() => setSidebarMounted(false), 200);
+      const timer = setTimeout(() => {
+        setSidebarMounted(false);
+        // Resize map back to full width after sidebar slides out
+        if (window.innerWidth >= 1024) {
+          try { props.mapRef?.current?.getMap?.()?.resize(); } catch { /* */ }
+        }
+      }, 200);
       return () => clearTimeout(timer);
     }
   }, [isAnalysisOpen, selectedProject]);
@@ -356,7 +368,11 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
   };
 
   return (
-    <div ref={mainContainerRef} className="flex flex-col h-screen w-screen overflow-hidden bg-slate-900 font-sans relative" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+    <div
+      ref={mainContainerRef}
+      className="flex flex-col h-screen w-screen overflow-hidden bg-slate-900 font-sans relative"
+      style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+    >
 
       {/* Pull-to-Refresh visual indicator */}
       <PullToRefreshIndicator
@@ -404,9 +420,48 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
 
       {isRefreshing && <AppLoadingSkeleton />}
 
-      {/* Main Map Container - completely flush with the bottom */}
-      <div className="absolute inset-0 z-0 bg-slate-100">
-        {children}
+      {/* ── Main content area: map + optional sidebar (split on desktop) ─── */}
+      <div className="absolute inset-0 z-0 flex flex-row">
+        {/* Map container — shrinks to give room to sidebar on desktop */}
+        <div
+          className="relative flex-1 min-w-0 bg-slate-100 transition-[flex] duration-200 ease-out"
+          style={{ bottom: 0 }}
+        >
+          {children}
+        </div>
+
+        {/* Desktop/Tablet sidebar — 380px column, true split (NOT an overlay) */}
+        {sidebarMounted && selectedProject && (
+          <div
+            data-nav-scroll="sidebar"
+            className={[
+              'hidden lg:flex flex-col bg-white border-l border-slate-200 shadow-xl overflow-hidden',
+              'transition-[width,opacity] duration-200 ease-out',
+              sidebarVisible ? 'w-[380px] opacity-100' : 'w-0 opacity-0',
+            ].join(' ')}
+            style={{ bottom: 0 }}
+          >
+            <Suspense fallback={<SidebarSkeleton />}>
+              <ProjectSidebar
+                project={selectedProject}
+                allProjects={liveProjects}
+                onClose={() => { closePanelViaBack(); }}
+                onDiscoverNeighborhood={onDiscoverNeighborhood}
+                onQuickFilter={onQuickFilter}
+                setSelectedCity={setSelectedCity}
+                setFullscreenImage={setFullscreenImage}
+                activeIsochrone={activeIsochrone}
+                setActiveIsochrone={setActiveIsochrone}
+                nearbyLandmarks={liveLandmarks}
+                onFlyTo={onFlyTo}
+                setShowNearbyPanel={setShowNearbyPanel}
+                onRouteReady={props.onRouteReady}
+                mapRef={props.mapRef}
+                onSelectLandmark={props.onSelectLandmark}
+              />
+            </Suspense>
+          </div>
+        )}
       </div>
 
       {/* Breadcrumbs Navigation — pushed below notch on mobile */}
@@ -432,11 +487,11 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
         )}
       </div>
 
-      {/* Analysis Sidebar — Native slide transition */}
+      {/* Mobile sidebar only (lg: hidden — desktop uses split layout above) */}
       {sidebarMounted && selectedProject && (
         <div
           data-nav-scroll="sidebar"
-          className={`absolute top-0 right-0 w-full lg:w-[380px] z-[5000] shadow-2xl bg-white border-l border-slate-200 overflow-hidden flex flex-col`}
+          className={`lg:hidden absolute top-0 right-0 w-full z-[5000] shadow-2xl bg-white border-l border-slate-200 overflow-hidden flex flex-col`}
           style={{
             bottom: 'max(56px, calc(56px + env(safe-area-inset-bottom, 0px)))',
             transform: sidebarVisible ? 'translate3d(0, 0, 0)' : 'translate3d(100%, 0, 0)',

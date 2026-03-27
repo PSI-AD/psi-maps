@@ -881,3 +881,149 @@ body.is-presentation #root {
         transition-duration: 0.01ms !important;
     }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   22. DESKTOP & TABLET ENHANCEMENTS — pointer-first interaction model
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Desktop hover states (only on devices with precise pointer) ── */
+@media (pointer: fine) {
+    /* All buttons get consistent hover lift */
+    button:not(:disabled):hover {
+        filter: brightness(1.05);
+    }
+
+    /* Map marker hover — cursor shows intent */
+    .mapboxgl-canvas-container.mapboxgl-interactive {
+        cursor: pointer;
+    }
+
+    /* Mapbox zoom controls — larger on desktop */
+    .mapboxgl-ctrl-group button {
+        width: 44px !important;
+        height: 44px !important;
+    }
+
+    /* Smooth sidebar column transition on desktop */
+    [data-nav-scroll="sidebar"] {
+        transition: width 0.2s cubic-bezier(0.32, 0.72, 0, 1),
+                    opacity 0.15s ease;
+    }
+
+    /* Desktop scrollbar inside sidebar panels */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 5px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 99px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+}
+
+/* ── Keyboard focus rings — critical for desktop / accessibility ── */
+@media (pointer: fine) {
+    /* Visible focus ring on keyboard navigation only (not mouse click) */
+    button:focus-visible,
+    a:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible,
+    [tabindex]:focus-visible {
+        outline: 2px solid #2563eb;
+        outline-offset: 2px;
+        border-radius: 6px;
+    }
+
+    /* Remove default outline on mouse click (not keyboard) */
+    button:focus:not(:focus-visible),
+    a:focus:not(:focus-visible) {
+        outline: none;
+    }
+}
+
+/* ── Tablet (iPad) optimized breakpoint: 768px–1023px ── */
+@media (min-width: 768px) and (max-width: 1023px) {
+    /* Carousel cards are slightly wider on tablet */
+    .carousel-card {
+        min-width: 240px;
+    }
+
+    /* Bottom dock taller for thumb reach */
+    :root {
+        --bottom-nav-height: calc(62px + var(--sab));
+    }
+
+    /* Breadcrumb allows more text on tablet */
+    .breadcrumb-project-name {
+        max-width: 200px !important;
+    }
+}
+
+/* ── Desktop (1024px+): hide elements that are mobile-only ── */
+@media (min-width: 1024px) {
+    /* Map "back to map" FAB is mobile-only */
+    .mobile-back-fab {
+        display: none !important;
+    }
+
+    /* Mobile filter chips are handled differently on desktop */
+    .mobile-filter-chips {
+        display: none !important;
+    }
+
+    /* Map command center is always visible on desktop */
+    .map-command-center {
+        opacity: 1 !important;
+        pointer-events: auto !important;
+    }
+
+    /* Desktop: sidebar split means carousel needs right offset when sidebar open */
+    /* JS adds .sidebar-open class to the carousel parent */
+    .map-carousel-desktop-offset {
+        transition: right 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+}
+
+/* ── Large desktop (1440px+): wider sidebar for more data ── */
+@media (min-width: 1440px) {
+    [data-nav-scroll="sidebar"].lg\:flex {
+        width: 420px !important;
+    }
+}
+
+/* ── Drag-and-drop cursor for map in lasso mode ── */
+.map-lasso-active .mapboxgl-canvas-container {
+    cursor: crosshair !important;
+}
+
+/* ── Mapbox attribution — smaller, less intrusive on desktop ── */
+@media (pointer: fine) {
+    .mapboxgl-ctrl-attrib {
+        font-size: 10px;
+        opacity: 0.6;
+    }
+    .mapboxgl-ctrl-attrib:hover {
+        opacity: 1;
+    }
+}
+
+/* ── Prevent text selection during map drag on desktop ── */
+.mapboxgl-canvas {
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* ── Smooth transition for all interactive elements (desktop) ── */
+@media (pointer: fine) {
+    button, a, [role="button"] {
+        transition-property: background-color, color, border-color, box-shadow, transform, filter;
+        transition-duration: 150ms;
+        transition-timing-function: ease;
+    }
+}
