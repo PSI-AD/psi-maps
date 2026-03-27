@@ -839,7 +839,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
         {/* 1. Hero Gallery — single optimized thumb + tick-based slideshow engine */}
         <div
           className="relative h-64 w-full shrink-0 skeleton overflow-hidden group"
-          onMouseEnter={() => setIsPlaying(false)}
+          onMouseEnter={() => { /* removed — was fighting the play button click */ }}
           onMouseLeave={() => { /* only resume if already playing via user action */ }}
         >
           {/* ── Play slideshow — FAR LEFT of image, standalone ── */}

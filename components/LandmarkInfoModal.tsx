@@ -89,13 +89,14 @@ const LandmarkInfoModal: React.FC<Props> = ({
     const hasDbImages = (landmark.images && landmark.images.length > 0) || !!landmark.imageUrl;
     const dbImage = landmark.images?.[0] || landmark.imageUrl;
 
-    // Reset ALL state when landmark changes (including the cached playlist)
+    // Reset display state when landmark changes — but preserve auto-play state
+    // so the playlist keeps running across landmark transitions
     useEffect(() => {
         setView('landmark');
         setImageFailed(false);
-        setIsAutoPlaying(false);
+        // NOTE: deliberately NOT resetting isAutoPlaying — if user started auto-tour,
+        // it should keep playing as landmarks change.
         setIsPropPlaying(false);
-        playlistIdx.current = 0;
         propPlayIdx.current = 0;
         playlistRef.current = null; // force playlist rebuild for new landmark
     }, [landmark.id]);
@@ -299,13 +300,13 @@ const LandmarkInfoModal: React.FC<Props> = ({
                         </div>
                     </div>
 
-                    {/* Facts — max 3 lines (line-clamp prevents height growth) */}
+                    {/* Facts — strictly single-line truncated to keep card rigid */}
                     <div className="px-4 py-3">
                         <div className={`space-y-1.5 p-3 rounded-xl ${catStyle.bg} ${catStyle.border} border`}>
                             {facts.map((fact, idx) => (
-                                <div key={idx} className="flex items-start gap-2">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-white/60 mt-[5px] shrink-0" />
-                                    <p className="text-[11px] leading-snug text-white/85 font-medium line-clamp-2">{fact}</p>
+                                <div key={idx} className="flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-white/60 shrink-0" />
+                                    <p className="text-[11px] leading-snug text-white/85 font-medium truncate">{fact}</p>
                                 </div>
                             ))}
                         </div>

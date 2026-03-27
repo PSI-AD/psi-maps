@@ -131,8 +131,9 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
             const rotateCamera = () => {
                 try {
                     bearing = (bearing + 0.15) % 360;
-                    map.setBearing(bearing);
-                } catch { return; }
+                    // easeTo fires onMove → updates React viewState → stays in sync
+                    map.easeTo({ bearing, duration: 0 });
+                } catch { /* ignore — map may be mid-transition; keep loop alive */ }
                 rotationAnimRef.current = requestAnimationFrame(rotateCamera);
             };
             rotationAnimRef.current = requestAnimationFrame(rotateCamera);
@@ -155,21 +156,37 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
     const isNeighborhoodTourRef = useRef(false);
 
     useEffect(() => {
+        const stopQuickRotation = () => {
+            if (rotationAnimRef.current !== undefined) {
+                cancelAnimationFrame(rotationAnimRef.current);
+                rotationAnimRef.current = undefined;
+            }
+            setIsQuickRotating(false);
+        };
         const onGlobalTour = (e: Event) => {
             const detail = (e as CustomEvent).detail;
             isGlobalTourRef.current = !!detail?.active;
             setIsTourPlaying(isGlobalTourRef.current || isNeighborhoodTourRef.current);
+            // Auto-stop rotation when tour starts
+            if (detail?.active) stopQuickRotation();
         };
         const onNeighborhoodTour = (e: Event) => {
             const detail = (e as CustomEvent).detail;
             isNeighborhoodTourRef.current = !!detail?.active;
             setIsTourPlaying(isGlobalTourRef.current || isNeighborhoodTourRef.current);
+            // Auto-stop rotation when tour starts
+            if (detail?.active) stopQuickRotation();
         };
+        // global-tour-start fires before global-tour-changed — kill rotation immediately
+        const onTourStart = () => stopQuickRotation();
+
         window.addEventListener('global-tour-changed', onGlobalTour);
         window.addEventListener('neighborhood-tour-changed', onNeighborhoodTour);
+        window.addEventListener('global-tour-start', onTourStart);
         return () => {
             window.removeEventListener('global-tour-changed', onGlobalTour);
             window.removeEventListener('neighborhood-tour-changed', onNeighborhoodTour);
+            window.removeEventListener('global-tour-start', onTourStart);
         };
     }, []);
 

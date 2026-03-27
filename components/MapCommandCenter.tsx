@@ -34,6 +34,34 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
         return () => window.removeEventListener('time-machine-rotation', handler);
     }, []);
 
+    // Auto-stop rotation when any tour starts (global property or neighborhood landmark)
+    useEffect(() => {
+        const stopRotation = () => {
+            if (animationRef.current !== undefined) {
+                cancelAnimationFrame(animationRef.current);
+                animationRef.current = undefined;
+            }
+            setIsRotating(false);
+        };
+        const onGlobalTour = (e: Event) => {
+            if ((e as CustomEvent).detail?.active) stopRotation();
+        };
+        const onNeighborhoodTour = (e: Event) => {
+            if ((e as CustomEvent).detail?.active) stopRotation();
+        };
+        // global-tour-start fires when a new tour is kicked off (before global-tour-changed)
+        const onTourStart = () => stopRotation();
+
+        window.addEventListener('global-tour-changed', onGlobalTour);
+        window.addEventListener('neighborhood-tour-changed', onNeighborhoodTour);
+        window.addEventListener('global-tour-start', onTourStart);
+        return () => {
+            window.removeEventListener('global-tour-changed', onGlobalTour);
+            window.removeEventListener('neighborhood-tour-changed', onNeighborhoodTour);
+            window.removeEventListener('global-tour-start', onTourStart);
+        };
+    }, []);
+
     // Deferred map readiness check — syncs actual map state on ready
     useEffect(() => {
         let cancelled = false;
@@ -89,8 +117,11 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
             const rotateCamera = () => {
                 try {
                     bearing = (bearing + 0.15) % 360;
-                    map.setBearing(bearing);
-                } catch { return; }
+                    // Must use easeTo instead of setBearing — react-map-gl controls
+                    // viewState as props, so direct setBearing gets overwritten.
+                    // easeTo fires onMove → updates React state → stays in sync.
+                    map.easeTo({ bearing, duration: 0 });
+                } catch { /* ignore — map may be mid-transition; keep loop alive */ }
                 animationRef.current = requestAnimationFrame(rotateCamera);
             };
             animationRef.current = requestAnimationFrame(rotateCamera);

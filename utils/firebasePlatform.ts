@@ -631,6 +631,11 @@ export function installErrorHandlers(): void {
         'installations/request-failed',
         'INVALID_ARGUMENT: API key not valid',
         'firebaseinstallations.googleapis.com',
+        'firebaseremoteconfig.googleapis.com',
+        'firebase.googleapis.com/v1alpha',
+        'remoteconfig/fetch-status',
+        'fireperf',
+        'getOpacityAtLatLng',  // Mapbox GL internal fog race condition
     ];
 
     const isSuppressed = (msg: string) =>

@@ -69,9 +69,9 @@ const deferInit = typeof requestIdleCallback === 'function'
 
 deferInit(() => {
   initFirebasePlatform({
-    enablePerformance: true,
+    enablePerformance: false,   // Disabled — API not enabled in Google Cloud Console (403)
     enableMessaging: true,
-    enableRemoteConfig: true,
+    enableRemoteConfig: false,  // Disabled — API not enabled in Google Cloud Console (403)
   }).then(() => {
     // Listen for FCM foreground messages → show in-app notification
     onForegroundMessage((payload) => {

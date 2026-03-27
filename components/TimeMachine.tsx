@@ -93,25 +93,41 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
     window.dispatchEvent(new CustomEvent('time-machine-rotation', { detail: { active } }));
   }, []);
 
-  // Camera rotation
+  // Camera rotation — auto-starts with playback, stops when paused/closed
   useEffect(() => {
-    const map = mapRef.current?.getMap?.();
-    if (!map) return;
-    if (isPlaying) {
-      let bearing = 0;
-      try { bearing = map.getBearing(); } catch { /* */ }
-      const rotate = () => {
-        if (!isMountedRef.current) return;
-        try { bearing = (bearing + 0.15) % 360; map.setBearing(bearing); } catch { return; }
-        rotationRef.current = requestAnimationFrame(rotate);
-      };
-      rotationRef.current = requestAnimationFrame(rotate);
-      dispatchRotate(true);
-    } else {
+    if (!isPlaying) {
       if (rotationRef.current) { cancelAnimationFrame(rotationRef.current); rotationRef.current = null; }
       dispatchRotate(false);
+      return;
     }
-    return () => { if (rotationRef.current) { cancelAnimationFrame(rotationRef.current); rotationRef.current = null; } };
+
+    // Retry getting the map + delay so the initial flyTo (2s) finishes first
+    let retries = 0;
+    const startupDelay = setTimeout(() => {
+      const tryStart = () => {
+        const map = mapRef.current?.getMap?.();
+        if (!map) {
+          if (retries++ < 20) setTimeout(tryStart, 150);
+          return;
+        }
+        if (rotationRef.current) cancelAnimationFrame(rotationRef.current);
+        let bearing = 0;
+        try { bearing = map.getBearing(); } catch { /* */ }
+        const rotate = () => {
+          if (!isMountedRef.current) return;
+          try { bearing = (bearing + 0.15) % 360; map.easeTo({ bearing, duration: 0 }); } catch { /* keep loop alive */ }
+          rotationRef.current = requestAnimationFrame(rotate);
+        };
+        rotationRef.current = requestAnimationFrame(rotate);
+        dispatchRotate(true);
+      };
+      tryStart();
+    }, 2500); // Wait for flyTo animation to finish
+
+    return () => {
+      clearTimeout(startupDelay);
+      if (rotationRef.current) { cancelAnimationFrame(rotationRef.current); rotationRef.current = null; }
+    };
   }, [isPlaying, mapRef, dispatchRotate]);
 
   // Apply wayback layer with crossfade

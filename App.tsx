@@ -117,10 +117,14 @@ const AppInner: React.FC = () => {
     window.addEventListener('toggle-roi-heatmap', handleROI);
     window.addEventListener('toggle-timeline', handleTimeline);
 
-    // Time Machine — also auto-disable 3D buildings for cleaner satellite view
+    // Time Machine — toggle on/off; also auto-disable 3D buildings for cleaner satellite view
     const handleTimeMachine = (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      setTimeMachineData({ lat: detail.lat, lng: detail.lng, name: detail.name });
+      // Toggle: if already open, close it
+      setTimeMachineData(prev => {
+        if (prev) return null; // close
+        return { lat: detail.lat, lng: detail.lng, name: detail.name };
+      });
       setShowTimeline(false);
       setEnableROIHeatmap(false);
       setMapFeatures(prev => ({ ...prev, show3D: false })); // turn off 3D buildings
