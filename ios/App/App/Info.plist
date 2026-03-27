@@ -47,5 +47,33 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+
+	<!-- ── Privacy Permission Strings (App Store Required) ─────────────────── -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>PSI Maps Pro uses your location to show nearby luxury properties, calculate distances to amenities, and provide personalized map experiences.</string>
+
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>PSI Maps Pro uses your location to show nearby luxury properties and send you alerts about new listings in your area.</string>
+
+	<key>NSCameraUsageDescription</key>
+	<string>PSI Maps Pro uses your camera for the AR View feature, which overlays property information on your real-world surroundings.</string>
+
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>PSI Maps Pro can save property photos and map screenshots to your photo library for future reference.</string>
+
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>PSI Maps Pro can save property images and brochures to your photo library.</string>
+
+	<key>NSMicrophoneUsageDescription</key>
+	<string>PSI Maps Pro uses the microphone for voice-based property search and AI assistant interactions.</string>
+
+	<!-- ── Face ID / Biometric (future auth layer) ───────────────────────── -->
+	<key>NSFaceIDUsageDescription</key>
+	<string>PSI Maps Pro uses Face ID to quickly and securely access your saved properties and account.</string>
+
+	<!-- ── iOS Safe Area (Capacitor WKWebView) ───────────────────────────── -->
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<false/>
+
 </dict>
 </plist>
