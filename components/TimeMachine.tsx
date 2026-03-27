@@ -45,6 +45,7 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
   const [showSettings, setShowSettings] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isLoadingTile, setIsLoadingTile] = useState(false);
+  const [viewMode, setViewMode] = useState<'birdeye' | '3d'>('birdeye');
 
   const tickerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rotationRef = useRef<number | null>(null);
@@ -55,6 +56,7 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
   const isMountedRef = useRef(true);
 
   const currentYear = waybackYears[currentIndex];
+  const TARGET_PITCH = viewMode === '3d' ? 60 : 0;
 
   // Auto-fade settings after 10 seconds
   useEffect(() => {
@@ -130,13 +132,17 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
     };
   }, [isPlaying, mapRef, dispatchRotate]);
 
-  // Apply wayback layer with crossfade
+  // Apply wayback layer with crossfade — promotes NEXT→CURR after each transition
   const applyYear = useCallback((yearEntry: WaybackYear, animate = true) => {
     const map = mapRef.current?.getMap?.();
     if (!map) return;
-    if (!map.isStyleLoaded()) { map.once('style.load', () => applyYear(yearEntry, animate)); return; }
+    if (!map.isStyleLoaded()) {
+      map.once('style.load', () => applyYear(yearEntry, animate));
+      return;
+    }
     if (fadeTimerRef.current) { clearInterval(fadeTimerRef.current); fadeTimerRef.current = null; }
     const NEXT = 'wayback-next', CURR = 'wayback-current';
+    // Clean up any lingering NEXT layer from a previous interrupted transition
     try { if (map.getLayer(NEXT)) map.removeLayer(NEXT); if (map.getSource(NEXT)) map.removeSource(NEXT); } catch { /**/ }
     try {
       map.addSource(NEXT, { type: 'raster', tiles: [yearEntry.tileUrl], tileSize: 256 });
@@ -145,6 +151,7 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
     } catch { return; }
     if (!animate) {
       try { map.setPaintProperty(NEXT, 'raster-opacity', 1); } catch { /**/ }
+      // Promote: remove old CURR, rename NEXT→CURR
       try { if (map.getLayer(CURR)) map.removeLayer(CURR); if (map.getSource(CURR)) map.removeSource(CURR); } catch { /**/ }
       return;
     }
@@ -153,20 +160,33 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
     fadeTimerRef.current = setInterval(() => {
       op += 0.05;
       if (op >= 1) {
-        op = 1; if (fadeTimerRef.current) clearInterval(fadeTimerRef.current); fadeTimerRef.current = null;
+        op = 1;
+        if (fadeTimerRef.current) clearInterval(fadeTimerRef.current); fadeTimerRef.current = null;
+        // Promote NEXT to CURR: remove old CURR first
         try { if (map.getLayer(CURR)) map.removeLayer(CURR); if (map.getSource(CURR)) map.removeSource(CURR); } catch { /**/ }
         if (isMountedRef.current) setIsTransitioning(false);
       }
-      try { map.setPaintProperty(NEXT, 'raster-opacity', op); if (map.getLayer(CURR)) map.setPaintProperty(CURR, 'raster-opacity', 1 - op); } catch { /**/ }
+      try {
+        map.setPaintProperty(NEXT, 'raster-opacity', op);
+        if (map.getLayer(CURR)) map.setPaintProperty(CURR, 'raster-opacity', 1 - op);
+      } catch { /**/ }
     }, 50);
   }, [mapRef]);
 
-  // Fly to project and FLATTEN pitch (disable 3D) for Time Machine
+  // Fly to project with correct pitch for current view mode
   useEffect(() => {
     const map = mapRef.current?.getMap?.();
     if (!map) return;
-    map.flyTo({ center: [lng, lat], zoom: 16, pitch: 0, bearing: map.getBearing(), duration: 2000 });
-  }, [mapRef, lat, lng]);
+    map.flyTo({ center: [lng, lat], zoom: 16, pitch: TARGET_PITCH, bearing: map.getBearing(), duration: 2000 });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapRef, lat, lng]); // TARGET_PITCH intentionally excluded — handled by viewMode effect
+
+  // Smoothly transition camera pitch when viewMode changes mid-session
+  useEffect(() => {
+    const map = mapRef.current?.getMap?.();
+    if (!map) return;
+    try { map.easeTo({ pitch: TARGET_PITCH, duration: 1000 }); } catch { /* */ }
+  }, [viewMode, TARGET_PITCH, mapRef]);
 
   // Init: set satellite, apply first year, start preload
   useEffect(() => {
@@ -271,7 +291,19 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
       {/* ── Settings panel — opens above, auto-fades in 10s ── */}
       {showSettings && (
         <div className="animate-in fade-in slide-in-from-bottom-1 duration-200">
-          <div className="inline-flex items-center gap-3 bg-slate-900/90 backdrop-blur-md rounded-xl px-3 py-2 border border-white/10 shadow-lg">
+          <div className="inline-flex items-center gap-3 bg-slate-900/90 backdrop-blur-md rounded-xl px-3 py-2 border border-white/10 shadow-lg flex-wrap">
+            {/* View mode: Bird's Eye / 3D */}
+            <div className="flex items-center gap-1">
+              <span className="text-[7px] font-bold text-slate-400 uppercase tracking-wider">View</span>
+              <button onClick={() => setViewMode('birdeye')}
+                className={`px-1.5 py-0.5 rounded text-[9px] font-black transition-all ${viewMode === 'birdeye' ? 'bg-indigo-600 text-white' : 'bg-white/10 text-white/50 hover:bg-white/20'}`}
+              >Bird's Eye</button>
+              <button onClick={() => setViewMode('3d')}
+                className={`px-1.5 py-0.5 rounded text-[9px] font-black transition-all ${viewMode === '3d' ? 'bg-indigo-600 text-white' : 'bg-white/10 text-white/50 hover:bg-white/20'}`}
+              >3D</button>
+            </div>
+            <div className="w-px h-4 bg-white/10" />
+            {/* Speed */}
             <div className="flex items-center gap-1">
               <span className="text-[7px] font-bold text-slate-400 uppercase tracking-wider">Speed</span>
               {[3, 5, 7, 10].map(s => (
@@ -281,6 +313,7 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
               ))}
             </div>
             <div className="w-px h-4 bg-white/10" />
+            {/* Direction */}
             <div className="flex items-center gap-1">
               <span className="text-[7px] font-bold text-slate-400 uppercase tracking-wider">Dir</span>
               <button onClick={() => setDirection(d => d === 'backward' ? 'forward' : 'backward')}
