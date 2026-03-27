@@ -79,6 +79,7 @@ const AppInner: React.FC = () => {
   const [enableROIHeatmap, setEnableROIHeatmap] = useState(false);
   const [showTimeline, setShowTimeline] = useState(false);
   const [timeMachineData, setTimeMachineData] = useState<{ lat: number; lng: number; name: string } | null>(null);
+  const [isTimeMachinePlaying, setIsTimeMachinePlaying] = useState(false);
 
   const [activeBoundary, setActiveBoundary] = useState<any>(null);
 
@@ -133,11 +134,19 @@ const AppInner: React.FC = () => {
     };
     window.addEventListener('toggle-3d-buildings', handle3DBuildings);
 
+    // Time Machine active/paused — hide project card + map popup
+    const handleTMActive = (e: Event) => {
+      const active = (e as CustomEvent).detail?.active ?? false;
+      setIsTimeMachinePlaying(active);
+    };
+    window.addEventListener('time-machine-active', handleTMActive);
+
     return () => {
       window.removeEventListener('toggle-roi-heatmap', handleROI);
       window.removeEventListener('toggle-timeline', handleTimeline);
       window.removeEventListener('start-time-machine', handleTimeMachine);
       window.removeEventListener('toggle-3d-buildings', handle3DBuildings);
+      window.removeEventListener('time-machine-active', handleTMActive);
     };
   }, []);
 
@@ -647,7 +656,7 @@ const AppInner: React.FC = () => {
       viewMode={viewMode} setViewMode={setViewMode} isAdminOpen={isAdminOpen} setIsAdminOpen={setIsAdminOpen}
       isAnalysisOpen={isAnalysisOpen} setIsAnalysisOpen={setIsAnalysisOpen} liveProjects={liveProjects} setLiveProjects={setLiveProjects}
       liveLandmarks={liveLandmarks} setLiveLandmarks={setLiveLandmarks}
-      selectedProject={selectedProject} filteredProjects={lassoFilteredProjects} isRefreshing={isRefreshing} onRefresh={loadInitialData}
+      selectedProject={isTimeMachinePlaying ? null : selectedProject} filteredProjects={lassoFilteredProjects} isRefreshing={isRefreshing} onRefresh={loadInitialData}
       onProjectClick={handleMarkerClick} onCloseProject={onCloseProject} filterPolygon={filterPolygon}
       activeAmenities={activeAmenities} onToggleAmenity={handleToggleAmenity} isDrawing={isDrawing} onToggleDraw={handleToggleDraw}
       mapStyle={mapStyle} setMapStyle={setMapStyle} onDiscoverNeighborhood={(lat, lng) => fetchNearbyAmenities(lat, lng)}
@@ -701,7 +710,7 @@ const AppInner: React.FC = () => {
           filteredAmenities={selectedProject ? projectSpecificLandmarks : filteredAmenities}
           onMarkerClick={handleMarkerClick} onLandmarkClick={handleLandmarkClick}
           selectedProjectId={selectedProjectId} setHoveredProjectId={setHoveredProjectId} setHoveredLandmarkId={setHoveredLandmarkId}
-          selectedLandmark={selectedLandmark} selectedProject={selectedProject} hoveredProject={hoveredProject}
+          selectedLandmark={selectedLandmark} selectedProject={isTimeMachinePlaying ? null : selectedProject} hoveredProject={hoveredProject}
           projects={lassoFilteredProjects}
           mapFeatures={mapFeatures}
           activeBoundary={activeBoundary}

@@ -147,15 +147,9 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
-  // ── localStorage Save helper (Favorites & Compare) ─────────────────────
-  const handleSaveLocal = (type: 'favorite' | 'compare') => {
-    if (!project) return;
-    const key = type === 'favorite' ? 'psi_favorites' : 'psi_compare';
-    const existing: string[] = JSON.parse(localStorage.getItem(key) || '[]');
-    if (!existing.includes(project.id)) {
-      localStorage.setItem(key, JSON.stringify([...existing, project.id]));
-    }
-  };
+  // ── Favorites & Compare via context ──────────────────────────────────────
+  const isProjectFav = project ? favCtx.isFavorite(project.id) : false;
+  const isProjectCompared = project ? favCtx.isInCompare(project.id) : false;
 
   // ── Native Web Share (with clipboard fallback) ──────────────────────
   const handleNativeShare = async () => {
@@ -887,18 +881,28 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
               <Navigation className="w-4 h-4" />
             </button>
             <button
-              onClick={() => handleSaveLocal('compare')}
-              className="pointer-events-auto p-2 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md text-white border border-white/20 transition-all"
-              title="Add to Comparison" aria-label="Add to comparison"
+              onClick={() => { if (project) favCtx.toggleCompare(project.id); }}
+              className={`pointer-events-auto p-2 rounded-full backdrop-blur-md text-white border transition-all ${
+                isProjectCompared
+                  ? 'bg-blue-600/90 border-blue-400/60 shadow-lg shadow-blue-500/30'
+                  : 'bg-black/40 hover:bg-blue-600/80 border-white/20'
+              }`}
+              title={isProjectCompared ? 'Remove from Comparison' : 'Add to Comparison'}
+              aria-label="Toggle comparison"
             >
               <GitCompare className="w-4 h-4" />
             </button>
             <button
-              onClick={() => handleSaveLocal('favorite')}
-              className="pointer-events-auto p-2 rounded-full bg-black/40 hover:bg-rose-600/80 backdrop-blur-md text-white border border-white/20 transition-all"
-              title="Add to Favourites" aria-label="Add to favourites"
+              onClick={() => { if (project) favCtx.toggleFavorite(project.id); }}
+              className={`pointer-events-auto p-2 rounded-full backdrop-blur-md border transition-all ${
+                isProjectFav
+                  ? 'bg-rose-600/90 text-white border-rose-400/60 shadow-lg shadow-rose-500/30'
+                  : 'bg-black/40 hover:bg-rose-600/80 text-white border-white/20'
+              }`}
+              title={isProjectFav ? 'Remove from Favourites' : 'Add to Favourites'}
+              aria-label="Toggle favourite"
             >
-              <Heart className="w-4 h-4" />
+              <Heart className={`w-4 h-4 ${isProjectFav ? 'fill-current' : ''}`} />
             </button>
             <button
               onClick={() => setIsReportModalOpen(true)}

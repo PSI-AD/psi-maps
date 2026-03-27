@@ -51,6 +51,7 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
   const preloadedRef = useRef<Set<number>>(new Set());
   const fadeTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const settingsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
 
   const currentYear = waybackYears[currentIndex];
@@ -65,6 +66,27 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
     }
     return () => { if (settingsTimerRef.current) clearTimeout(settingsTimerRef.current); };
   }, [showSettings]);
+
+  // Auto-hide after 15s idle when paused — reset on any interaction
+  const resetIdleTimer = useCallback(() => {
+    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    if (!isPlaying) {
+      idleTimerRef.current = setTimeout(() => {
+        if (isMountedRef.current) handleClose();
+      }, 15000);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPlaying]);
+
+  useEffect(() => {
+    resetIdleTimer();
+    return () => { if (idleTimerRef.current) clearTimeout(idleTimerRef.current); };
+  }, [resetIdleTimer]);
+
+  // Dispatch time-machine-active for App.tsx to hide project sidebar
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('time-machine-active', { detail: { active: isPlaying } }));
+  }, [isPlaying]);
 
   // Notify MapCommandCenter of rotation state
   const dispatchRotate = useCallback((active: boolean) => {
@@ -123,11 +145,11 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
     }, 50);
   }, [mapRef]);
 
-  // Fly to project
+  // Fly to project and FLATTEN pitch (disable 3D) for Time Machine
   useEffect(() => {
     const map = mapRef.current?.getMap?.();
     if (!map) return;
-    map.flyTo({ center: [lng, lat], zoom: 16, pitch: 60, bearing: map.getBearing(), duration: 2000 });
+    map.flyTo({ center: [lng, lat], zoom: 16, pitch: 0, bearing: map.getBearing(), duration: 2000 });
   }, [mapRef, lat, lng]);
 
   // Init: set satellite, apply first year, start preload
@@ -190,6 +212,8 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
   // Cleanup on close
   const handleClose = () => {
     isMountedRef.current = false;
+    window.dispatchEvent(new CustomEvent('time-machine-active', { detail: { active: false } }));
+    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
     setIsPlaying(false);
     dispatchRotate(false);
     if (rotationRef.current) cancelAnimationFrame(rotationRef.current);
@@ -203,8 +227,12 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
     onClose();
   };
 
-  // Arrows = continuous play in that direction
-  const playDir = (dir: 'backward' | 'forward') => { setDirection(dir); setIsPlaying(true); };
+  // Arrows = continuous play in that direction; reset idle timer
+  const playDir = (dir: 'backward' | 'forward') => {
+    setDirection(dir);
+    setIsPlaying(true);
+    resetIdleTimer();
+  };
 
   // Btn helper
   const Btn = ({ onClick, active, title, children }: { onClick: () => void; active?: boolean; title: string; children: React.ReactNode }) => (

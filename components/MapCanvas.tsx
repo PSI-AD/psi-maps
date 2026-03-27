@@ -360,10 +360,11 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
             const south = Math.min(Number(pLat), Number(aLat));
             const north = Math.max(Number(pLat), Number(aLat));
             map.fitBounds([west, south, east, north], {
-                padding: { top: 150, bottom: 150, left: 150, right: 150 },
-                maxZoom: 15,
-                speed: 0.6,
-                curve: 1.8,
+                padding: { top: 200, bottom: 220, left: 200, right: 200 },
+                maxZoom: 13,   // zoom out more so both project + landmark are visible
+                minZoom: 10,
+                speed: 0.5,
+                curve: 1.6,
                 essential: true,
                 easing: (t: number) => t * (2 - t),
             });
