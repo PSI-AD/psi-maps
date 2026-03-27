@@ -9,6 +9,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/core": "^8.3.0",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/network": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.2",
     "@emailjs/browser": "^4.4.1",
     "@google/genai": "^1.41.0",
     "@google/model-viewer": "^4.1.0",
@@ -30,6 +35,10 @@
     "vite-plugin-node-polyfills": "^0.25.0"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.3.0",
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.3.0",
+    "@capacitor/ios": "^8.3.0",
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.18",

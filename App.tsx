@@ -20,6 +20,7 @@ import PropertyResultsList from './components/PropertyResultsList';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import PWAStatusOverlays from './components/PWAStatusOverlays';
 import haptic from './utils/haptics';
+import { useNativeHardware } from './hooks/useNativeHardware';
 import { loadAppState } from './utils/performanceEngine';
 import { recordRecentView, addSearchEntry } from './utils/localPersistence';
 import { warmUpPreloader, preloadProjectScreen, recordNavigation, preloadPredictedScreens, preloadVisibleProjects } from './utils/predictivePreloader';
@@ -48,6 +49,7 @@ const PUBLIC_MAPBOX_TOKEN = getMapboxToken();
 (mapboxgl as any).accessToken = PUBLIC_MAPBOX_TOKEN;
 
 const AppInner: React.FC = () => {
+  useNativeHardware();
 
   const {
     liveProjects, setLiveProjects, liveLandmarks, setLiveLandmarks, isRefreshing, loadInitialData, filteredProjects,
