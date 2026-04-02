@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="midnight">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>PSI Maps Pro — UAE Spatial Intelligence Platform</title>
+<meta name="description" content="The map that thinks like an investor. AI-powered, 3D-mapped, real-time property intelligence for the UAE."/>
+<link rel="icon" href="/icons/icon-192.webp"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"/>
+<style>
+/* ── TOKENS ── */
+:root{--nav-h:64px;--radius:16px;--trans:.25s ease;}
+[data-theme="midnight"]{--bg:#080d17;--bg2:#0f172a;--bg3:#1e293b;--surface:#1a2235;--border:rgba(255,255,255,.08);--text:#f1f5f9;--muted:#64748b;--sub:#94a3b8;--accent:#4f46e5;--accent2:#6366f1;--gold:#d4a84b;--glow:rgba(79,70,229,.35);}
+[data-theme="sand"]{--bg:#0c0a06;--bg2:#1a1408;--bg3:#261e0e;--surface:#1f1a0f;--border:rgba(212,168,75,.15);--text:#fef3c7;--muted:#92745a;--sub:#b59a6a;--accent:#d4a84b;--accent2:#e8c06a;--gold:#d4a84b;--glow:rgba(212,168,75,.3);}
+[data-theme="emerald"]{--bg:#030d0a;--bg2:#051a12;--bg3:#082b1e;--surface:#0a2016;--border:rgba(16,185,129,.12);--text:#ecfdf5;--muted:#4a7c6a;--sub:#6fb899;--accent:#059669;--accent2:#10b981;--gold:#d4a84b;--glow:rgba(16,185,129,.3);}
+[data-theme="day"]{--bg:#f8fafc;--bg2:#f1f5f9;--bg3:#e2e8f0;--surface:#ffffff;--border:rgba(0,0,0,.09);--text:#0f172a;--muted:#64748b;--sub:#475569;--accent:#4f46e5;--accent2:#6366f1;--gold:#d97706;--glow:rgba(79,70,229,.15);}
+
+/* ── RESET ── */
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden;}
+img{max-width:100%;height:auto;display:block;}
+a{color:inherit;text-decoration:none;}
+button{cursor:pointer;border:none;background:none;font-family:inherit;}
+
+/* ── NAV ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:999;height:var(--nav-h);background:rgba(8,13,23,.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);display:flex;align-items:center;}
+[data-theme="day"] nav{background:rgba(248,250,252,.9);}
+.nav-inner{max-width:1200px;margin:0 auto;padding:0 24px;width:100%;display:flex;align-items:center;gap:32px;}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:17px;letter-spacing:-.02em;white-space:nowrap;}
+.logo-icon{width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.logo span{color:var(--accent2);}
+.nav-links{display:flex;gap:4px;flex:1;}
+.nav-links a{font-size:13px;font-weight:600;padding:8px 12px;border-radius:10px;color:var(--sub);transition:var(--trans);}
+.nav-links a:hover{color:var(--text);background:var(--bg3);}
+.nav-end{display:flex;align-items:center;gap:10px;margin-left:auto;}
+.theme-row{display:flex;gap:6px;}
+.theme-dot{width:18px;height:18px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:var(--trans);}
+.theme-dot:hover,.theme-dot.active{border-color:var(--text);transform:scale(1.15);}
+.btn-ghost{font-size:13px;font-weight:700;padding:8px 16px;border-radius:10px;border:1px solid var(--border);color:var(--sub);transition:var(--trans);}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent);}
+.btn-primary{font-size:13px;font-weight:700;padding:10px 20px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 0 24px var(--glow);transition:var(--trans);}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 32px var(--glow);}
+
+/* ── HERO ── */
+.hero{min-height:100vh;display:flex;align-items:center;position:relative;overflow:hidden;padding:calc(var(--nav-h)+60px) 0 80px;}
+.hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 0%,var(--glow),transparent 70%);}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:60px 60px;opacity:.4;}
+.hero-inner{max-width:1200px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;position:relative;z-index:1;}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;background:rgba(79,70,229,.12);border:1px solid rgba(79,70,229,.3);border-radius:999px;padding:6px 16px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent2);margin-bottom:24px;}
+[data-theme="sand"] .eyebrow{background:rgba(212,168,75,.1);border-color:rgba(212,168,75,.3);color:var(--gold);}
+[data-theme="emerald"] .eyebrow{background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.3);color:var(--accent2);}
+h1.display{font-size:clamp(38px,5vw,64px);font-weight:900;letter-spacing:-.04em;line-height:1.05;margin-bottom:24px;}
+h1.display em{font-style:italic;background:linear-gradient(90deg,var(--accent2),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.hero-sub{font-size:17px;color:var(--sub);line-height:1.7;max-width:500px;margin-bottom:36px;}
+.hero-btns{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:48px;}
+.hero-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center;}
+.stat-num{font-size:26px;font-weight:900;letter-spacing:-.03em;color:var(--accent2);}
+[data-theme="sand"] .stat-num,[data-theme="emerald"] .stat-num{color:var(--accent2);}
+.stat-lbl{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-top:2px;}
+.hero-img{position:relative;border-radius:24px;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.6),0 0 0 1px var(--border);}
+.hero-img img{width:100%;display:block;border-radius:24px;}
+.hero-badge{position:absolute;bottom:20px;left:20px;right:20px;background:rgba(0,0,0,.75);backdrop-filter:blur(16px);border:1px solid var(--border);border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;}
+.hero-badge-dot{width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 8px #22c55e;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+.hero-badge-text{font-size:12px;font-weight:700;color:rgba(255,255,255,.9);}
+.hero-badge-sub{font-size:11px;color:rgba(255,255,255,.45);}
+
+/* ── MARQUEE ── */
+.marquee{padding:16px 0;background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);overflow:hidden;}
+.marquee-track{display:flex;gap:0;width:max-content;animation:scroll 30s linear infinite;}
+.marquee-item{display:flex;align-items:center;gap:8px;padding:0 28px;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;white-space:nowrap;}
+.marquee-dot{width:4px;height:4px;border-radius:50%;background:var(--accent);}
+@keyframes scroll{to{transform:translateX(-50%);}}
+
+/* ── SECTIONS ── */
+.section{padding:100px 0;}
+.container{max-width:1200px;margin:0 auto;padding:0 24px;}
+.section-label{font-size:11px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;}
+[data-theme="sand"] .section-label{color:var(--gold);}
+[data-theme="emerald"] .section-label{color:var(--accent2);}
+h2.display-md{font-size:clamp(28px,4vw,48px);font-weight:900;letter-spacing:-.03em;line-height:1.1;margin-bottom:16px;}
+h2.display-md em{font-style:italic;background:linear-gradient(90deg,var(--accent2),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.lead{font-size:18px;color:var(--sub);line-height:1.7;max-width:600px;}
+
+/* ── FEATURE ROWS ── */
+.feat-row{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;margin-bottom:100px;}
+.feat-row:last-child{margin-bottom:0;}
+.feat-row.flipped .feat-img{order:-1;}
+.feat-img{position:relative;border-radius:20px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.5),0 0 0 1px var(--border);}
+.feat-img img{width:100%;display:block;}
+.feat-tag{position:absolute;top:16px;left:16px;background:var(--accent);color:#fff;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:4px 12px;border-radius:999px;}
+[data-theme="sand"] .feat-tag{background:var(--gold);}
+[data-theme="emerald"] .feat-tag{background:var(--accent);}
+.feat-num{font-size:11px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;}
+.feat-title{font-size:clamp(22px,3vw,36px);font-weight:900;letter-spacing:-.03em;line-height:1.15;margin-bottom:16px;}
+.feat-desc{font-size:15px;color:var(--sub);line-height:1.7;margin-bottom:24px;}
+.feat-list{list-style:none;display:flex;flex-direction:column;gap:10px;}
+.feat-list li{display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--sub);}
+.feat-list li::before{content:'';width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;}
+[data-theme="sand"] .feat-list li::before{background:linear-gradient(135deg,var(--gold),#e8c06a);}
+[data-theme="emerald"] .feat-list li::before{background:linear-gradient(135deg,var(--accent),var(--accent2));}
+
+/* ── TOOLS GRID ── */
+.tools-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.tool-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;transition:var(--trans);}
+.tool-card:hover{border-color:var(--accent);box-shadow:0 0 24px var(--glow);transform:translateY(-2px);}
+.tool-icon{font-size:28px;margin-bottom:14px;}
+.tool-name{font-size:15px;font-weight:800;letter-spacing:-.01em;margin-bottom:6px;}
+.tool-desc{font-size:13px;color:var(--muted);line-height:1.6;}
+
+/* ── TECH STACK ── */
+.tech-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:48px;}
+.tech-pill{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;display:flex;align-items:center;gap:12px;transition:var(--trans);}
+.tech-pill:hover{border-color:var(--accent);}
+.tech-pill-icon{font-size:20px;flex-shrink:0;}
+.tech-pill-name{font-size:13px;font-weight:800;}
+.tech-pill-role{font-size:11px;color:var(--muted);}
+
+/* ── CTA ── */
+.cta-section{padding:120px 0;text-align:center;position:relative;overflow:hidden;}
+.cta-glow{position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 50% 50%,var(--glow),transparent 70%);}
+.cta-inner{position:relative;z-index:1;}
+.cta-section h2{font-size:clamp(32px,5vw,56px);font-weight:900;letter-spacing:-.04em;margin-bottom:20px;}
+.cta-section p{font-size:18px;color:var(--sub);margin-bottom:40px;}
+.cta-btns{display:flex;justify-content:center;gap:16px;flex-wrap:wrap;}
+.btn-xl{font-size:15px;font-weight:800;padding:16px 32px;border-radius:16px;transition:var(--trans);}
+.btn-xl.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 0 40px var(--glow);}
+.btn-xl.primary:hover{transform:translateY(-2px);box-shadow:0 8px 48px var(--glow);}
+.btn-xl.ghost{border:1px solid var(--border);color:var(--sub);}
+.btn-xl.ghost:hover{border-color:var(--accent);color:var(--accent);}
+
+/* ── FOOTER ── */
+footer{background:var(--bg2);border-top:1px solid var(--border);padding:32px 24px;text-align:center;font-size:13px;color:var(--muted);}
+
+/* ── DIVIDER ── */
+.divider{height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:0;}
+
+/* ── FADE IN ── */
+.fade{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease;}
+.fade.visible{opacity:1;transform:none;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){
+  .hero-inner{grid-template-columns:1fr;}
+  .feat-row,.feat-row.flipped{grid-template-columns:1fr;}
+  .feat-row.flipped .feat-img{order:0;}
+  .tools-grid{grid-template-columns:1fr 1fr;}
+  .tech-grid{grid-template-columns:1fr 1fr;}
+  .hero-stats{grid-template-columns:1fr 1fr;}
+  .nav-links{display:none;}
+}
+@media(max-width:600px){
+  .tools-grid{grid-template-columns:1fr;}
+  .tech-grid{grid-template-columns:1fr 1fr;}
+  .hero-stats{grid-template-columns:repeat(2,1fr);}
+  .theme-row .theme-dot{width:16px;height:16px;}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a href="/landing.html" class="logo">
+      <div class="logo-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5" fill="white" stroke="none"/></svg>
+      </div>
+      PSI Maps <span>Pro</span>
+    </a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#tools">Tools</a>
+      <a href="#technology">Technology</a>
+      <a href="#cta">Get Started</a>
+    </div>
+    <div class="nav-end">
+      <div class="theme-row" title="Switch theme">
+        <div class="theme-dot active" data-t="midnight" style="background:linear-gradient(135deg,#0f172a,#4f46e5)" title="Midnight"></div>
+        <div class="theme-dot" data-t="sand" style="background:linear-gradient(135deg,#1a1408,#d4a84b)" title="Sand & Gold"></div>
+        <div class="theme-dot" data-t="emerald" style="background:linear-gradient(135deg,#030d0a,#059669)" title="Emerald"></div>
+        <div class="theme-dot" data-t="day" style="background:linear-gradient(135deg,#f1f5f9,#4f46e5)" title="Day"></div>
+      </div>
+      <a href="/" class="btn-ghost">Launch Platform →</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="hero-inner container">
+    <div class="fade">
+      <div class="eyebrow">🇦🇪 UAE Spatial Intelligence Platform</div>
+      <h1 class="display">The Map That<br/>Thinks Like<br/><em>An Investor.</em></h1>
+      <p class="hero-sub">PSI Maps Pro fuses 3D Mapbox cartography, Google Gemini AI, and live Firestore data into a single platform. 100+ luxury developments. Sub-3s investment analysis. Zero guesswork.</p>
+      <div class="hero-btns">
+        <a href="/" class="btn-xl primary">▶ Launch Platform</a>
+        <a href="#features" class="btn-xl ghost">Explore Features</a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat-card"><div class="stat-num">100+</div><div class="stat-lbl">Projects</div></div>
+        <div class="stat-card"><div class="stat-num">50+</div><div class="stat-lbl">Landmarks</div></div>
+        <div class="stat-card"><div class="stat-num">&lt;3s</div><div class="stat-lbl">AI Verdict</div></div>
+        <div class="stat-card"><div class="stat-num">4K+</div><div class="stat-lbl">Data Points</div></div>
+      </div>
+    </div>
+    <div class="hero-img fade">
+      <img src="/ss-map-overview.png" alt="PSI Maps Pro interactive UAE property map with cluster markers" loading="eager" width="600" height="600"/>
+      <div class="hero-badge">
+        <div class="hero-badge-dot"></div>
+        <div>
+          <div class="hero-badge-text">142 Properties · Live Data Stream</div>
+          <div class="hero-badge-sub">Firestore real-time sync · Abu Dhabi · Dubai · All Emirates</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marquee">
+  <div class="marquee-track" id="mtrack">
+    <div class="marquee-item"><div class="marquee-dot"></div>Saadiyat Island</div>
+    <div class="marquee-item"><div class="marquee-dot"></div>Yas Island</div>
+    <div class="marquee-item"><div class="marquee-dot"></div>Dubai Marina</div>
+    <div class="marquee-item"><div class="marquee-dot"></div>Palm Jumeirah</div>
+    <div class="marquee-item"><div class="marquee-dot"></div>Downtown Abu Dhabi</div>
+    <div class="marquee-item"><div class="marquee-dot"></div>Al Reem Island</div>
+    <div class="marquee-item"><div class="marquee-dot"></div>DIFC</div>
+    <div class="marquee-item"><div class="marquee-dot"></div>Business Bay</div>
+    <div class="marquee-item"><div class="marquee-dot"></div>Emaar Beachfront</div>
+    <div class="marquee-item"><div class="marquee-dot"></div>Al Maryah Island</div>
+    <div class="marquee-item"><div class="marquee-dot"></div>Saadiyat Island</div>
+    <div class="marquee-item"><div class="marquee-dot"></div>Yas Island</div>
+    <div class="marquee-item"><div class="marquee-dot"></div>Dubai Marina</div>
+    <div class="marquee-item"><div class="marquee-dot"></div>Palm Jumeirah</div>
+    <div class="marquee-item"><div class="marquee-dot"></div>Downtown Abu Dhabi</div>
+    <div class="marquee-item"><div class="marquee-dot"></div>Al Reem Island</div>
+    <div class="marquee-item"><div class="marquee-dot"></div>DIFC</div>
+    <div class="marquee-item"><div class="marquee-dot"></div>Business Bay</div>
+    <div class="marquee-item"><div class="marquee-dot"></div>Emaar Beachfront</div>
+    <div class="marquee-item"><div class="marquee-dot"></div>Al Maryah Island</div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section class="section" id="features">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:80px" class="fade">
+      <div class="section-label">Deep Feature Intelligence</div>
+      <h2 class="display-md">From Exploration<br/>to <em>Conviction</em></h2>
+      <p class="lead" style="margin:0 auto">Every tool an investor, developer, or sales agent needs — built into a single spatial canvas.</p>
+    </div>
+
+    <!-- Feature 1: Property Sidebar -->
+    <div class="feat-row fade">
+      <div class="feat-img">
+        <img src="/ss-property-sidebar.png" alt="PSI Maps Pro property detail sidebar showing Celia Gardens on Saadiyat Island with AI verdict, price, and amenities" loading="lazy"/>
+        <div class="feat-tag">Live Demo</div>
+      </div>
+      <div>
+        <div class="feat-num">01 / Investment Sidebar</div>
+        <h3 class="feat-title">Complete Due Diligence.<br/>One Screen.</h3>
+        <p class="feat-desc">Every data point a serious investor needs — in one fluid panel. No tab-switching, no spreadsheets. AI verdicts, landmark premiums, financial models, and gallery all coexist elegantly.</p>
+        <ul class="feat-list">
+          <li>Gemini AI 3-sentence investment verdict per property</li>
+          <li>Haversine landmark premium calculator (Cultural District multiplier)</li>
+          <li>Rent vs. Buy financial model with break-even year</li>
+          <li>One-click branded PDF brochure generation</li>
+          <li>Directions, floor plans, construction timeline, street view</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Feature 2: Time Machine -->
+    <div class="feat-row flipped fade">
+      <div>
+        <div class="feat-num">02 / Time Machine</div>
+        <h3 class="feat-title">Watch a District<br/>Transform. Live.</h3>
+        <p class="feat-desc">Cinematic satellite timelapse from 2014 to 2026. See Saadiyat go from empty desert to cultural capital. Make district trajectory crystal clear to clients in seconds.</p>
+        <ul class="feat-list">
+          <li>12 years of Esri Wayback satellite tiles (2014–2026)</li>
+          <li>Smooth crossfade between years — tile pre-loaded 3×3 grid</li>
+          <li>Auto 360° orbit rotation during playback</li>
+          <li>Bird's Eye and 3D perspective modes</li>
+          <li>Adjustable speed: 3s / 5s / 7s / 10s per frame</li>
+        </ul>
+      </div>
+      <div class="feat-img">
+        <img src="/ss-time-machine.png" alt="PSI Maps Pro Time Machine showing Saadiyat Island satellite view 2026 with timeline controls" loading="lazy"/>
+        <div class="feat-tag">3D · Satellite</div>
+      </div>
+    </div>
+
+    <!-- Feature 3: AI Assistant -->
+    <div class="feat-row fade">
+      <div class="feat-img">
+        <img src="/ss-ai-assistant.png" alt="PSI Maps AI chat assistant showing contextual action suggestions for Celia Gardens property" loading="lazy"/>
+        <div class="feat-tag">AI-Powered</div>
+      </div>
+      <div>
+        <div class="feat-num">03 / AI Chat Assistant</div>
+        <h3 class="feat-title">Context-Aware AI.<br/>Not a Chatbot.</h3>
+        <p class="feat-desc">The AI assistant reads your current context — selected project, community, filters — and presents relevant actions instantly. No typing required. It's intelligent navigation, not a FAQ bot.</p>
+        <ul class="feat-list">
+          <li>Auto-opens on project / landmark / community / developer selection</li>
+          <li>Launches curated tours: "Emaar in Saadiyat", "Off-Plan nearby"</li>
+          <li>Triggers filter changes, map tours, neighbourhood flyovers</li>
+          <li>Built-in lead capture form — name + phone → Firebase</li>
+          <li>Classic card panel or modern floating bubble UI</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Feature 4: Map Overview -->
+    <div class="feat-row flipped fade">
+      <div>
+        <div class="feat-num">04 / Command Center</div>
+        <h3 class="feat-title">Professional-Grade<br/>Map Intelligence.</h3>
+        <p class="feat-desc">Five tool panels in one floating toolbar. Camera controls, style switching, 3D buildings, lasso-draw selection, ROI heatmap, and the Time Machine launcher — all in a single, elegant command strip.</p>
+        <ul class="feat-list">
+          <li>Camera: Bird's Eye, 3D perspective, 360° orbit, Reset North</li>
+          <li>Styles: Streets, Light, Outdoors, Satellite — live toggle</li>
+          <li>Tools: Zoom, 3D buildings toggle, PNG map export</li>
+          <li>Lasso: Freehand polygon draw-to-filter selection</li>
+          <li>Insights: ROI heatmap overlay + Time Machine launcher</li>
+        </ul>
+      </div>
+      <div class="feat-img">
+        <img src="/ss-map-overview.png" alt="PSI Maps Pro interactive UAE map showing property clusters across Abu Dhabi and Dubai" loading="lazy"/>
+        <div class="feat-tag">Mapbox GL JS 3.2</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- TOOLS GRID -->
+<section class="section" id="tools">
+  <div class="container">
+    <div class="fade" style="margin-bottom:56px">
+      <div class="section-label">Every Tool You Need</div>
+      <h2 class="display-md">51 Components.<br/>One <em>Powerful</em> Platform.</h2>
+    </div>
+    <div class="tools-grid">
+      <div class="tool-card fade"><div class="tool-icon">🗺️</div><div class="tool-name">Interactive Map Canvas</div><div class="tool-desc">Mapbox GL JS 3.2 with 3D terrain, clustering, GeoJSON overlays, draw control, and real-time event handling.</div></div>
+      <div class="tool-card fade"><div class="tool-icon">🤖</div><div class="tool-name">Gemini AI Verdicts</div><div class="tool-desc">Google Gemini 3 Flash generates 3-sentence investment verdicts under 3 seconds for every property and community.</div></div>
+      <div class="tool-card fade"><div class="tool-icon">📊</div><div class="tool-name">Valuation Engine</div><div class="tool-desc">Haversine-formula proximity calculator auto-quantifying "Cultural District Premium" and yield/appreciation %.</div></div>
+      <div class="tool-card fade"><div class="tool-icon">⏱️</div><div class="tool-name">Time Machine</div><div class="tool-desc">Cinematic satellite timelapse 2014–2026 using Esri Wayback tiles with cross-fade, orbit rotation, and speed controls.</div></div>
+      <div class="tool-card fade"><div class="tool-icon">📍</div><div class="tool-name">Neighbourhood Intelligence</div><div class="tool-desc">10 POI categories. Drive/walk times. Reverse lookup: click any landmark → see nearby properties within 5km.</div></div>
+      <div class="tool-card fade"><div class="tool-icon">🎬</div><div class="tool-name">Client Presentations</div><div class="tool-desc">Curated cinematic project slideshows with auto-advance, camera flyovers, and real-time Firestore sync.</div></div>
+      <div class="tool-card fade"><div class="tool-icon">📄</div><div class="tool-name">PDF Brochure Generator</div><div class="tool-desc">Branded property brochures with map snapshot, specs, amenities, and related projects — generated in under 10s.</div></div>
+      <div class="tool-card fade"><div class="tool-icon">🔥</div><div class="tool-name">ROI Heatmap</div><div class="tool-desc">Visual investment yield concentration zones overlaid live on the map. Toggle on/off with a single tap.</div></div>
+      <div class="tool-card fade"><div class="tool-icon">📱</div><div class="tool-name">Native Mobile App</div><div class="tool-desc">Capacitor iOS & Android with haptics, safe area insets, native gestures, deep linking, and push notifications.</div></div>
+      <div class="tool-card fade"><div class="tool-icon">💾</div><div class="tool-name">Offline Mode</div><div class="tool-desc">Service Worker + IndexedDB cache. Favourites, inquiries, and feedback queued offline and replayed on reconnect.</div></div>
+      <div class="tool-card fade"><div class="tool-icon">🔒</div><div class="tool-name">Enterprise Security</div><div class="tool-desc">Hardened Firestore rules, ProGuard R8 minification, App Check ready, auth-gated admin collections.</div></div>
+      <div class="tool-card fade"><div class="tool-icon">⚡</div><div class="tool-name">Predictive Preloader</div><div class="tool-desc">Anticipates next project navigation by proximity and prefetches images + data using requestIdleCallback.</div></div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- TECHNOLOGY -->
+<section class="section" id="technology">
+  <div class="container">
+    <div class="fade" style="max-width:600px;margin-bottom:0">
+      <div class="section-label">Built on the Best</div>
+      <h2 class="display-md">Enterprise-Grade<br/><em>Tech Stack</em></h2>
+      <p class="lead">Every layer chosen for performance, developer experience, and production resilience — not trend.</p>
+    </div>
+    <div class="tech-grid">
+      <div class="tech-pill fade"><div class="tech-pill-icon">🗺️</div><div><div class="tech-pill-name">Mapbox GL JS</div><div class="tech-pill-role">v3.2 · 3D Maps</div></div></div>
+      <div class="tech-pill fade"><div class="tech-pill-icon">⚛️</div><div><div class="tech-pill-name">React 18</div><div class="tech-pill-role">Concurrent UI</div></div></div>
+      <div class="tech-pill fade"><div class="tech-pill-icon">🧠</div><div><div class="tech-pill-name">Gemini AI</div><div class="tech-pill-role">Flash 3 · Insights</div></div></div>
+      <div class="tech-pill fade"><div class="tech-pill-icon">🔥</div><div><div class="tech-pill-name">Firebase</div><div class="tech-pill-role">Firestore · Hosting</div></div></div>
+      <div class="tech-pill fade"><div class="tech-pill-icon">📱</div><div><div class="tech-pill-name">Capacitor</div><div class="tech-pill-role">iOS · Android</div></div></div>
+      <div class="tech-pill fade"><div class="tech-pill-icon">⚡</div><div><div class="tech-pill-name">Vite</div><div class="tech-pill-role">ESM · Code Split</div></div></div>
+      <div class="tech-pill fade"><div class="tech-pill-icon">📦</div><div><div class="tech-pill-name">Turf.js</div><div class="tech-pill-role">Geo Analysis</div></div></div>
+      <div class="tech-pill fade"><div class="tech-pill-icon">🚀</div><div><div class="tech-pill-name">GitHub Actions</div><div class="tech-pill-role">CI/CD · Auto-deploy</div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section" id="cta">
+  <div class="cta-glow"></div>
+  <div class="container cta-inner fade">
+    <div class="eyebrow" style="justify-content:center;display:inline-flex">Ready to see the UAE differently?</div>
+    <h2 style="font-size:clamp(32px,5vw,56px);font-weight:900;letter-spacing:-.04em;margin-bottom:20px;">Launch the Platform.<br/><em style="font-style:italic;background:linear-gradient(90deg,var(--accent2),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Experience the Intelligence.</em></h2>
+    <p style="font-size:18px;color:var(--sub);margin-bottom:40px;max-width:500px;margin-left:auto;margin-right:auto;">No signup required. The full platform — every feature, every map, every AI verdict — is live right now.</p>
+    <div class="cta-btns">
+      <a href="/" class="btn-xl primary">▶ Launch PSI Maps Pro</a>
+      <a href="/PSI_MAPS_FEATURES.html" class="btn-xl ghost">View Feature Reference →</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <strong>PSI Maps Pro</strong> · UAE Real Estate Spatial Intelligence · v1.0.0 · 2026
+</footer>
+
+<script>
+// Theme switcher
+const dots=document.querySelectorAll('.theme-dot');
+dots.forEach(d=>{
+  d.addEventListener('click',()=>{
+    document.documentElement.dataset.theme=d.dataset.t;
+    dots.forEach(x=>x.classList.remove('active'));
+    d.classList.add('active');
+    localStorage.setItem('psi_landing_theme',d.dataset.t);
+  });
+});
+// Restore saved theme
+const saved=localStorage.getItem('psi_landing_theme');
+if(saved){
+  document.documentElement.dataset.theme=saved;
+  dots.forEach(d=>{d.classList.toggle('active',d.dataset.t===saved);});
+}
+// Scroll fade-in
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');});
+},{threshold:.1});
+document.querySelectorAll('.fade').forEach(el=>obs.observe(el));
+</script>
+</body>
+</html>
