@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PSI Maps Pro — Platform Features & Technical Reference</title>
+<style>
+  :root {
+    --navy: #0f172a; --navy2: #1e293b; --blue: #2563eb; --indigo: #4f46e5;
+    --purple: #7c3aed; --teal: #0d9488; --amber: #d97706; --rose: #e11d48;
+    --slate: #64748b; --light: #f8fafc; --border: #e2e8f0;
+    --grad: linear-gradient(135deg, #1e293b 0%, #0f172a 60%, #1a1040 100%);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f1f5f9; color: #1e293b; line-height: 1.6; }
+  a { color: var(--indigo); text-decoration: none; }
+
+  /* ── Hero ── */
+  .hero { background: var(--grad); color: white; padding: 64px 40px 48px; position: relative; overflow: hidden; }
+  .hero::before { content: ''; position: absolute; inset: 0; background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); }
+  .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(99,102,241,.2); border: 1px solid rgba(99,102,241,.4); border-radius: 999px; padding: 4px 14px; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #a5b4fc; margin-bottom: 20px; }
+  .hero h1 { font-size: clamp(28px, 5vw, 52px); font-weight: 900; letter-spacing: -.03em; line-height: 1.1; margin-bottom: 16px; }
+  .hero h1 span { background: linear-gradient(90deg, #818cf8, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero p { font-size: 17px; color: #94a3b8; max-width: 640px; margin-bottom: 32px; }
+  .hero-stats { display: flex; flex-wrap: wrap; gap: 24px; }
+  .stat { text-align: center; }
+  .stat-num { font-size: 32px; font-weight: 900; color: white; line-height: 1; }
+  .stat-label { font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; }
+
+  /* ── Layout ── */
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+  .toc { background: white; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 8px rgba(0,0,0,.06); }
+  .toc-inner { display: flex; gap: 4px; padding: 10px 24px; overflow-x: auto; scrollbar-width: none; }
+  .toc-inner::-webkit-scrollbar { display: none; }
+  .toc a { white-space: nowrap; font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: 8px; color: var(--slate); transition: all .15s; }
+  .toc a:hover { background: #f1f5f9; color: var(--navy); }
+  main { padding: 48px 0 80px; }
+
+  /* ── Section ── */
+  .section { margin-bottom: 64px; }
+  .section-header { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; padding-bottom: 16px; border-bottom: 2px solid var(--border); }
+  .section-icon { width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+  .section-header h2 { font-size: 24px; font-weight: 800; letter-spacing: -.02em; }
+  .section-header p { font-size: 13px; color: var(--slate); margin-top: 2px; }
+
+  /* ── Cards grid ── */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+  .grid-3 { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+  .card { background: white; border: 1px solid var(--border); border-radius: 16px; padding: 24px; transition: box-shadow .2s, transform .2s; }
+  .card:hover { box-shadow: 0 8px 32px rgba(0,0,0,.1); transform: translateY(-2px); }
+  .card-tag { display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; padding: 3px 10px; border-radius: 999px; margin-bottom: 12px; }
+  .card h3 { font-size: 16px; font-weight: 800; margin-bottom: 8px; letter-spacing: -.01em; }
+  .card p { font-size: 13px; color: var(--slate); line-height: 1.65; }
+  .card ul { margin: 10px 0 0 16px; font-size: 13px; color: var(--slate); }
+  .card ul li { margin-bottom: 4px; }
+
+  /* Tag colours */
+  .tag-blue { background: #dbeafe; color: #1d4ed8; }
+  .tag-indigo { background: #e0e7ff; color: #4338ca; }
+  .tag-purple { background: #f3e8ff; color: #7e22ce; }
+  .tag-teal { background: #ccfbf1; color: #0f766e; }
+  .tag-amber { background: #fef3c7; color: #92400e; }
+  .tag-rose { background: #ffe4e6; color: #be123c; }
+  .tag-slate { background: #f1f5f9; color: #475569; }
+  .tag-green { background: #dcfce7; color: #15803d; }
+
+  /* Card accent stripe */
+  .card-accent { border-top: 4px solid; }
+  .accent-blue { border-color: var(--blue); }
+  .accent-indigo { border-color: var(--indigo); }
+  .accent-purple { border-color: var(--purple); }
+  .accent-teal { border-color: var(--teal); }
+  .accent-amber { border-color: var(--amber); }
+  .accent-rose { border-color: var(--rose); }
+
+  /* ── Feature list ── */
+  .feature-list { display: flex; flex-direction: column; gap: 12px; }
+  .feature-row { display: grid; grid-template-columns: 200px 1fr auto; gap: 16px; align-items: start; background: white; border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; }
+  .feature-row .fname { font-size: 14px; font-weight: 800; color: var(--navy); }
+  .feature-row .fdesc { font-size: 13px; color: var(--slate); }
+  .feature-row .ffile { font-size: 11px; font-family: monospace; background: #f1f5f9; padding: 3px 8px; border-radius: 6px; color: #475569; white-space: nowrap; }
+
+  /* ── Tech table ── */
+  table { width: 100%; border-collapse: collapse; background: white; border-radius: 16px; overflow: hidden; border: 1px solid var(--border); }
+  th { background: var(--navy); color: white; text-align: left; padding: 14px 18px; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  td { padding: 13px 18px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f8fafc; }
+  td code { font-family: monospace; font-size: 12px; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: var(--indigo); }
+  td strong { color: var(--navy); font-weight: 700; }
+
+  /* ── Timeline ── */
+  .timeline { position: relative; padding-left: 32px; }
+  .timeline::before { content: ''; position: absolute; left: 8px; top: 0; bottom: 0; width: 2px; background: var(--border); }
+  .tl-item { position: relative; margin-bottom: 24px; }
+  .tl-dot { position: absolute; left: -28px; top: 4px; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 0 2px var(--border); }
+  .tl-item h4 { font-size: 15px; font-weight: 800; color: var(--navy); margin-bottom: 4px; }
+  .tl-item p { font-size: 13px; color: var(--slate); }
+
+  /* ── Status chips ── */
+  .chip { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+  .chip::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
+  .chip-done { background: #dcfce7; color: #15803d; }
+  .chip-done::before { background: #22c55e; }
+  .chip-pending { background: #fef3c7; color: #92400e; }
+  .chip-pending::before { background: #f59e0b; }
+  .chip-future { background: #e0e7ff; color: #4338ca; }
+  .chip-future::before { background: #6366f1; }
+
+  /* ── Footer ── */
+  footer { background: var(--navy); color: #64748b; text-align: center; padding: 32px; font-size: 13px; }
+  footer strong { color: #94a3b8; }
+
+  @media (max-width: 640px) {
+    .hero { padding: 40px 20px 32px; }
+    .feature-row { grid-template-columns: 1fr; }
+    .ffile { align-self: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ HERO ══════════════════════════════════════════════════════════════ -->
+<div class="hero">
+  <div class="container">
+    <div class="hero-badge">📍 Internal Technical Reference · v1.0.0</div>
+    <h1>PSI Maps Pro<br/><span>Platform Features & Technical Reference</span></h1>
+    <p>A spatial intelligence platform for UAE real estate — combining interactive mapping, AI-powered insights, and native mobile experiences for investors, developers, and sales teams.</p>
+    <div class="hero-stats">
+      <div class="stat"><div class="stat-num">51</div><div class="stat-label">Components</div></div>
+      <div class="stat"><div class="stat-num">24</div><div class="stat-label">Utility Services</div></div>
+      <div class="stat"><div class="stat-num">7</div><div class="stat-label">Custom Hooks</div></div>
+      <div class="stat"><div class="stat-num">16</div><div class="stat-label">Feature Modules</div></div>
+      <div class="stat"><div class="stat-num">500KB+</div><div class="stat-label">Project Data</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TABLE OF CONTENTS ══════════════════════════════════════════════════ -->
+<nav class="toc">
+  <div class="toc-inner">
+    <a href="#tech-stack">Tech Stack</a>
+    <a href="#map">Map Engine</a>
+    <a href="#ai">AI & Intelligence</a>
+    <a href="#property">Property Features</a>
+    <a href="#admin">Admin & CMS</a>
+    <a href="#pwa">PWA & Native</a>
+    <a href="#performance">Performance</a>
+    <a href="#security">Security</a>
+    <a href="#data">Data Schema</a>
+    <a href="#roadmap">Roadmap</a>
+  </div>
+</nav>
+
+<main>
+<div class="container">
+
+<!-- ══ TECH STACK ════════════════════════════════════════════════════════ -->
+<section class="section" id="tech-stack">
+  <div class="section-header">
+    <div class="section-icon" style="background:#dbeafe">🏗️</div>
+    <div><h2>Technology Stack</h2><p>Production-grade layers powering the platform</p></div>
+  </div>
+  <table>
+    <tr><th>Layer</th><th>Technology</th><th>Version</th><th>Purpose</th></tr>
+    <tr><td><strong>Frontend</strong></td><td>React</td><td><code>18.3.1</code></td><td>Component-based UI with Suspense, lazy loading, and concurrent rendering</td></tr>
+    <tr><td><strong>Mapping</strong></td><td>Mapbox GL JS</td><td><code>3.2.0</code></td><td>3D terrain, satellite imagery, custom GeoJSON layers, clustering</td></tr>
+    <tr><td><strong>AI / LLM</strong></td><td>Google Gemini Flash</td><td><code>3</code></td><td>Investment insights, sentiment analysis, contextual property guidance</td></tr>
+    <tr><td><strong>Styling</strong></td><td>Tailwind CSS</td><td><code>3.4</code></td><td>Utility-first styling with custom design tokens</td></tr>
+    <tr><td><strong>Backend (BaaS)</strong></td><td>Firebase</td><td><code>12.9.0</code></td><td>Firestore real-time DB, Hosting CDN, Cloud Functions, Analytics</td></tr>
+    <tr><td><strong>Native Wrapper</strong></td><td>Capacitor</td><td><code>8.x</code></td><td>iOS & Android native builds from the same web codebase</td></tr>
+    <tr><td><strong>Build Tool</strong></td><td>Vite</td><td><code>5.x</code></td><td>ESM bundling with aggressive code splitting per feature</td></tr>
+    <tr><td><strong>State</strong></td><td>React Hooks + Nav Stack</td><td>—</td><td>Zero external state lib; iOS/Android-style navigation stack</td></tr>
+    <tr><td><strong>PDF</strong></td><td>@react-pdf/renderer</td><td>—</td><td>On-demand branded property brochures with map snapshots</td></tr>
+    <tr><td><strong>Geo Analysis</strong></td><td>Turf.js</td><td>—</td><td>Polygon intersection, Haversine distance, isochrone analysis</td></tr>
+    <tr><td><strong>CI/CD</strong></td><td>GitHub Actions</td><td>—</td><td>Auto-deploy to Firebase Hosting on every push to main</td></tr>
+  </table>
+</section>
+
+<!-- ══ MAP ENGINE ════════════════════════════════════════════════════════ -->
+<section class="section" id="map">
+  <div class="section-header">
+    <div class="section-icon" style="background:#e0e7ff">🗺️</div>
+    <div><h2>Map Engine & Tools</h2><p>Professional-grade spatial tools built on Mapbox GL JS</p></div>
+  </div>
+  <div class="grid">
+
+    <div class="card card-accent accent-indigo">
+      <span class="card-tag tag-indigo">MapCommandCenter.tsx</span>
+      <h3>Map Command Center</h3>
+      <p>Floating toolbar with five control groups. All interactions dispatched via CustomEvents so components stay decoupled.</p>
+      <ul>
+        <li><strong>Camera</strong> — Bird's Eye, 3D perspective (60° pitch), 360° orbit, Reset North</li>
+        <li><strong>Style</strong> — Streets, Light, Outdoors, Satellite toggle</li>
+        <li><strong>Tools</strong> — Zoom±, Crosshair focus, 3D buildings toggle, PNG map export</li>
+        <li><strong>Lasso</strong> — Freehand polygon draw-to-filter, clear selection</li>
+        <li><strong>Insights</strong> — ROI heatmap overlay, Time Machine launcher</li>
+      </ul>
+    </div>
+
+    <div class="card card-accent accent-purple">
+      <span class="card-tag tag-purple">TimeMachine.tsx</span>
+      <h3>Time Machine</h3>
+      <p>Cinematic satellite timelapse using Esri Wayback archive tiles (2014–2026).</p>
+      <ul>
+        <li>Auto-plays forward/backward through historical years</li>
+        <li>Smooth crossfade between tile layers (50ms intervals)</li>
+        <li>Preloads surrounding 3×3 tile grid for seamless transitions</li>
+        <li>360° camera orbit during playback</li>
+        <li>Speed control: 3s / 5s / 7s / 10s per frame</li>
+        <li>Bird's Eye or 3D view modes</li>
+        <li>Dot timeline for direct year selection</li>
+      </ul>
+    </div>
+
+    <div class="card card-accent accent-rose">
+      <span class="card-tag tag-rose">ROIHeatmapOverlay.tsx</span>
+      <h3>ROI Investment Heatmap</h3>
+      <p>Visual heat zones overlaid on the live map showing relative investment yield concentration by district.</p>
+      <ul>
+        <li>Toggle via MapCommandCenter or AI Chat</li>
+        <li>Color-coded intensity zones (green → red)</li>
+        <li>Mutually exclusive with Time Machine</li>
+      </ul>
+    </div>
+
+    <div class="card card-accent accent-teal">
+      <span class="card-tag tag-teal">MapCanvas.tsx</span>
+      <h3>Map Canvas Core</h3>
+      <p>39KB core rendering layer wrapping react-map-gl with full event and layer management.</p>
+      <ul>
+        <li>Project markers with pulse animation & clustering (use-supercluster)</li>
+        <li>Landmark markers by category (School, Hotel, Culture, etc.)</li>
+        <li>Community boundary GeoJSON overlays</li>
+        <li>Draw control for polygon lasso selection</li>
+        <li>3D buildings layer (fill-extrusion)</li>
+        <li>Error Boundary with Firebase crash reporting</li>
+      </ul>
+    </div>
+
+    <div class="card card-accent accent-blue">
+      <span class="card-tag tag-blue">BeforeAfterSlider.tsx</span>
+      <h3>Before / After Slider</h3>
+      <p>Drag-to-compare historical vs. current satellite imagery for any project location. Touch and mouse input supported.</p>
+    </div>
+
+    <div class="card card-accent accent-amber">
+      <span class="card-tag tag-amber">ViewSimulator.tsx</span>
+      <h3>View Simulator</h3>
+      <p>Simulates the real-world view from a property's floor — 360° panoramic approximation using map pitch and bearing controls.</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══ AI & INTELLIGENCE ══════════════════════════════════════════════════ -->
+<section class="section" id="ai">
+  <div class="section-header">
+    <div class="section-icon" style="background:#f3e8ff">🤖</div>
+    <div><h2>AI & Intelligence Engine</h2><p>Gemini-powered insights and contextual spatial analysis</p></div>
+  </div>
+  <div class="grid">
+
+    <div class="card card-accent accent-purple">
+      <span class="card-tag tag-purple">AIChatAssistant.tsx</span>
+      <h3>AI Chat Assistant</h3>
+      <p>Context-aware action panel powered by Google Gemini. Auto-opens when a project, landmark, community, or developer is selected. Adapts suggestions to active context.</p>
+      <ul>
+        <li><strong>Project context</strong> — nearby projects, same-developer showcase, off-plan/completed filters, landmark neighbourhood tour, lead capture</li>
+        <li><strong>Community context</strong> — all community projects, top developers, off-plan/ready</li>
+        <li><strong>Developer context</strong> — full portfolio, by-city breakdown, off-plan/completed</li>
+        <li><strong>Landmark context</strong> — nearby projects within radius, by status or developer</li>
+        <li>Classic card panel or modern floating bubble UI (toggle in Admin)</li>
+        <li>Built-in lead capture mini-form (name + phone → Firebase)</li>
+        <li>Auto-dismisses after 14s, pauses on hover</li>
+        <li>Fully suppressed during any active tour</li>
+      </ul>
+    </div>
+
+    <div class="card card-accent accent-indigo">
+      <span class="card-tag tag-indigo">valuationEngine.ts</span>
+      <h3>Valuation Engine</h3>
+      <p>Haversine-formula geo-spatial proximity calculator that auto-generates investment premiums.</p>
+      <ul>
+        <li>Calculates great-circle distance to all landmarks</li>
+        <li>"Cultural District" multiplier for sub-500m proximity (e.g. Louvre Abu Dhabi)</li>
+        <li>Outputs yield %, appreciation %, and landmark premium %</li>
+        <li>Powers the Investment Analysis tab in every project sidebar</li>
+      </ul>
+    </div>
+
+    <div class="card card-accent accent-teal">
+      <span class="card-tag tag-teal">InvestmentStoryPanel.tsx</span>
+      <h3>Investment Story Panel</h3>
+      <p>Narrative-style investment timeline showing projected value growth, ROI milestones, and area development story powered by Gemini synthesis.</p>
+    </div>
+
+    <div class="card card-accent accent-amber">
+      <span class="card-tag tag-amber">WalkabilityRadial.tsx</span>
+      <h3>Walkability Score Radial</h3>
+      <p>Animated SVG radial chart showing walkability, transit, and bike scores for any project. Calculated from POI density within 800m radius.</p>
+    </div>
+
+    <div class="card card-accent accent-blue">
+      <span class="card-tag tag-blue">RentVsBuyCalculator.tsx</span>
+      <h3>Rent vs Buy Calculator</h3>
+      <p>Interactive financial model comparing rent and purchase scenarios. Inputs: price, mortgage rate, tenure. Outputs: break-even year, total cost comparison, monthly delta, NPV.</p>
+    </div>
+
+    <div class="card card-accent accent-rose">
+      <span class="card-tag tag-rose">NoiseTrafficBadge.tsx</span>
+      <h3>Noise & Traffic Badge</h3>
+      <p>Visual indicator of estimated noise level and traffic density near a project, based on proximity to roads, airports, and commercial zones.</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══ PROPERTY FEATURES ══════════════════════════════════════════════════ -->
+<section class="section" id="property">
+  <div class="section-header">
+    <div class="section-icon" style="background:#ccfbf1">🏢</div>
+    <div><h2>Property Discovery & Analysis</h2><p>Every tool a buyer, investor, or sales agent needs</p></div>
+  </div>
+  <div class="grid">
+
+    <div class="card card-accent accent-blue">
+      <span class="card-tag tag-blue">ProjectSidebar.tsx · 77KB</span>
+      <h3>Investment Analysis Sidebar</h3>
+      <p>The platform's flagship component. A full project due-diligence workspace that aggregates data from all services.</p>
+      <ul>
+        <li>Image carousel with play/pause slideshow + lightbox</li>
+        <li>AI-generated 3-sentence investment verdict (Gemini)</li>
+        <li>Landmark Premium calculation with distance badges</li>
+        <li>Rent vs Buy calculator inline</li>
+        <li>Floor plan request modal</li>
+        <li>Mapbox directions (drive/walk time)</li>
+        <li>Neighbourhood amenity tour</li>
+        <li>Related projects panel</li>
+        <li>One-click PDF brochure download</li>
+        <li>Favourite / Compare / Share buttons</li>
+        <li>Construction timeline progress</li>
+        <li>Street View integration</li>
+      </ul>
+    </div>
+
+    <div class="card card-accent accent-indigo">
+      <span class="card-tag tag-indigo">FilteredProjectsCarousel.tsx · 38KB</span>
+      <h3>Projects Carousel</h3>
+      <p>Horizontal snap carousel (mobile) / vertical list panel (desktop) with cinematic tour engine.</p>
+      <ul>
+        <li>Nearest-neighbour spatial sort by current map centre</li>
+        <li>Community grouping with count badges</li>
+        <li>SVG progress ring tour indicator</li>
+        <li>Predictive preloading of next project's data</li>
+        <li>Smooth auto-advance between projects on tour</li>
+      </ul>
+    </div>
+
+    <div class="card card-accent accent-teal">
+      <span class="card-tag tag-teal">NearbyPanel.tsx + LandmarkInfoModal.tsx</span>
+      <h3>Neighbourhood Intelligence</h3>
+      <p>One-tap proximity analysis without leaving the map. Reverse search: click any landmark → see nearby projects within 5km.</p>
+      <ul>
+        <li>Drive time / walk time / straight-line distance</li>
+        <li>Categories: Schools, Hospitals, Retail, Hotels, Culture, Leisure, Airports, Ports, Parks, Beaches</li>
+        <li>Animated fact slides per landmark</li>
+        <li>3D model preview support (<code>.glb/.gltf</code>)</li>
+      </ul>
+    </div>
+
+    <div class="card card-accent accent-purple">
+      <span class="card-tag tag-purple">FavoritesPanel.tsx</span>
+      <h3>Favourites & Compare</h3>
+      <p>Persistent shortlist with side-by-side comparison mode. Heart toggle on every project card and marker tooltip. Saved to localStorage + synced via background sync queue.</p>
+    </div>
+
+    <div class="card card-accent accent-amber">
+      <span class="card-tag tag-amber">ConstructionTimeline.tsx</span>
+      <h3>Construction Timeline</h3>
+      <p>Visual milestone timeline showing key construction phases from groundbreak to handover. Percentage-complete indicator with Firestore-synced data.</p>
+    </div>
+
+    <div class="card card-accent accent-rose">
+      <span class="card-tag tag-rose">PresentationShowcase.tsx · 56KB</span>
+      <h3>Client Presentation System</h3>
+      <p>Full-screen cinematic presentation mode for sales pitches. Configurable project order, auto-advance interval (Firestore-synced), standalone <code>/presentation</code> route.</p>
+    </div>
+
+  </div>
+
+  <div style="margin-top:24px">
+    <h3 style="font-size:16px;font-weight:800;margin-bottom:14px;color:var(--navy)">Additional Property Tools</h3>
+    <div class="feature-list">
+      <div class="feature-row">
+        <span class="fname">Search Bar</span>
+        <span class="fdesc">Live fuzzy search across projects, communities, cities, and developers. Shows recent searches and cached results. Debounced at 300ms.</span>
+        <span class="ffile">SearchBar.tsx · 18KB</span>
+      </div>
+      <div class="feature-row">
+        <span class="fname">Floor Plan Modal</span>
+        <span class="fdesc">Zoomable floor plan viewer with unit type selector and area detail panel.</span>
+        <span class="ffile">FloorPlanModal.tsx</span>
+      </div>
+      <div class="feature-row">
+        <span class="fname">Street View Panel</span>
+        <span class="fdesc">Embedded Google Street View for any project with toggle to full-screen mode.</span>
+        <span class="ffile">StreetViewPanel.tsx</span>
+      </div>
+      <div class="feature-row">
+        <span class="fname">PDF Brochure Generator</span>
+        <span class="fdesc">One-click branded PDF using @react-pdf/renderer. Includes map snapshot, specs, landmarks, related projects.</span>
+        <span class="ffile">pdf/ProjectPdfDocument.tsx</span>
+      </div>
+      <div class="feature-row">
+        <span class="fname">Inquiry & Lead Modal</span>
+        <span class="fdesc">Full lead capture form (name, email, phone, message) submitted via Firebase Cloud Functions email service.</span>
+        <span class="ffile">InquireModal.tsx</span>
+      </div>
+      <div class="feature-row">
+        <span class="fname">Report Modal</span>
+        <span class="fdesc">User-facing data correction form. Submitted reports stored in Firestore <code>reports</code> collection.</span>
+        <span class="ffile">ReportModal.tsx</span>
+      </div>
+      <div class="feature-row">
+        <span class="fname">AR View</span>
+        <span class="fdesc">Augmented reality overlay showing nearby project pins on live camera feed using device orientation APIs.</span>
+        <span class="ffile">ARView.tsx · 15KB</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ ADMIN ══════════════════════════════════════════════════════════════ -->
+<section class="section" id="admin">
+  <div class="section-header">
+    <div class="section-icon" style="background:#fef3c7">⚙️</div>
+    <div><h2>Admin Dashboard & CMS</h2><p>Full platform management without touching code</p></div>
+  </div>
+  <div class="grid grid-3">
+    <div class="card">
+      <span class="card-tag tag-amber">AdminDashboard.tsx · 111KB</span>
+      <h3>Projects CRUD</h3>
+      <p>Create, edit, delete, and bulk-manage all property listings. Inline coordinate validation with Mapbox geocoder. Visibility toggle (isHidden).</p>
+    </div>
+    <div class="card">
+      <span class="card-tag tag-amber">Landmarks CRUD</span>
+      <h3>Landmarks & POIs</h3>
+      <p>Manage all points of interest: category, coordinates, images, fact slides, 3D model URL, brand domain for logo fetching.</p>
+    </div>
+    <div class="card">
+      <span class="card-tag tag-amber">Entities CRUD</span>
+      <h3>Developers / Communities / Cities</h3>
+      <p>Manage the taxonomy tree with descriptions, logos, tags, and visibility controls. Drives all filter dropdowns in the app.</p>
+    </div>
+    <div class="card">
+      <span class="card-tag tag-amber">CoordinateReviewTool.tsx</span>
+      <h3>Coordinate Audit Tool</h3>
+      <p>Side-by-side comparison of raw vs. Mapbox-verified coordinates for each project. Batch approve or override suspicious values.</p>
+    </div>
+    <div class="card">
+      <span class="card-tag tag-amber">PresentationManager.tsx</span>
+      <h3>Presentation Manager</h3>
+      <p>Build and schedule client presentation playlists. Drag-to-reorder project list, set auto-advance interval, Firestore-synced in real time.</p>
+    </div>
+    <div class="card">
+      <span class="card-tag tag-amber">Banner & Theme Settings</span>
+      <h3>Welcome Banner & UI Settings</h3>
+      <p>Toggle welcome banner, set position (desktop/mobile independently), duration, camera animation speed, footer theme (6 options), AI chat style.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ PWA & NATIVE ═══════════════════════════════════════════════════════ -->
+<section class="section" id="pwa">
+  <div class="section-header">
+    <div class="section-icon" style="background:#dcfce7">📱</div>
+    <div><h2>PWA & Native Mobile</h2><p>App Store quality on every platform</p></div>
+  </div>
+  <div class="grid">
+    <div class="card card-accent accent-teal">
+      <span class="card-tag tag-teal">PWA</span>
+      <h3>Progressive Web App</h3>
+      <ul>
+        <li>Install prompt (iOS Safari share + Android Chrome banner)</li>
+        <li>Offline indicator + "Back Online" toast</li>
+        <li>App update banner (non-disruptive user-triggered reload)</li>
+        <li>App icon shortcuts: Search, Favourites, AI Chat</li>
+        <li>Push notification support via Firebase Cloud Messaging</li>
+        <li>Deep linking from push → specific project</li>
+      </ul>
+    </div>
+    <div class="card card-accent accent-blue">
+      <span class="card-tag tag-blue">Capacitor iOS / Android</span>
+      <h3>Native App Wrapper</h3>
+      <ul>
+        <li>App ID: <code>com.psimaps.pro</code></li>
+        <li>SplashScreen: dark navy (#0f172a), 2s auto-hide</li>
+        <li>Safe area insets (Dynamic Island, notch, home bar)</li>
+        <li>Haptic feedback via <code>@capacitor/haptics</code></li>
+        <li>Status bar control via <code>@capacitor/status-bar</code></li>
+        <li>Deep linking via <code>@capacitor/app</code></li>
+        <li>Native network state via Capacitor bridge</li>
+      </ul>
+    </div>
+    <div class="card card-accent accent-indigo">
+      <span class="card-tag tag-indigo">useNativeGestures.ts · useNavigationStack.ts</span>
+      <h3>Native Gesture System</h3>
+      <ul>
+        <li>iOS/Android-style navigation stack (push/pop screens)</li>
+        <li>Back-swipe gesture with parallax dimming effect</li>
+        <li>Pull-to-refresh indicator</li>
+        <li>Edge swipe detection (20px zone)</li>
+        <li>Touch velocity & momentum tracking</li>
+        <li>350ms cubic-bezier spring transitions</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ══ PERFORMANCE ════════════════════════════════════════════════════════ -->
+<section class="section" id="performance">
+  <div class="section-header">
+    <div class="section-icon" style="background:#e0e7ff">⚡</div>
+    <div><h2>Performance & Reliability</h2><p>Sub-200ms interactions, graceful offline, real user monitoring</p></div>
+  </div>
+  <div class="feature-list">
+    <div class="feature-row">
+      <span class="fname">Predictive Preloader</span>
+      <span class="fdesc">Anticipates which project the user will open next based on map proximity and prefetches images and sidebar data using <code>requestIdleCallback</code>.</span>
+      <span class="ffile">predictivePreloader.ts · 19KB</span>
+    </div>
+    <div class="feature-row">
+      <span class="fname">Smart Cache</span>
+      <span class="fdesc">Two-tier cache: sessionStorage for tab-lifetime state, IndexedDB for durable offline storage of projects and landmarks. 24h TTL with stale-while-revalidate.</span>
+      <span class="ffile">smartCache.ts · 25KB</span>
+    </div>
+    <div class="feature-row">
+      <span class="fname">Map Region Cache</span>
+      <span class="fdesc">Saves last Mapbox viewport (lat/lng/zoom/pitch/bearing) to localStorage on every map move. Restored instantly on next app open. 7-day TTL.</span>
+      <span class="ffile">localPersistence.ts · saveMapRegion()</span>
+    </div>
+    <div class="feature-row">
+      <span class="fname">Background Sync</span>
+      <span class="fdesc">Offline action queue for favourites, inquiries, and feedback. Replays automatically on reconnect using the Web Background Sync API.</span>
+      <span class="ffile">backgroundSync.ts · 14KB</span>
+    </div>
+    <div class="feature-row">
+      <span class="fname">Network Resilience</span>
+      <span class="fdesc">Exponential backoff retry for Firestore reads, request deduplication, timeout handling, and connection quality detection.</span>
+      <span class="ffile">networkResilience.ts · 11KB</span>
+    </div>
+    <div class="feature-row">
+      <span class="fname">Real User Monitoring</span>
+      <span class="fdesc">Web Vitals (LCP, FID, CLS, TTFB) reported to Firebase Analytics with good/needs-improvement/poor ratings. Fires on every page load.</span>
+      <span class="ffile">performanceEngine.ts · logWebVitals()</span>
+    </div>
+    <div class="feature-row">
+      <span class="fname">Device Tier Detection</span>
+      <span class="fdesc">Classifies device as high/mid/low based on CPU cores, RAM, and network type. Logs <code>device_profile</code> to Firebase Analytics. Triggers graceful degradation (disable 3D buildings, reduce animations) on low-end devices.</span>
+      <span class="ffile">performanceEngine.ts · detectAndReportDeviceTier()</span>
+    </div>
+    <div class="feature-row">
+      <span class="fname">Skeleton UI</span>
+      <span class="fdesc">GPU-accelerated shimmer placeholders for every loading state — project cards, sidebar panels, image slots. Prevents layout shift.</span>
+      <span class="ffile">SkeletonUI.tsx · 18KB</span>
+    </div>
+    <div class="feature-row">
+      <span class="fname">Error Boundary</span>
+      <span class="fdesc">React class-based boundary wrapping MapCanvas. Catches render errors, logs to Firebase with screen context (<code>screen="MapCanvas"</code>), shows friendly fallback with retry.</span>
+      <span class="ffile">ErrorBoundary.tsx</span>
+    </div>
+    <div class="feature-row">
+      <span class="fname">Vite Code Splitting</span>
+      <span class="fdesc">Manual chunks: <code>mapbox</code>, <code>firebase</code>, <code>vendor</code>, <code>turf</code>. Lazy-loaded panels via React.lazy + Suspense. Firebase initialised after first paint via <code>requestIdleCallback</code>.</span>
+      <span class="ffile">vite.config.ts</span>
+    </div>
+  </div>
+</section>
+
+<!-- ══ SECURITY ═══════════════════════════════════════════════════════════ -->
+<section class="section" id="security">
+  <div class="section-header">
+    <div class="section-icon" style="background:#ffe4e6">🔒</div>
+    <div><h2>Security & Compliance</h2><p>Production-hardened access controls</p></div>
+  </div>
+  <div class="grid grid-3">
+    <div class="card">
+      <span class="card-tag tag-rose">Firestore Rules</span>
+      <h3>Data Access Control</h3>
+      <p>Public collections (projects, landmarks, communities) are <strong>read-only</strong>. All writes require <code>request.auth != null</code>. Lead/report/error_log collections are <strong>append-only</strong> from clients. Admin collections fully auth-gated.</p>
+    </div>
+    <div class="card">
+      <span class="card-tag tag-rose">Android R8</span>
+      <h3>Code Minification</h3>
+      <p>Release builds use <code>minifyEnabled true</code> + <code>shrinkResources true</code> with the optimised ProGuard ruleset. Debug builds remain unminified.</p>
+    </div>
+    <div class="card">
+      <span class="card-tag tag-rose">App Check</span>
+      <h3>reCAPTCHA Enterprise</h3>
+      <p><code>initAppCheck()</code> is wired and ready. A reCAPTCHA Enterprise site key is required to activate full enforcement in the Firebase Console.</p>
+    </div>
+    <div class="card">
+      <span class="card-tag tag-slate">HTTPS</span>
+      <h3>Transport Security</h3>
+      <p>Firebase Hosting enforces HTTPS for all traffic. API keys are base64-encoded in the bundle and restricted by domain in Google Cloud Console.</p>
+    </div>
+    <div class="card">
+      <span class="card-tag tag-slate">Accessibility</span>
+      <h3>WCAG AA Compliance</h3>
+      <p>Minimum 44×44px touch targets enforced via CSS. Focus rings on all interactive elements (<code>:focus-visible</code>). No <code>user-scalable=no</code>. Missing <code>alt</code> attributes flagged visually in development.</p>
+    </div>
+    <div class="card">
+      <span class="card-tag tag-slate">Offline Queue</span>
+      <h3>Data Integrity</h3>
+      <p>User actions (favourites, inquiries, feedback) queued to IndexedDB when offline. Replayed with idempotent IDs on reconnect to prevent duplicate submissions.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ DATA SCHEMA ════════════════════════════════════════════════════════ -->
+<section class="section" id="data">
+  <div class="section-header">
+    <div class="section-icon" style="background:#f1f5f9">🗄️</div>
+    <div><h2>Data Schema</h2><p>Firestore collections and key fields</p></div>
+  </div>
+  <table>
+    <tr><th>Collection</th><th>Key Fields</th><th>Access</th></tr>
+    <tr>
+      <td><code>projects</code></td>
+      <td>id, name, latitude, longitude, type (villa/apartment), priceRange, developerName, images[], thumbnailUrl, bedrooms, bathrooms, builtupArea, completionDate, status (Off-Plan/Completed), city, community, isHidden, auditLatitude, auditLongitude</td>
+      <td><span class="chip chip-done">Public read</span></td>
+    </tr>
+    <tr>
+      <td><code>landmarks</code></td>
+      <td>id, name, latitude, longitude, category (School/Retail/Culture/Hospital/Hotel/Leisure/Airport/Port), community, city, images[], facts[], modelUrl, domain, isHidden</td>
+      <td><span class="chip chip-done">Public read</span></td>
+    </tr>
+    <tr>
+      <td><code>entities_developers</code></td>
+      <td>id, name, description, logoUrl, tags[], isHidden</td>
+      <td><span class="chip chip-done">Public read</span></td>
+    </tr>
+    <tr>
+      <td><code>locations_communities</code></td>
+      <td>id, name, city, description, images[], isHidden</td>
+      <td><span class="chip chip-done">Public read</span></td>
+    </tr>
+    <tr>
+      <td><code>presentations</code></td>
+      <td>id, title, projectIds[], intervalSeconds</td>
+      <td><span class="chip chip-done">Public read</span></td>
+    </tr>
+    <tr>
+      <td><code>leads</code></td>
+      <td>firstName, lastName, email, phone, projectName, message, timestamp, sourceUrl</td>
+      <td><span class="chip chip-pending">Append-only</span></td>
+    </tr>
+    <tr>
+      <td><code>reports</code></td>
+      <td>projectId, issueType, description, timestamp</td>
+      <td><span class="chip chip-pending">Append-only</span></td>
+    </tr>
+    <tr>
+      <td><code>fcm_tokens</code></td>
+      <td>token, platform, createdAt</td>
+      <td><span class="chip chip-pending">Client upsert</span></td>
+    </tr>
+    <tr>
+      <td><code>error_logs</code></td>
+      <td>message, stack, screen, timestamp, userId</td>
+      <td><span class="chip chip-pending">Append-only</span></td>
+    </tr>
+    <tr>
+      <td><code>settings</code></td>
+      <td>welcomeBanner (show, position, duration), cameraSpeed, footerTheme, aiChatStyle</td>
+      <td><span class="chip chip-done">Public read</span></td>
+    </tr>
+  </table>
+</section>
+
+<!-- ══ ROADMAP ════════════════════════════════════════════════════════════ -->
+<section class="section" id="roadmap">
+  <div class="section-header">
+    <div class="section-icon" style="background:#e0e7ff">🚀</div>
+    <div><h2>Roadmap</h2><p>Planned and upcoming platform phases</p></div>
+  </div>
+  <div class="timeline">
+    <div class="tl-item">
+      <div class="tl-dot" style="background:var(--teal)"></div>
+      <h4>Phase 1 — Core Platform <span class="chip chip-done" style="margin-left:8px">Shipped</span></h4>
+      <p>Interactive map, project database, AI insights, PDF brochures, admin CMS, neighbourhood intelligence, PWA, Capacitor native builds.</p>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot" style="background:var(--amber)"></div>
+      <h4>Phase 2 — CRM Integration <span class="chip chip-pending" style="margin-left:8px">In Progress</span></h4>
+      <p>Real-time unit availability via <code>crm-proxy-server</code>. Live "Sold / Available" marker colours via CRM webhook stream. Developer portal for unit management.</p>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot" style="background:var(--indigo)"></div>
+      <h4>Phase 3 — AI Comparison Engine <span class="chip chip-future" style="margin-left:8px">Planned</span></h4>
+      <p>Multi-project side-by-side analysis with Gemini-generated narrative comparison. Ranked shortlists by yield, ROI, and lifestyle score.</p>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot" style="background:var(--purple)"></div>
+      <h4>Phase 4 — AR Floor Plan Visualiser <span class="chip chip-future" style="margin-left:8px">Planned</span></h4>
+      <p>WebAR session (8th Wall / A-Frame) letting buyers walk through floor plan layouts in augmented reality using device camera.</p>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot" style="background:var(--rose)"></div>
+      <h4>Phase 5 — Isochrone & Lasso Tools <span class="chip chip-future" style="margin-left:8px">Planned</span></h4>
+      <p>Drive-time boundary overlays via Mapbox Isochrone API. Freehand polygon selection with Turf.js intersection filtering.</p>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot" style="background:var(--slate)"></div>
+      <h4>Phase 6 — App Store Launch <span class="chip chip-pending" style="margin-left:8px">Awaiting Credentials</span></h4>
+      <p>Apple App Store (requires Apple Developer enrolment + code signing). Google Play Store (requires Keystore + Play Console account). Screenshots, metadata, privacy policy.</p>
+    </div>
+  </div>
+</section>
+
+</div><!-- /container -->
+</main>
+
+<footer>
+  <strong>PSI Maps Pro</strong> · Platform Features & Technical Reference · v1.0.0<br/>
+  Last updated: April 2, 2026 · Internal document — not for external distribution
+</footer>
+
+</body>
+</html>
