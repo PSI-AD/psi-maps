@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { X, Play, Pause, SkipBack, SkipForward, Settings } from 'lucide-react';
+import { X, Play, Pause, SkipBack, SkipForward, Settings, RefreshCw } from 'lucide-react';
 import { waybackYears, WaybackYear } from '../data/waybackYears';
 
 interface TimeMachineProps {
@@ -45,7 +45,8 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
   const [showSettings, setShowSettings] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isLoadingTile, setIsLoadingTile] = useState(false);
-  const [viewMode, setViewMode] = useState<'birdeye' | '3d'>('birdeye');
+  const [viewMode, setViewMode] = useState<'birdeye' | '3d'>('3d');
+  const [isRotating, setIsRotating] = useState(true);
 
   const tickerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rotationRef = useRef<number | null>(null);
@@ -90,14 +91,35 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
     window.dispatchEvent(new CustomEvent('time-machine-active', { detail: { active: isPlaying } }));
   }, [isPlaying]);
 
+  // Broadcast whether a Time Machine session is open so external orbit controls can target it.
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('time-machine-open', { detail: { active: true } }));
+    return () => {
+      window.dispatchEvent(new CustomEvent('time-machine-open', { detail: { active: false } }));
+      window.dispatchEvent(new CustomEvent('time-machine-rotation', { detail: { active: false } }));
+    };
+  }, []);
+
   // Notify MapCommandCenter of rotation state
   const dispatchRotate = useCallback((active: boolean) => {
     window.dispatchEvent(new CustomEvent('time-machine-rotation', { detail: { active } }));
   }, []);
 
-  // Camera rotation — auto-starts with playback, stops when paused/closed
+  // Allow external orbit buttons to pause/resume the Time Machine orbit.
   useEffect(() => {
-    if (!isPlaying) {
+    const handleToggleRotation = (e: Event) => {
+      const requestedState = (e as CustomEvent).detail?.active;
+      setIsRotating(prev => typeof requestedState === 'boolean' ? requestedState : !prev);
+      resetIdleTimer();
+    };
+
+    window.addEventListener('time-machine-toggle-rotation', handleToggleRotation);
+    return () => window.removeEventListener('time-machine-toggle-rotation', handleToggleRotation);
+  }, [resetIdleTimer]);
+
+  // Camera rotation — auto-starts with Time Machine, but can be paused independently.
+  useEffect(() => {
+    if (!isRotating) {
       if (rotationRef.current) { cancelAnimationFrame(rotationRef.current); rotationRef.current = null; }
       dispatchRotate(false);
       return;
@@ -129,8 +151,9 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
     return () => {
       clearTimeout(startupDelay);
       if (rotationRef.current) { cancelAnimationFrame(rotationRef.current); rotationRef.current = null; }
+      dispatchRotate(false);
     };
-  }, [isPlaying, mapRef, dispatchRotate]);
+  }, [isRotating, mapRef, dispatchRotate]);
 
   // Apply wayback layer with crossfade — promotes NEXT→CURR after each transition
   const applyYear = useCallback((yearEntry: WaybackYear, animate = true) => {
@@ -251,6 +274,7 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
     window.dispatchEvent(new CustomEvent('time-machine-active', { detail: { active: false } }));
     if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
     setIsPlaying(false);
+    setIsRotating(false);
     dispatchRotate(false);
     if (rotationRef.current) cancelAnimationFrame(rotationRef.current);
     if (tickerRef.current) clearTimeout(tickerRef.current);
@@ -358,6 +382,9 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
           {/* Play/Pause · Settings · Close */}
           <Btn onClick={() => setIsPlaying(p => !p)} active={isPlaying} title={isPlaying ? 'Pause' : 'Play'}>
             {isPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 ml-0.5" />}
+          </Btn>
+          <Btn onClick={() => setIsRotating(r => !r)} active={isRotating} title={isRotating ? 'Pause Orbit' : 'Resume Orbit'}>
+            <RefreshCw className={`w-3 h-3 ${isRotating ? 'animate-spin' : ''}`} style={isRotating ? { animationDuration: '4s' } : undefined} />
           </Btn>
           <Btn onClick={() => setShowSettings(s => !s)} active={showSettings} title="Speed & Direction">
             <Settings className="w-3 h-3" />

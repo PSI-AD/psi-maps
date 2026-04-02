@@ -12,6 +12,30 @@ const KEYS = {
     MAP_STYLE: 'psi-map-style',
     ONBOARDING: 'psi-onboarding-done',
     NOTIFICATION_PREF: 'psi-notification-pref',
+    MAP_REGION: 'psi-map-region',          // §10 — cache last map viewport
+} as const;
+
+// ─── Offline Mode Feature Matrix (§10) ────────────────────────────────────────────────────────────
+// Defines which features are available when the user is offline.
+export const OFFLINE_FEATURES = {
+    available: [
+        'Map rendering (cached tiles)',
+        'Recently viewed projects (cached)',
+        'Saved favorites',
+        'Search history',
+        'Project cards (cached data)',
+        'PWA install / home screen',
+        'Background sync queue (favorites, inquiries, feedback)',
+    ],
+    disabled: [
+        'Live Firestore data updates',
+        'AI Chat Assistant',
+        'New project inquiries (queued for retry)',
+        'Map style changes requiring fresh tiles',
+        'Street View panel',
+        'Time Machine satellite imagery',
+        'Push notification registration',
+    ],
 } as const;
 
 // ─── 1. User Settings ───────────────────────────────────────────────────────
@@ -314,4 +338,51 @@ export function clearAllPersistence(): void {
         keysToDelete.forEach(k => localStorage.removeItem(k));
         console.log(`[Storage] Cleared ${keysToDelete.length} persisted items`);
     } catch { }
+}
+
+// ─── 6. Map Region Cache (§10) ────────────────────────────────────
+
+export interface MapRegion {
+    longitude: number;
+    latitude: number;
+    zoom: number;
+    pitch: number;
+    bearing: number;
+    /** ISO timestamp of when this region was saved */
+    savedAt: string;
+}
+
+/**
+ * Persist the current Mapbox viewport so the map can restore it
+ * instantly on next app launch without waiting for remote data.
+ * Call this on map `moveend` events (debounced).
+ */
+export function saveMapRegion(region: Omit<MapRegion, 'savedAt'>): void {
+    try {
+        localStorage.setItem(
+            KEYS.MAP_REGION,
+            JSON.stringify({ ...region, savedAt: new Date().toISOString() })
+        );
+    } catch { }
+}
+
+/**
+ * Load the last persisted map region.
+ * Returns null if no region has been saved yet or it is >7 days old.
+ */
+export function loadMapRegion(): MapRegion | null {
+    try {
+        const raw = localStorage.getItem(KEYS.MAP_REGION);
+        if (!raw) return null;
+        const region: MapRegion = JSON.parse(raw);
+        // Expire stale viewports after 7 days
+        const age = Date.now() - new Date(region.savedAt).getTime();
+        if (age > 7 * 24 * 60 * 60 * 1000) {
+            localStorage.removeItem(KEYS.MAP_REGION);
+            return null;
+        }
+        return region;
+    } catch {
+        return null;
+    }
 }

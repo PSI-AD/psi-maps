@@ -413,33 +413,46 @@ export function measurePerf(label: string): () => number {
 }
 
 /**
- * Log Web Vitals (FCP, LCP, FID, CLS) if available.
+ * Log Web Vitals (FCP, LCP, FID, CLS, TTFB) if available.
+ * Now reports to Firebase Analytics for Real User Monitoring.
+ * §8 — Real User Monitoring (RUM)
  */
 export function logWebVitals(): void {
     if (!('PerformanceObserver' in window)) return;
 
-    // Largest Contentful Paint
+    const reportVital = (name: string, value: number, rating: 'good' | 'needs-improvement' | 'poor') => {
+        // Log to console
+        const icon = rating === 'good' ? '✅' : rating === 'needs-improvement' ? '⚠️' : '❌';
+        console.log(`[Perf] ${icon} ${name}: ${value.toFixed(0)}ms (${rating})`);
+        // Report to Firebase Analytics for RUM
+        import('./firebasePlatform').then(({ logAnalyticsEvent }) => {
+            logAnalyticsEvent('web_vital', { metric_name: name, metric_value: Math.round(value), rating }).catch?.(() => {});
+        }).catch(() => {});
+    };
+
+    // Largest Contentful Paint (threshold: 2500ms good, 4000ms poor)
     try {
         const lcpObserver = new PerformanceObserver((list) => {
             const entries = list.getEntries();
             const lcp = entries[entries.length - 1];
-            console.log(`[Perf] LCP: ${lcp.startTime.toFixed(0)}ms`);
+            const v = lcp.startTime;
+            reportVital('LCP', v, v <= 2500 ? 'good' : v <= 4000 ? 'needs-improvement' : 'poor');
         });
         lcpObserver.observe({ type: 'largest-contentful-paint', buffered: true });
     } catch { }
 
-    // First Input Delay
+    // First Input Delay (threshold: 100ms good, 300ms poor)
     try {
         const fidObserver = new PerformanceObserver((list) => {
             for (const entry of list.getEntries()) {
                 const fid = (entry as any).processingStart - entry.startTime;
-                console.log(`[Perf] FID: ${fid.toFixed(0)}ms`);
+                reportVital('FID', fid, fid <= 100 ? 'good' : fid <= 300 ? 'needs-improvement' : 'poor');
             }
         });
         fidObserver.observe({ type: 'first-input', buffered: true });
     } catch { }
 
-    // Cumulative Layout Shift
+    // Cumulative Layout Shift (threshold: 0.1 good, 0.25 poor)
     try {
         let clsValue = 0;
         const clsObserver = new PerformanceObserver((list) => {
@@ -451,9 +464,107 @@ export function logWebVitals(): void {
         });
         clsObserver.observe({ type: 'layout-shift', buffered: true });
 
-        // Log CLS after 5s of stability
+        // Report CLS after 5s of stability
         setTimeout(() => {
-            console.log(`[Perf] CLS: ${clsValue.toFixed(3)}`);
+            const rating = clsValue <= 0.1 ? 'good' : clsValue <= 0.25 ? 'needs-improvement' : 'poor';
+            const icon = rating === 'good' ? '✅' : rating === 'needs-improvement' ? '⚠️' : '❌';
+            console.log(`[Perf] ${icon} CLS: ${clsValue.toFixed(3)} (${rating})`);
+            import('./firebasePlatform').then(({ logAnalyticsEvent }) => {
+                logAnalyticsEvent('web_vital', { metric_name: 'CLS', metric_value: +clsValue.toFixed(3), rating }).catch?.(() => {});
+            }).catch(() => {});
         }, 5000);
     } catch { }
+
+    // Time to First Byte
+    try {
+        const navEntry = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+        if (navEntry) {
+            const ttfb = navEntry.responseStart - navEntry.requestStart;
+            reportVital('TTFB', ttfb, ttfb <= 800 ? 'good' : ttfb <= 1800 ? 'needs-improvement' : 'poor');
+        }
+    } catch { }
+}
+
+// ─── 9. Device Tier Detection (§6 — graceful degradation on low-end devices) ──────
+
+export type DeviceTier = 'high' | 'mid' | 'low';
+
+export interface DeviceProfile {
+    tier: DeviceTier;
+    /** Number of logical CPU cores (if available) */
+    cores: number;
+    /** RAM in GB (if available) */
+    ramGB: number | null;
+    /** Network effective type (4g / 3g / 2g / slow-2g) */
+    connectionType: string;
+    /** True if the device is flagged as a slow renderer */
+    isSlow: boolean;
+    /** Recommended quality hints for adaptive rendering */
+    hints: {
+        disable3DBuildings: boolean;
+        disableAnimations: boolean;
+        reduceTileQuality: boolean;
+        reduceConcurrentLoads: boolean;
+    };
+}
+
+/**
+ * Detect the device tier and recommended rendering quality.
+ * Logs the profile to Firebase Analytics for observability.
+ * §6, §8 — graceful degradation + detect slow devices and log to analytics.
+ */
+export async function detectAndReportDeviceTier(): Promise<DeviceProfile> {
+    const nav = navigator as any;
+    const cores = nav.hardwareConcurrency || 2;
+    const ramGB: number | null = nav.deviceMemory || null;  // Chrome only
+    const connType = (nav.connection?.effectiveType || nav.connection?.type || 'unknown') as string;
+
+    // Tier heuristics
+    let tier: DeviceTier = 'high';
+    if (ramGB !== null && ramGB <= 2) tier = 'low';
+    else if (cores <= 2) tier = 'low';
+    else if (ramGB !== null && ramGB <= 4) tier = 'mid';
+    else if (cores <= 4) tier = 'mid';
+
+    // Downgrade to mid/low for slow connections regardless of hardware
+    if (connType === '2g' || connType === 'slow-2g') tier = 'low';
+    else if (connType === '3g' && tier === 'high') tier = 'mid';
+
+    const isSlow = tier === 'low';
+
+    const hints = {
+        disable3DBuildings: tier !== 'high',
+        disableAnimations: tier === 'low',
+        reduceTileQuality: tier === 'low',
+        reduceConcurrentLoads: tier !== 'high',
+    };
+
+    const profile: DeviceProfile = { tier, cores, ramGB, connectionType: connType, isSlow, hints };
+
+    console.log(`[Device] Tier: ${tier.toUpperCase()} | Cores: ${cores} | RAM: ${ramGB ?? '?'}GB | Net: ${connType}`);
+
+    // Report to Firebase Analytics (§8 — detect slow devices and log)
+    try {
+        const { logAnalyticsEvent } = await import('./firebasePlatform');
+        await logAnalyticsEvent('device_profile', {
+            device_tier: tier,
+            cores,
+            ram_gb: ramGB,
+            connection_type: connType,
+            is_slow: isSlow,
+        });
+    } catch { }
+
+    return profile;
+}
+
+/**
+ * Apply graceful degradation based on device tier.
+ * Dispatches a CustomEvent so Map/UI components can react.
+ */
+export function applyGracefulDegradation(profile: DeviceProfile): void {
+    if (!profile.isSlow) return;
+    // Notify map to simplify rendering
+    window.dispatchEvent(new CustomEvent('device-tier-detected', { detail: profile }));
+    console.warn('[Perf] Low-end device detected — enabling performance mitigations');
 }

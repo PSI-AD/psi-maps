@@ -59,6 +59,14 @@ initSyncEngine();
 
 // ── Initialize Firebase Platform (deferred — after first paint) ──────────────
 import { initFirebasePlatform, onForegroundMessage, AnalyticsEvents } from './utils/firebasePlatform';
+import { logWebVitals, detectAndReportDeviceTier, applyGracefulDegradation } from './utils/performanceEngine';
+
+// ── Real User Monitoring — report Web Vitals to Firebase Analytics (§8) ──────
+logWebVitals();
+
+// ── Device Tier Detection — graceful degradation for low-end devices (§6) ──
+detectAndReportDeviceTier().then(applyGracefulDegradation).catch(() => {});
+
 
 // Defer non-critical Firebase services to after the browser is idle.
 // This prevents Analytics, Remote Config, Performance, and Messaging init

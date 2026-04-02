@@ -5,6 +5,7 @@ import useSupercluster from 'use-supercluster';
 import { Project } from '../types';
 import { loadAppState, saveAppState } from '../utils/performanceEngine';
 import { cacheMapState } from '../utils/smartCache';
+import { saveMapRegion } from '../utils/localPersistence';
 
 
 export const useMapState = (filteredProjects: Project[], cameraDuration: number = 2000) => {
@@ -44,7 +45,9 @@ export const useMapState = (filteredProjects: Project[], cameraDuration: number 
         if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
         saveTimerRef.current = setTimeout(() => {
             saveAppState({ viewState, mapStyle });
-            // Also persist to IndexedDB for durable offline recovery
+            // Also persist dedicated map region key for offline restore
+            saveMapRegion(viewState);
+            // Persist to IndexedDB for durable offline recovery
             cacheMapState({ ...viewState, mapStyle }).catch(() => { });
         }, 1000);
         return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };

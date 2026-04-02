@@ -1027,3 +1027,54 @@ body.is-presentation #root {
         transition-timing-function: ease;
     }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   23. WCAG AA ACCESSIBILITY — §11 Production Checklist
+   • Minimum 44×44px touch targets (WCAG 2.5.5)
+   • Focus rings visible for keyboard and assistive tech users
+   • Scalable text — no suppression of user font size preferences
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* Ensure all interactive elements meet 44×44px minimum (WCAG 2.5.5) */
+button,
+a,
+[role="button"],
+[role="link"],
+input[type="checkbox"],
+input[type="radio"],
+select {
+    min-height: 44px;
+    min-width: 44px;
+}
+
+/* Exception: icon-only buttons that use padding to achieve the hitbox */
+/* Allow them to be visually smaller while maintaining 44×44px tap area via padding */
+button.icon-btn {
+    min-height: unset;
+    min-width: unset;
+    padding: 10px;
+}
+
+/* Focus rings for ALL pointer types (not just fine pointer / desktop) */
+/* This ensures VoiceOver / TalkBack users see focus clearly */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 3px;
+    border-radius: 6px;
+}
+
+/* Scalable text — do NOT set font-size in px on root in a way that
+   overrides user browser preferences. The body font-size is left at
+   the browser default (16px) and all sizes use rem/em units. */
+
+/* All images MUST have alt attributes — enforce visually broken placeholder
+   for any img without alt (developer warning, not end-user facing) */
+img:not([alt]) {
+    outline: 3px dashed #ef4444;
+    opacity: 0.8;
+}

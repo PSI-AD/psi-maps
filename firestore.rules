@@ -1,39 +1,85 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ── Public read-only data ────────────────────────────────────────────────
+    // These collections are read by any user but should never be written by
+    // unauthenticated clients. Admin writes happen via Firebase Admin SDK
+    // (service account) or an authenticated CMS session.
+
     match /projects/{document} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if request.auth != null;
     }
+
     match /landmarks/{document} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if request.auth != null;
     }
-    match /presentations/{document} {
-      allow read, write: if true;
-    }
+
     match /settings/{document} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if request.auth != null;
     }
+
     match /entities_developers/{dev} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if request.auth != null;
     }
+
     match /locations_communities/{comm} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if request.auth != null;
     }
+
     match /locations_cities/{city} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if request.auth != null;
     }
+
     match /community_boundaries/{boundary} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if request.auth != null;
     }
+
+    // ── User-generated data (append-only from clients) ───────────────────────
+    // Leads and reports can be created by anyone (contact forms, report abuse)
+    // but should not be readable or modified after creation by public clients.
+
     match /leads/{document} {
-      allow read, write: if true;
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
     }
+
     match /reports/{document} {
-      allow read, write: if true;
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
     }
+
+    // ── Presentations (shareable, but write-restricted) ──────────────────────
+    match /presentations/{document} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // ── FCM tokens (client can upsert own token) ─────────────────────────────
+    match /fcm_tokens/{token} {
+      allow create, update: if true;
+      allow read, delete: if request.auth != null;
+    }
+
+    // ── Error logs (client can append, admin can read) ───────────────────────
+    match /error_logs/{document} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
+    }
+
+    // ── Mail (internal trigger collection — no client access) ────────────────
     match /mail/{document} {
-      allow read, write: if true;
+      allow read, write: if request.auth != null;
     }
+
+    // ── Deny everything else ─────────────────────────────────────────────────
     match /{document=**} {
       allow read, write: if false;
     }
