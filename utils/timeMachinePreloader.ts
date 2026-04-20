@@ -27,13 +27,49 @@ export interface PreloadCommunity {
 
 /**
  * Communities to pre-warm on every app startup.
- * Add more as needed — each community adds ~234 tile requests spread over ~20s.
+ * Each entry = ~234 tile requests staggered over ~20s in the background.
+ *
+ * Order matters — lower index = earlier warmup. High-traffic communities first.
+ * Abu Dhabi (5) → Dubai (5).
  */
 export const TM_PRELOAD_COMMUNITIES: PreloadCommunity[] = [
-  // ── Saadiyat Island, Abu Dhabi ──────────────────────────────────────────
-  // Centre of island; z=15 tiles cover ~4.8km each so the 3×3 grid
-  // covers the whole island. z=16 covers the dense development cluster.
-  { name: 'Saadiyat Island', lat: 24.536, lng: 54.433, zooms: [15, 16] },
+  // ═══════════════════════════════════════════════════════════════════════
+  // ABU DHABI — Top 5
+  // ═══════════════════════════════════════════════════════════════════════
+
+  // 1. Saadiyat Island — cultural & luxury hub (NYUAD, Louvre, Mamsha)
+  { name: 'Saadiyat Island',  lat: 24.5360, lng: 54.4330, zooms: [15, 16] },
+
+  // 2. Yas Island — entertainment & mega-projects (Yas Bay, Ferrari World)
+  { name: 'Yas Island',       lat: 24.4870, lng: 54.6080, zooms: [15, 16] },
+
+  // 3. Al Reem Island — dense residential waterfront (The Gate, Shams)
+  { name: 'Al Reem Island',   lat: 24.5010, lng: 54.4030, zooms: [15, 16] },
+
+  // 4. Al Raha Beach — Canal-side mixed-use (Al Bandar, Al Muneera)
+  { name: 'Al Raha Beach',    lat: 24.4400, lng: 54.6150, zooms: [15, 16] },
+
+  // 5. Khalifa City — established suburban community near Yas
+  { name: 'Khalifa City',     lat: 24.4300, lng: 54.6140, zooms: [15, 16] },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // DUBAI — Top 5
+  // ═══════════════════════════════════════════════════════════════════════
+
+  // 6. Downtown Dubai — Burj Khalifa, Dubai Mall, Emaar flagship
+  { name: 'Downtown Dubai',   lat: 25.1972, lng: 55.2744, zooms: [15, 16] },
+
+  // 7. Dubai Marina — largest man-made marina, JBR promenade
+  { name: 'Dubai Marina',     lat: 25.0757, lng: 55.1342, zooms: [15, 16] },
+
+  // 8. Palm Jumeirah — iconic palm island, Nakheel developments
+  { name: 'Palm Jumeirah',    lat: 25.1124, lng: 55.1388, zooms: [15, 16] },
+
+  // 9. Business Bay — canal district, mixed commercial & residential
+  { name: 'Business Bay',     lat: 25.1865, lng: 55.2551, zooms: [15, 16] },
+
+  // 10. Jumeirah Village Circle — most active off-plan community in Dubai
+  { name: 'Jumeirah Village Circle', lat: 25.0588, lng: 55.2075, zooms: [15, 16] },
 ];
 
 // ── Internal helpers ──────────────────────────────────────────────────────
@@ -113,8 +149,9 @@ function _scheduleCommunity(community: PreloadCommunity, startDelay: number): vo
 export function warmupTimeMachineTiles(extraDelaySec = 0): void {
   const run = () => {
     TM_PRELOAD_COMMUNITIES.forEach((community, idx) => {
-      // Stagger community starts 4s apart so their tile bursts don't overlap
-      const communityOffset = idx * 4000 + extraDelaySec * 1000;
+      // Stagger community starts 5s apart — with 10 communities the last one
+      // starts 45s after the idle callback fires, all safely in the background.
+      const communityOffset = idx * 5000 + extraDelaySec * 1000;
       _scheduleCommunity(community, communityOffset);
     });
   };
