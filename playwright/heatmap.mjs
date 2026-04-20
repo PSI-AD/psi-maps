@@ -18,14 +18,29 @@
  *   node playwright/heatmap.mjs [options]
  *
  * Options:
- *   --url <url>          Target URL  (default: http://localhost:3000)
- *   --cols <n>           Grid columns (default: 20)
- *   --rows <n>           Grid rows    (default: 20)
- *   --viewport <WxH>     Viewport size (default: 1440x900)
- *   --wait <ms>          Wait after page load (default: 4000)
- *   --headed             Run in headed mode
+ *   --url <url>          Base URL            (default: http://localhost:3000)
+ *   --path <route>       Route to append     (e.g. /map  →  navigates to BASE_URL/map)
+ *   --cols <n>           Grid columns        (default: 20)
+ *   --rows <n>           Grid rows           (default: 20)
+ *   --viewport <WxH>     Viewport size       (default: 1440x900)
+ *   --wait <ms>          Wait after load     (default: 4000)
+ *   --wait-for <sel>     Wait for CSS selector to appear before scanning
+ *                        (e.g. --wait-for canvas  --wait-for .mapboxgl-canvas)
+ *   --close-overlays     Try to dismiss any open modal / panel before scanning
+ *   --pause              Pause 8 s after load so you can manually set the page state
+ *   --headed             Run in headed mode (default: headless)
  *   --mobile             Simulate iPhone 13 Pro (390×844)
  *   --debug              Verbose per-cell logging
+ *
+ * Examples:
+ *   # Scan the map page and wait for canvas
+ *   node playwright/heatmap.mjs --path / --wait-for canvas --close-overlays
+ *
+ *   # Scan admin dashboard
+ *   node playwright/heatmap.mjs --url http://localhost:3000 --path /admin
+ *
+ *   # Mobile with manual setup
+ *   node playwright/heatmap.mjs --mobile --headed --pause
  */
 
 import { chromium } from 'playwright';
@@ -38,15 +53,24 @@ const args = process.argv.slice(2);
 const flag  = (name)        => args.includes(name);
 const param = (name, def)   => { const i = args.indexOf(name); return i !== -1 && args[i+1] ? args[i+1] : def; };
 
-const BASE_URL     = param('--url',      process.env.BASE_URL ?? 'http://localhost:3000');
-const GRID_COLS    = parseInt(param('--cols',    '20'), 10);
-const GRID_ROWS    = parseInt(param('--rows',    '20'), 10);
-const WAIT_MS      = parseInt(param('--wait',    '4000'), 10);
-const IS_HEADED    = flag('--headed') || process.env.DEBUG_MODE === 'true';
-const IS_MOBILE    = flag('--mobile');
-const IS_DEBUG     = flag('--debug');
-const VIEWPORT_STR = param('--viewport', IS_MOBILE ? '390x844' : '1440x900');
-const [VP_W, VP_H] = VIEWPORT_STR.split('x').map(Number);
+const BASE_URL        = param('--url',          process.env.BASE_URL ?? 'http://localhost:3000');
+const ROUTE_PATH      = param('--path',         '/');
+const GRID_COLS       = parseInt(param('--cols',    '20'), 10);
+const GRID_ROWS       = parseInt(param('--rows',    '20'), 10);
+const WAIT_MS         = parseInt(param('--wait',    '4000'), 10);
+const WAIT_FOR_SEL    = param('--wait-for',     '');
+const CLOSE_OVERLAYS  = flag('--close-overlays');
+const PAUSE_MODE      = flag('--pause');
+const IS_HEADED       = flag('--headed') || process.env.DEBUG_MODE === 'true';
+const IS_MOBILE       = flag('--mobile');
+const IS_DEBUG        = flag('--debug');
+const VIEWPORT_STR    = param('--viewport', IS_MOBILE ? '390x844' : '1440x900');
+const [VP_W, VP_H]    = VIEWPORT_STR.split('x').map(Number);
+
+// Build the full target URL (strip trailing slash from base, ensure leading slash on path)
+const normalizedBase = BASE_URL.replace(/\/$/, '');
+const normalizedPath = ROUTE_PATH.startsWith('/') ? ROUTE_PATH : '/' + ROUTE_PATH;
+const TARGET_URL     = normalizedPath === '/' ? normalizedBase + '/' : normalizedBase + normalizedPath;
 
 // ─── Dirs ─────────────────────────────────────────────────────────────────────
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -62,8 +86,11 @@ const HTML_PATH  = path.join(OUT_DIR, `heatmap-viewer-${TS}.html`);
 // ─── Banner ───────────────────────────────────────────────────────────────────
 console.log('\n╔═══════════════════════════════════════════════════════════╗');
 console.log('║       PSI MAPS — CLICK HEATMAP ANALYZER                  ║');
-console.log(`║  URL:  ${BASE_URL.padEnd(52)}║`);
+console.log(`║  URL:  ${TARGET_URL.padEnd(52)}║`);
 console.log(`║  Grid: ${String(GRID_COLS + '×' + GRID_ROWS).padEnd(10)}  Viewport: ${String(VP_W + '×' + VP_H).padEnd(34)}║`);
+if (WAIT_FOR_SEL)   console.log(`║  ⏳ Wait for: ${WAIT_FOR_SEL.padEnd(47)}║`);
+if (CLOSE_OVERLAYS) console.log('║  🧹 Auto-close overlays: ON                               ║');
+if (PAUSE_MODE)     console.log('║  ⏸  Pause mode: 8s manual setup window                    ║');
 console.log('╚═══════════════════════════════════════════════════════════╝\n');
 
 // ─── Launch ───────────────────────────────────────────────────────────────────
@@ -82,11 +109,80 @@ const context = await browser.newContext({
 const page = await context.newPage();
 
 // ─── Navigate ─────────────────────────────────────────────────────────────────
-console.log('⏳ Navigating to page…');
-await page.goto(BASE_URL, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+console.log(`⏳ Navigating to: ${TARGET_URL}`);
+await page.goto(TARGET_URL, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+
+// ── Wait for dynamic content ─────
 console.log(`⏳ Waiting ${WAIT_MS}ms for dynamic content…`);
 await page.waitForTimeout(WAIT_MS);
-console.log('✅ Page ready\n');
+
+// ── Wait for specific selector ───
+if (WAIT_FOR_SEL) {
+  console.log(`⏳ Waiting for selector: "${WAIT_FOR_SEL}"…`);
+  try {
+    await page.waitForSelector(WAIT_FOR_SEL, { state: 'visible', timeout: 20_000 });
+    console.log(`  ✅ Selector "${WAIT_FOR_SEL}" is visible`);
+  } catch {
+    console.warn(`  ⚠️  Selector "${WAIT_FOR_SEL}" did not appear within 20s — continuing anyway`);
+  }
+}
+
+// ── Close overlays / modals ──────
+if (CLOSE_OVERLAYS) {
+  console.log('🧹 Attempting to close overlays…');
+  const dismissed = await page.evaluate(() => {
+    // Selectors for common modal/panel close patterns
+    const closeSelectors = [
+      // Generic close buttons
+      'button[aria-label*="close" i]',
+      'button[aria-label*="dismiss" i]',
+      'button[title*="close" i]',
+      '[data-dismiss]',
+      '[data-close]',
+      // Common class patterns
+      '.modal-close', '.close-btn', '.btn-close',
+      '[class*="CloseBtn"]', '[class*="close-btn"]', '[class*="closeBtn"]',
+      // Icon buttons with X/cross SVGs that are visually the close button
+      'button:has(svg[data-lucide="x"])',
+      'button:has(svg[data-lucide="X"])',
+      // React modal backdrops — click outside fires onClose in many modal libs
+      '[class*="backdrop"]',
+      '[class*="Backdrop"]',
+      '[class*="overlay"][role="dialog"]',
+    ];
+    let count = 0;
+    for (const sel of closeSelectors) {
+      try {
+        const els = document.querySelectorAll(sel);
+        els.forEach(el => {
+          const r = el.getBoundingClientRect();
+          // Only click visible, in-viewport elements
+          if (r.width > 0 && r.height > 0 && r.top >= 0 && r.left >= 0) {
+            el.click();
+            count++;
+          }
+        });
+      } catch { /* ignore bad selectors */ }
+    }
+    // Also press Escape — the universal modal-close key
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    return count;
+  });
+  console.log(`  ✅ Dispatched Escape + clicked ${dismissed} close button(s)`);
+  await page.waitForTimeout(800); // let animations finish
+}
+
+// ── Optional pause for manual setup ─
+if (PAUSE_MODE) {
+  console.log('\n⏸  PAUSE MODE — You have 8 seconds to set the page to the desired state…\n');
+  for (let i = 8; i > 0; i--) {
+    process.stdout.write(`\r   Starting scan in ${i}s… `);
+    await page.waitForTimeout(1000);
+  }
+  console.log('\n');
+}
+
+console.log('✅ Page ready — starting heatmap scan\n');
 
 // ─── Take baseline screenshot ─────────────────────────────────────────────────
 const baseScreenshot = await page.screenshot({ fullPage: false });
