@@ -25,3 +25,8 @@ dist-ssr
 *.sln
 *.sw?
 scripts/serviceAccountKey.json
+
+# Playwright
+playwright-results/
+/test-results/
+/playwright-report/

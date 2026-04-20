@@ -6,7 +6,14 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "pw:test": "/opt/homebrew/bin/node playwright/run.mjs",
+    "pw:debug": "/opt/homebrew/bin/node playwright/run.mjs --debug",
+    "pw:journey": "/opt/homebrew/bin/node playwright/run.mjs --test user-journey",
+    "pw:validate": "/opt/homebrew/bin/node playwright/run.mjs --test ui-validation",
+    "pw:debug-session": "/opt/homebrew/bin/node playwright/run.mjs --debug --test debug-session",
+    "pw:trace": "/opt/homebrew/bin/node playwright/run.mjs --trace",
+    "pw:report": "/opt/homebrew/bin/node playwright/run.mjs --report"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.0",
