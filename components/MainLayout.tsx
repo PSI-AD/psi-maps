@@ -419,6 +419,29 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
 
       {isRefreshing && <AppLoadingSkeleton />}
 
+      {/* Empty data state — shown when load finishes but no projects came back (Firebase issue) */}
+      {!isRefreshing && liveProjects.length === 0 && (
+        <div
+          role="alert"
+          aria-live="polite"
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-[7500] bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl px-5 py-3 shadow-xl flex items-center gap-3 max-w-sm w-[calc(100vw-32px)] animate-in fade-in slide-in-from-top-2 duration-300 pointer-events-auto"
+          style={{ top: 'max(env(safe-area-inset-top, 16px), 16px)' }}
+        >
+          <span className="text-xl shrink-0">⚠️</span>
+          <div className="flex-1 min-w-0">
+            <p className="font-black text-sm">Properties unavailable</p>
+            <p className="text-xs font-medium opacity-70 mt-0.5">Connection issue — tap Retry to reload</p>
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="shrink-0 bg-amber-600 text-white text-xs font-black px-3 py-1.5 rounded-lg hover:bg-amber-700 transition-colors"
+            aria-label="Retry loading properties"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       {/* ── Main content area: map + optional sidebar (split on desktop) ─── */}
       <div className="absolute inset-0 z-0 flex flex-row">
         {/* Map container — shrinks to give room to sidebar on desktop */}

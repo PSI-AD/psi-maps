@@ -78,14 +78,17 @@
     <link rel="preload" href="/psi-logo.png" as="image" fetchpriority="high" />
 
     <!-- DNS Preconnects: resolve critical third-party origins before they're needed -->
-    <link rel="preconnect" href="https://firestore.googleapis.com" />
-    <link rel="preconnect" href="https://api.mapbox.com" />
-    <link rel="preconnect" href="https://events.mapbox.com" />
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://firebase.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://storage.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://api.mapbox.com" crossorigin />
+    <link rel="preconnect" href="https://events.mapbox.com" crossorigin />
 
     <!-- Prefetch the map tiles domain for faster initial map load -->
     <link rel="dns-prefetch" href="https://tiles.mapbox.com" />
     <link rel="dns-prefetch" href="https://a.tiles.mapbox.com" />
     <link rel="dns-prefetch" href="https://b.tiles.mapbox.com" />
+    <link rel="dns-prefetch" href="https://psimaps-pro.firebaseapp.com" />
 
     <style>
         /* Font display optimization — prevent FOIT (Flash of Invisible Text) */

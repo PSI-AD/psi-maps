@@ -300,7 +300,7 @@ export const MapSkeleton: React.FC = () => (
 // ─── Full-Screen Loading Skeleton (replaces the spinner overlay) ─────────────
 
 export const AppLoadingSkeleton: React.FC = () => (
-    <div className="absolute inset-0 z-[7000] bg-slate-900/80 backdrop-blur-xl flex flex-col items-center justify-center">
+    <div className="absolute inset-0 z-[7000] bg-slate-900/80 backdrop-blur-xl flex flex-col items-center justify-center pointer-events-none">
         {/* Animated Logo Pulse */}
         <div className="relative mb-8">
             <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-2xl shadow-blue-500/40">
@@ -308,9 +308,9 @@ export const AppLoadingSkeleton: React.FC = () => (
                     <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
                 </svg>
             </div>
-            {/* Two-ring spinner */}
-            <div className="absolute -inset-3 border-2 border-blue-400/30 rounded-2xl animate-pulse" />
-            <div className="absolute -inset-6 border border-blue-300/15 rounded-3xl animate-pulse" style={{ animationDelay: '200ms' }} />
+            {/* Two-ring spinner — pointer-events:none so they never block map clicks */}
+            <div className="absolute -inset-3 border-2 border-blue-400/30 rounded-2xl animate-pulse pointer-events-none" />
+            <div className="absolute -inset-6 border border-blue-300/15 rounded-3xl animate-pulse pointer-events-none" style={{ animationDelay: '200ms' }} />
         </div>
 
         {/* Progress bar */}

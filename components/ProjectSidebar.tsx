@@ -973,7 +973,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
             src={currentImage?.large || currentImage?.thumb || '/placeholder-image.png'}
             alt={project.name}
             loading="eager"
-            fetchpriority="high"
+            fetchPriority="high"
             decoding="async"
             onLoad={() => setIsMainImageLoaded(true)}
             onClick={(e) => { e.stopPropagation(); setGalleryIndex(activeIdx); }}

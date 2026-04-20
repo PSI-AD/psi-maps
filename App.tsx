@@ -24,6 +24,7 @@ import { useNativeHardware } from './hooks/useNativeHardware';
 import { loadAppState } from './utils/performanceEngine';
 import { recordRecentView, addSearchEntry } from './utils/localPersistence';
 import { warmUpPreloader, preloadProjectScreen, recordNavigation, preloadPredictedScreens } from './utils/predictivePreloader';
+import { warmupTimeMachineTiles } from './utils/timeMachinePreloader';
 import { AnalyticsEvents, PerfTraces } from './utils/firebasePlatform';
 import { sampleROIZones } from './data/roiZones';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -183,6 +184,9 @@ const AppInner: React.FC = () => {
   // ── Initialize predictive preloader ─────────────────────────────────────
   useEffect(() => {
     warmUpPreloader();
+    // Pre-warm Time Machine satellite tiles for Saadiyat Island (and future communities)
+    // Deferred 3s so main data load completes first; runs during browser idle time.
+    warmupTimeMachineTiles(3);
   }, []);
 
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');

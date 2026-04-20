@@ -44,6 +44,12 @@ export const storage: FirebaseStorage = getStorage(app);
 // depend on the Firebase Installations API. If the API key doesn't have
 // permission, all these services will throw noisy console errors.
 // We do a one-time check and gate all dependent services behind it.
+//
+// FIX: If you see Firebase 403 errors in the console, you need to:
+// 1. Go to: https://console.cloud.google.com/apis/library
+// 2. Search for "Firebase Installations API"
+// 3. Enable it for project: psimaps-pro
+// 4. Wait ~2 minutes for the change to propagate
 
 let _installationsSupported: boolean | null = null;
 
@@ -62,13 +68,23 @@ async function isInstallationsAvailable(): Promise<boolean> {
         await getId(installations);
         _installationsSupported = true;
     } catch (err: any) {
-        const msg = err?.message || '';
-        if (msg.includes('request-failed') || msg.includes('INVALID_ARGUMENT')) {
-            console.warn(
-                '[Firebase] Installations API unavailable — API key may need the ' +
-                '"Firebase Installations API" enabled in Google Cloud Console. ' +
-                'Analytics, Messaging, Remote Config, and Performance will be disabled.'
-            );
+        const msg = String(err?.message || err?.code || err || '');
+        const isPermissionError = (
+            msg.includes('request-failed') ||
+            msg.includes('INVALID_ARGUMENT') ||
+            msg.includes('403') ||
+            msg.includes('API_NOT_ENABLED') ||
+            msg.includes('firebaseinstallations')
+        );
+        if (isPermissionError) {
+            if (import.meta.env.DEV) {
+                console.warn(
+                    '[Firebase] ⚠️  Installations API blocked (403).\n' +
+                    'To fix: go to https://console.cloud.google.com/apis/library\n' +
+                    'and enable "Firebase Installations API" for project psimaps-pro.\n' +
+                    'Analytics, Messaging, Remote Config & Performance will be disabled until then.'
+                );
+            }
             _installationsSupported = false;
         } else {
             // Unknown error — assume supported, let individual services handle it
@@ -77,6 +93,7 @@ async function isInstallationsAvailable(): Promise<boolean> {
     }
     return _installationsSupported;
 }
+
 
 // ─── 1. ANALYTICS ────────────────────────────────────────────────────────────
 // Lazy-loaded, tree-shakeable. Only initializes in browser environment.
@@ -633,9 +650,15 @@ export function installErrorHandlers(): void {
         'firebaseinstallations.googleapis.com',
         'firebaseremoteconfig.googleapis.com',
         'firebase.googleapis.com/v1alpha',
+        'firebase.googleapis.com/v1/projects',
         'remoteconfig/fetch-status',
         'fireperf',
         'getOpacityAtLatLng',  // Mapbox GL internal fog race condition
+        'Failed to load resource',  // Generic 403/network errors from Firebase APIs
+        'ERR_ABORTED',              // Cancelled tile/stream requests on navigation
+        'AbortError',               // Fetch aborted by AbortController
+        'Load failed',              // Safari equivalent of ERR_ABORTED
+        'webConfig',                // Firebase app config 403 endpoint
     ];
 
     const isSuppressed = (msg: string) =>

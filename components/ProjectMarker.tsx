@@ -45,6 +45,9 @@ const ProjectMarker: React.FC<ProjectMarkerProps> = ({
         onClick={(e) => { e.stopPropagation(); handleTap(); }}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
+        data-testid="project-marker"
+        data-project-id={project.id}
+        aria-label={`${project.name} — ${displayPrice}`}
         className={`
           relative group flex flex-col items-center cursor-pointer pointer-events-auto touch-action-manipulation
           transition-transform duration-300 border-none bg-transparent p-0 m-0 outline-none

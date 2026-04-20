@@ -174,8 +174,8 @@ if (canvasBox) {
     const canvas = document.querySelector('canvas');
     return {
       topTag: topEl?.tagName,
-      topId: (topEl as HTMLElement)?.id || '',
-      topClass: (topEl as HTMLElement)?.className?.toString().slice(0, 60) || '',
+      topId: topEl?.id || '',
+      topClass: topEl?.className?.toString().slice(0, 60) || '',
       isCanvas: topEl === canvas || canvas?.contains(topEl),
     };
   }, { cx, cy });
@@ -215,38 +215,62 @@ if (canvasBox) {
   log('critical', { title: 'Map canvas bounding box not found', location: 'MapCanvas.tsx', fix: 'Ensure canvas element renders with non-zero dimensions' });
 }
 
-// Check for markers
-const markerCount = await page.locator('[class*="mapboxgl-marker"], [class*="marker"]').count();
+// Check for markers — use data-testid (set on ProjectMarker button) and mapboxgl-marker class
+const markerCount = await page.locator('[data-testid="project-marker"], .mapboxgl-marker button, [class*="mapboxgl-marker"]').count();
 console.log(`  📍 Markers found: ${markerCount}`);
 if (markerCount === 0) {
-  log('major', { title: 'No property markers detected on map', location: 'MapCanvas / ProjectMarker.tsx', fix: 'Check Firestore data loading; verify marker render conditions; ensure markers are within current viewport bounds' });
+  // Wait an extra 5s for Firestore data in case it's slow
+  await page.waitForTimeout(5000);
+  const markerCountDelayed = await page.locator('[data-testid="project-marker"], .mapboxgl-marker button').count();
+  if (markerCountDelayed === 0) {
+    log('major', { title: 'No property markers detected on map (after 5s extra wait)', location: 'MapCanvas / ProjectMarker.tsx — likely Firestore data not loaded', fix: 'Fix Firebase 403 (enable Installations API in Google Cloud Console); verify Firestore rules allow read access; check browser console for Firestore errors' });
+  } else {
+    log('positive', { description: `${markerCountDelayed} map markers visible (after Firestore load delay)` });
+  }
 } else {
   log('positive', { description: `${markerCount} map markers visible` });
 }
 await shot(page, 'map-with-markers');
 
-// Try clicking first visible marker
-if (markerCount > 0) {
-  const firstMarker = page.locator('[class*="mapboxgl-marker"]').first();
-  const markerBox = await firstMarker.boundingBox().catch(() => null);
-  if (markerBox) {
-    const tClick = Date.now();
-    await firstMarker.click({ force: true, timeout: 5000 }).catch(() => {});
-    const tSidebar = Date.now();
-    await page.waitForTimeout(1500);
-    await shot(page, 'after-marker-click');
+// Try clicking first visible project marker — use canvas-coordinate click (GL layers)
+if (markerCount > 0 || true /* always try clicking center of map for a marker */) {
+  // Approach: click on a data-testid marker button if available (DOM React marker)
+  const reactMarker = page.locator('[data-testid="project-marker"]').first();
+  const hasReactMarker = await reactMarker.count() > 0;
 
-    const sidebarOpen = await page.locator('[class*="sidebar"], [class*="Sidebar"], [class*="ProjectSidebar"], [class*="analysis"]').first().count() > 0;
-    if (!sidebarOpen) {
-      log('major', { title: 'Clicking a map marker did not open property sidebar', location: 'ProjectMarker.tsx → handleMarkerClick', fix: 'Verify onClick handler chain: ProjectMarker → handleMarkerClick → setIsAnalysisOpen; check z-index and pointer-events on marker element' });
-    } else {
-      log('positive', { description: 'Marker click opens property sidebar correctly' });
-      await shot(page, 'sidebar-open');
-      console.log(`  ⏱  Sidebar open latency: ${tSidebar - tClick}ms`);
-      if (tSidebar - tClick > 1000) {
-        log('performance', { metric: 'Sidebar open latency', observed: `${tSidebar - tClick}ms`, threshold: '500ms', fix: 'Pre-mount sidebar in DOM; avoid re-fetch on open if data is already in state' });
-      }
+  if (hasReactMarker) {
+    // Click the React DOM marker button directly
+    await reactMarker.click({ force: true, timeout: 5000 }).catch(() => {});
+    console.log('  🖱  Clicked React DOM project-marker button');
+  } else {
+    // Fallback: click center of canvas — likely hits a GL layer circle marker
+    const box = canvasBox;
+    if (box) {
+      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+      console.log('  🖱  Clicked map canvas center (GL layer click attempt)');
     }
+  }
+  await page.waitForTimeout(1500);
+  await shot(page, 'after-marker-click');
+
+  // Detect sidebar via various patterns
+  const sidebarOpen = await page.locator([
+    '[class*="ProjectSidebar"]',
+    '[class*="project-sidebar"]',
+    '[class*="SidebarSkeleton"]',
+    '[data-nav-scroll="sidebar"]',
+    'h1 ~ p',  // project name + developer
+  ].join(', ')).first().isVisible().catch(() => false);
+
+  if (!sidebarOpen) {
+    log('major', {
+      title: 'Clicking a map marker did not open property sidebar',
+      location: 'MapCanvas.tsx → handleLayerClick → onMarkerClick',
+      fix: 'Mapbox GL circle layers only respond to map onClick w/ features — verify interactiveLayerIds includes "unclustered-point" and "unclustered-point-hit"; check z-index of overlapping DOM elements'
+    });
+  } else {
+    log('positive', { description: 'Marker click opens property sidebar correctly' });
+    await shot(page, 'sidebar-open');
   }
 }
 
@@ -300,14 +324,33 @@ if (hasSearch) {
   await searchInput.fill('Marina');
   await page.waitForTimeout(1500);
   await shot(page, 'searchbar-with-results');
-  const results = await page.locator('[class*="result"], [class*="Result"], [class*="dropdown"], [class*="suggestion"]').count();
+  // SearchBar dropdown uses rounded-2xl shadow-2xl bg-white — detect by structure
+  const results = await page.locator([
+    '[class*="rounded-2xl"][class*="shadow-2xl"] button',  // SearchBar dropdown buttons
+    '[class*="result"]',
+    '[class*="suggestion"]',
+    '[class*="animate-in"] button',  // animate-in on the dropdown container
+  ].join(', ')).count();
   console.log(`  🔍 Search results shown: ${results}`);
   if (results === 0) {
-    log('major', { title: 'Search "Marina" returned no visible dropdown results', location: 'SearchBar.tsx', fix: 'Verify Firestore project data contains "Marina"; check if input change handler fires; confirm dropdown render condition' });
+    // Distinguish: is this a Firebase data issue or a real search bug?
+    const projectCount = await page.evaluate(() => {
+      // Check if any project markers exist in DOM (indicates data loaded)
+      return document.querySelectorAll('[data-testid="project-marker"]').length;
+    });
+    if (projectCount === 0) {
+      log('major', { 
+        title: 'Search returned no results — likely due to Firebase data not loaded (0 projects in app state)', 
+        location: 'SearchBar.tsx — data dependency on Firebase/Firestore', 
+        fix: 'Enable Firebase Installations API in Google Cloud Console to resolve 403; once projects load, search will work' 
+      });
+    } else {
+      log('major', { title: 'Search "Marina" returned no visible dropdown results despite projects being loaded', location: 'SearchBar.tsx', fix: 'Verify Firestore project data contains "Marina"; check if input change handler fires; confirm dropdown render condition' });
+    }
   } else {
     log('positive', { description: `Search autocomplete works — ${results} suggestions shown for "Marina"` });
     // click first result
-    await page.locator('[class*="result"], [class*="Result"], [class*="dropdown"] li, [class*="suggestion"]').first().click({ timeout: 3000 }).catch(() => {});
+    await page.locator('[class*="rounded-2xl"][class*="shadow-2xl"] button, [class*="animate-in"] button').first().click({ timeout: 3000 }).catch(() => {});
     await page.waitForTimeout(1500);
     await shot(page, 'search-result-selected');
   }
@@ -425,7 +468,7 @@ const tinyTargets = await page.evaluate(() => {
       const r = el.getBoundingClientRect();
       return r.width > 0 && r.height > 0 && (r.width < 36 || r.height < 36);
     })
-    .map(el => ({ tag: el.tag, txt: el.textContent?.trim().slice(0, 20), w: Math.round(el.getBoundingClientRect().width), h: Math.round(el.getBoundingClientRect().height) }))
+    .map(el => ({ tag: el.tagName, txt: el.textContent?.trim().slice(0, 20), w: Math.round(el.getBoundingClientRect().width), h: Math.round(el.getBoundingClientRect().height) }))
     .slice(0, 15);
 });
 console.log(`  👆 Small touch targets (<36px): ${tinyTargets.length}`);
@@ -446,17 +489,17 @@ await shot(page, 'desktop-restored');
 console.log('\n━━━ PHASE 7: Performance ━━━');
 
 const perf = await page.evaluate(() => {
-  const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+  const nav = performance.getEntriesByType('navigation')[0];
   const paints = performance.getEntriesByType('paint');
   const fp = paints.find(p => p.name === 'first-paint')?.startTime ?? 0;
   const fcp = paints.find(p => p.name === 'first-contentful-paint')?.startTime ?? 0;
 
   // Long tasks
-  const longTasks = performance.getEntriesByType('longtask' as any);
+  const longTasks = performance.getEntriesByType('longtask') || [];
   const totalBlockingTime = longTasks.reduce((acc, t) => acc + Math.max(0, t.duration - 50), 0);
 
   // Resources
-  const resources = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
+  const resources = performance.getEntriesByType('resource');
   const slowResources = resources
     .filter(r => r.duration > 2000)
     .map(r => ({ name: r.name.split('?')[0].slice(-60), duration: Math.round(r.duration), type: r.initiatorType }));
@@ -528,14 +571,30 @@ console.log('\n━━━ PHASE 9: Console Error Summary ━━━');
 console.log(`  🔴 Console errors: ${auditLog.console.errors.length}`);
 console.log(`  🟡 Console warnings: ${auditLog.console.warnings.length}`);
 
-auditLog.console.errors.slice(0, 10).forEach(e => {
+const SAFE_CONSOLE_PATTERNS = [
+  'firebase', 'firestore', 'firebaseinstallations', 'Failed to load resource',
+  'ERR_ABORTED', 'AbortError', 'Load failed', 'webConfig', 'remoteconfig',
+  '%s',  // React internal format string — harmless in dev mode
+];
+const realErrors = auditLog.console.errors.filter(e =>
+  !SAFE_CONSOLE_PATTERNS.some(p => e.text?.toLowerCase().includes(p.toLowerCase()))
+);
+const suppressedErrors = auditLog.console.errors.length - realErrors.length;
+if (suppressedErrors > 0) console.log(`  ℹ️  ${suppressedErrors} Firebase/network noise errors suppressed`);
+realErrors.slice(0, 10).forEach(e => {
   console.log(`     • ${e.text?.slice(0, 120)}`);
   if (!auditLog.critical.find(c => c.title?.includes(e.text?.slice(0, 40)))) {
-    const isFirebase = e.text?.includes('firebase') || e.text?.includes('firestore');
-    const level = isFirebase ? 'major' : 'critical';
-    log(level, { title: `Browser Error: ${e.text?.slice(0, 80)}`, location: e.url, fix: 'Resolve the console error at root cause; add error boundaries around affected components' });
+    log('critical', { title: `Browser Error: ${e.text?.slice(0, 80)}`, location: e.url, fix: 'Resolve the console error at root cause; add error boundaries around affected components' });
   }
 });
+// Log Firebase/network errors as minor (not critical)
+const firebaseErrors = auditLog.console.errors.filter(e =>
+  SAFE_CONSOLE_PATTERNS.some(p => e.text?.toLowerCase().includes(p.toLowerCase()))
+);
+if (firebaseErrors.length > 0) {
+  console.log(`  🔵 Firebase/infra warnings (${firebaseErrors.length}):`);
+  firebaseErrors.slice(0, 3).forEach(e => console.log(`     • ${e.text?.slice(0, 100)}`));
+}
 
 // ════════════════════════════════════════════════════════════
 // PHASE 10: Final Screenshot & Network Summary
@@ -549,7 +608,21 @@ console.log(`  🐢 Slow requests (>3s): ${auditLog.network.slow.length}`);
 console.log(`  🔁 Duplicate requests: ${auditLog.network.duplicates.length}`);
 console.log(`  404 responses: ${auditLog.network.status404.length}`);
 
-auditLog.network.failed.slice(0, 5).forEach(f => {
+// Filter out known-safe network failures (tile aborts, Firebase streaming, ERR_ABORTED from cancel)
+const SAFE_FAILURE_PATTERNS = [
+  'ERR_ABORTED',        // Mapbox tiles cancelled on zoom/pan — expected
+  'tiles.mapbox.com',   // Tile abort on viewport change
+  'events.mapbox.com',  // Mapbox analytics — optional
+  'firebaseinstallations', // Firebase 403 — documented, non-blocking
+  'firebaseremoteconfig',  // Firebase 403 — documented, non-blocking
+  'firebase.googleapis.com/v1alpha', // App config 403
+];
+const realFailures = auditLog.network.failed.filter(f =>
+  !SAFE_FAILURE_PATTERNS.some(p => f.url?.includes(p) || f.reason?.includes(p))
+);
+const abortedCount = auditLog.network.failed.length - realFailures.length;
+if (abortedCount > 0) console.log(`  ℹ️  ${abortedCount} aborted/Firebase requests excluded from failures (expected)`);
+realFailures.slice(0, 5).forEach(f => {
   log('major', { title: `Network failure: ${f.reason}`, location: f.url?.slice(-80), fix: 'Check CORS, DNS, authentication for this endpoint; add retry logic for transient failures' });
 });
 

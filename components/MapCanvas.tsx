@@ -442,7 +442,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
                 <Layer
                     id="3d-buildings"
                     source="composite"
-                    source-layer="building"
+                    sourceLayer="building"
                     filter={['==', 'extrude', 'true']}
                     type="fill-extrusion"
                     minzoom={14}
