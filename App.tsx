@@ -804,6 +804,7 @@ const AppInner: React.FC = () => {
             lat={timeMachineData.lat}
             lng={timeMachineData.lng}
             projectName={timeMachineData.name}
+            originalMapStyle={mapStyle}
             onClose={() => setTimeMachineData(null)}
           />
         </Suspense>

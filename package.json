@@ -13,7 +13,10 @@
     "pw:validate": "/opt/homebrew/bin/node playwright/run.mjs --test ui-validation",
     "pw:debug-session": "/opt/homebrew/bin/node playwright/run.mjs --debug --test debug-session",
     "pw:trace": "/opt/homebrew/bin/node playwright/run.mjs --trace",
-    "pw:report": "/opt/homebrew/bin/node playwright/run.mjs --report"
+    "pw:report": "/opt/homebrew/bin/node playwright/run.mjs --report",
+    "pw:heatmap": "/opt/homebrew/bin/node playwright/heatmap.mjs",
+    "pw:heatmap:mobile": "/opt/homebrew/bin/node playwright/heatmap.mjs --mobile",
+    "pw:heatmap:headed": "/opt/homebrew/bin/node playwright/heatmap.mjs --headed --debug"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.0",
