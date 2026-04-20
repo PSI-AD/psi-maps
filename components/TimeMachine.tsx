@@ -39,32 +39,40 @@ function preloadSurrounding(tileUrl: string, z: number, lat: number, lng: number
 
 const WAYBACK_PREFIX = 'wayback-';
 const TARGET_PITCH = 60;
+// Rotation increment per RAF frame (~60fps). Original was 0.15°/frame. Reduced by 25% → 0.1125°/frame.
+const ORBIT_SPEED = 0.1125;
 
-// Rotation increments per RAF frame (≈60fps).
-// Original was 0.15°/frame. Reduced by 25% → 0.1125°/frame.
-// Orbit speed levels: slow, normal, fast (all 25% lower than before)
-const ORBIT_SPEEDS: Record<string, number> = {
-  slow:   0.0563,  // ~50% of original
-  normal: 0.1125,  // 75% of original (−25%)
-  fast:   0.1688,  // 112.5% of original but still 25% less than "double"
-};
+// ── Map interaction lock helpers ─────────────────────────────────────────────
+function lockMap(map: any) {
+  try { map.scrollZoom.disable(); } catch { /**/ }
+  try { map.dragPan.disable(); } catch { /**/ }
+  try { map.dragRotate.disable(); } catch { /**/ }
+  try { map.touchZoomRotate.disable(); } catch { /**/ }
+  try { map.keyboard.disable(); } catch { /**/ }
+  try { map.doubleClickZoom.disable(); } catch { /**/ }
+}
+
+function unlockMap(map: any) {
+  try { map.scrollZoom.enable(); } catch { /**/ }
+  try { map.dragPan.enable(); } catch { /**/ }
+  try { map.dragRotate.enable(); } catch { /**/ }
+  try { map.touchZoomRotate.enable(); } catch { /**/ }
+  try { map.keyboard.enable(); } catch { /**/ }
+  try { map.doubleClickZoom.enable(); } catch { /**/ }
+}
 
 const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName, onClose }) => {
   const [currentIndex, setCurrentIndex] = useState(waybackYears.length - 1);
-  // isPlaying controls the year slideshow ticker
   const [isPlaying, setIsPlaying] = useState(true);
   const [direction, setDirection] = useState<'backward' | 'forward'>('backward');
   const [intervalSec, setIntervalSec] = useState(5);
   const [showSettings, setShowSettings] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isLoadingTile, setIsLoadingTile] = useState(false);
-  // isOrbitActive controls the 3D rotation — fully independent from isPlaying
+  // Orbit is independent from slideshow playback
   const [isOrbitActive, setIsOrbitActive] = useState(true);
-  const [orbitSpeed, setOrbitSpeed] = useState<'slow' | 'normal' | 'fast'>('normal');
 
-  // Track whether user explicitly paused to prevent ticker from overriding it
-  const userPausedRef = useRef(false);
-
+  // Refs for timers & RAF
   const tickerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rotationRef = useRef<number | null>(null);
   const preloadedRef = useRef<Set<number>>(new Set());
@@ -74,22 +82,34 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
   const isMountedRef = useRef(true);
   const activeOverlayRef = useRef<{ layerId: string | null; sourceId: string | null }>({ layerId: null, sourceId: null });
   const overlaySerialRef = useRef(0);
-  // Keep a live ref of isOrbitActive so the rotation loop can read it without stale closure
+  // Live refs so rotation RAF reads current values without stale closures
   const isOrbitActiveRef = useRef(true);
-  const orbitSpeedRef = useRef<'slow' | 'normal' | 'fast'>('normal');
+  const isPlayingRef = useRef(true);
+  const mapLockedRef = useRef(false);
 
   const currentYear = waybackYears[currentIndex];
 
+  // ── Sync live refs ────────────────────────────────────────────────────────
+  useEffect(() => { isOrbitActiveRef.current = isOrbitActive; }, [isOrbitActive]);
+  useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
+
   useEffect(() => {
     isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
+    return () => { isMountedRef.current = false; };
   }, []);
 
-  // Keep refs in sync with state
-  useEffect(() => { isOrbitActiveRef.current = isOrbitActive; }, [isOrbitActive]);
-  useEffect(() => { orbitSpeedRef.current = orbitSpeed; }, [orbitSpeed]);
+  // ── Map lock/unlock while playing ─────────────────────────────────────────
+  useEffect(() => {
+    const rawMap = mapRef.current?.getMap?.();
+    if (!rawMap) return;
+    if (isPlaying && !mapLockedRef.current) {
+      lockMap(rawMap);
+      mapLockedRef.current = true;
+    } else if (!isPlaying && mapLockedRef.current) {
+      unlockMap(rawMap);
+      mapLockedRef.current = false;
+    }
+  }, [isPlaying, mapRef]);
 
   const dispatchRotate = useCallback((active: boolean) => {
     window.dispatchEvent(new CustomEvent('time-machine-rotation', { detail: { active } }));
@@ -97,28 +117,17 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
 
   const removeOverlay = useCallback((map: any, layerId?: string | null, sourceId?: string | null) => {
     if (!map) return;
-    try {
-      if (layerId && map.getLayer(layerId)) map.removeLayer(layerId);
-    } catch { /**/ }
-    try {
-      if (sourceId && map.getSource(sourceId)) map.removeSource(sourceId);
-    } catch { /**/ }
+    try { if (layerId && map.getLayer(layerId)) map.removeLayer(layerId); } catch { /**/ }
+    try { if (sourceId && map.getSource(sourceId)) map.removeSource(sourceId); } catch { /**/ }
   }, []);
 
   const cleanupWaybackArtifacts = useCallback((map: any) => {
     if (!map?.getStyle) return;
     const style = map.getStyle();
-    const layerIds = (style?.layers ?? [])
-      .map((layer: any) => layer.id)
-      .filter((id: string) => id.startsWith(WAYBACK_PREFIX));
+    const layerIds = (style?.layers ?? []).map((l: any) => l.id).filter((id: string) => id.startsWith(WAYBACK_PREFIX));
     const sourceIds = Object.keys(style?.sources ?? {}).filter(id => id.startsWith(WAYBACK_PREFIX));
-
-    layerIds.forEach((id: string) => {
-      try { if (map.getLayer(id)) map.removeLayer(id); } catch { /**/ }
-    });
-    sourceIds.forEach((id: string) => {
-      try { if (map.getSource(id)) map.removeSource(id); } catch { /**/ }
-    });
+    layerIds.forEach((id: string) => { try { if (map.getLayer(id)) map.removeLayer(id); } catch { /**/ } });
+    sourceIds.forEach((id: string) => { try { if (map.getSource(id)) map.removeSource(id); } catch { /**/ } });
     activeOverlayRef.current = { layerId: null, sourceId: null };
   }, []);
 
@@ -130,32 +139,17 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
       return;
     }
 
-    if (fadeTimerRef.current) {
-      clearInterval(fadeTimerRef.current);
-      fadeTimerRef.current = null;
-    }
+    if (fadeTimerRef.current) { clearInterval(fadeTimerRef.current); fadeTimerRef.current = null; }
 
     const previousOverlay = activeOverlayRef.current;
     const overlayKey = `${yearEntry.year}-${++overlaySerialRef.current}`;
     const sourceId = `${WAYBACK_PREFIX}source-${overlayKey}`;
     const layerId = `${WAYBACK_PREFIX}layer-${overlayKey}`;
-    const symbolLayerId = map.getStyle()?.layers?.find((layer: any) => layer.type === 'symbol')?.id;
+    const symbolLayerId = map.getStyle()?.layers?.find((l: any) => l.type === 'symbol')?.id;
 
     try {
-      map.addSource(sourceId, {
-        type: 'raster',
-        tiles: [`${yearEntry.tileUrl}?release=${yearEntry.releaseNum}`],
-        tileSize: 256,
-      });
-      map.addLayer(
-        {
-          id: layerId,
-          type: 'raster',
-          source: sourceId,
-          paint: { 'raster-opacity': animate && previousOverlay.layerId ? 0 : 1 },
-        },
-        symbolLayerId,
-      );
+      map.addSource(sourceId, { type: 'raster', tiles: [`${yearEntry.tileUrl}?release=${yearEntry.releaseNum}`], tileSize: 256 });
+      map.addLayer({ id: layerId, type: 'raster', source: sourceId, paint: { 'raster-opacity': animate && previousOverlay.layerId ? 0 : 1 } }, symbolLayerId);
     } catch {
       removeOverlay(map, layerId, sourceId);
       return;
@@ -173,24 +167,22 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
     let opacity = 0;
     fadeTimerRef.current = setInterval(() => {
       opacity += 0.08;
-
       try {
         map.setPaintProperty(layerId, 'raster-opacity', Math.min(opacity, 1));
         if (previousOverlay.layerId && map.getLayer(previousOverlay.layerId)) {
           map.setPaintProperty(previousOverlay.layerId, 'raster-opacity', Math.max(1 - opacity, 0));
         }
       } catch { /**/ }
-
       if (opacity < 1) return;
-
-      if (fadeTimerRef.current) {
-        clearInterval(fadeTimerRef.current);
-        fadeTimerRef.current = null;
-      }
+      if (fadeTimerRef.current) { clearInterval(fadeTimerRef.current); fadeTimerRef.current = null; }
       removeOverlay(map, previousOverlay.layerId, previousOverlay.sourceId);
       if (isMountedRef.current) setIsTransitioning(false);
     }, 40);
   }, [mapRef, removeOverlay]);
+
+  const stopTicker = useCallback(() => {
+    if (tickerRef.current) { clearTimeout(tickerRef.current); tickerRef.current = null; }
+  }, []);
 
   const handleClose = useCallback(() => {
     isMountedRef.current = false;
@@ -198,22 +190,22 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
     window.dispatchEvent(new CustomEvent('time-machine-open', { detail: { active: false } }));
     dispatchRotate(false);
 
+    stopTicker();
     if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-    if (tickerRef.current) clearTimeout(tickerRef.current);
     if (fadeTimerRef.current) clearInterval(fadeTimerRef.current);
-    if (rotationRef.current) cancelAnimationFrame(rotationRef.current);
+    if (rotationRef.current) { cancelAnimationFrame(rotationRef.current); rotationRef.current = null; }
 
     const mapView = mapRef.current;
     const rawMap = mapView?.getMap?.();
     if (rawMap) {
+      unlockMap(rawMap);
+      mapLockedRef.current = false;
       cleanupWaybackArtifacts(rawMap);
-      try {
-        mapView.easeTo({ pitch: 0, bearing: 0, duration: 1000, essential: true });
-      } catch { /**/ }
+      try { mapView.easeTo({ pitch: 0, bearing: 0, duration: 1000, essential: true }); } catch { /**/ }
     }
 
     onClose();
-  }, [cleanupWaybackArtifacts, dispatchRotate, mapRef, onClose]);
+  }, [cleanupWaybackArtifacts, dispatchRotate, mapRef, onClose, stopTicker]);
 
   const resetIdleTimer = useCallback(() => {
     if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
@@ -224,28 +216,19 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
     }
   }, [handleClose, isPlaying]);
 
-  // Settings auto-close after 15s (extended from 10s), reset on any interaction
-  const resetSettingsTimer = useCallback(() => {
+  // Settings auto-close (15s, reset on interaction)
+  useEffect(() => {
+    if (!showSettings) return;
     if (settingsTimerRef.current) clearTimeout(settingsTimerRef.current);
-    if (showSettings) {
-      settingsTimerRef.current = setTimeout(() => {
-        if (isMountedRef.current) setShowSettings(false);
-      }, 15000);
-    }
+    settingsTimerRef.current = setTimeout(() => {
+      if (isMountedRef.current) setShowSettings(false);
+    }, 15000);
+    return () => { if (settingsTimerRef.current) clearTimeout(settingsTimerRef.current); };
   }, [showSettings]);
 
   useEffect(() => {
-    resetSettingsTimer();
-    return () => {
-      if (settingsTimerRef.current) clearTimeout(settingsTimerRef.current);
-    };
-  }, [resetSettingsTimer]);
-
-  useEffect(() => {
     resetIdleTimer();
-    return () => {
-      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-    };
+    return () => { if (idleTimerRef.current) clearTimeout(idleTimerRef.current); };
   }, [resetIdleTimer]);
 
   useEffect(() => {
@@ -260,27 +243,20 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
     };
   }, []);
 
-  // External toggle-rotation event support
+  // External rotation toggle support
   useEffect(() => {
-    const handleToggleRotation = (e: Event) => {
-      const requestedState = (e as CustomEvent).detail?.active;
-      setIsOrbitActive(prev => typeof requestedState === 'boolean' ? requestedState : !prev);
-      resetIdleTimer();
+    const handle = (e: Event) => {
+      const requested = (e as CustomEvent).detail?.active;
+      setIsOrbitActive(prev => typeof requested === 'boolean' ? requested : !prev);
     };
+    window.addEventListener('time-machine-toggle-rotation', handle);
+    return () => window.removeEventListener('time-machine-toggle-rotation', handle);
+  }, []);
 
-    window.addEventListener('time-machine-toggle-rotation', handleToggleRotation);
-    return () => window.removeEventListener('time-machine-toggle-rotation', handleToggleRotation);
-  }, [resetIdleTimer]);
-
-  // ── Orbit / 3D rotation loop ──────────────────────────────────────────────
-  // The orbit is INDEPENDENT of isPlaying (year slideshow).
-  // It ALWAYS enforces TARGET_PITCH (3D) while active.
+  // ── 3D Orbit loop — independent from slideshow ────────────────────────────
   useEffect(() => {
     if (!isOrbitActive) {
-      if (rotationRef.current) {
-        cancelAnimationFrame(rotationRef.current);
-        rotationRef.current = null;
-      }
+      if (rotationRef.current) { cancelAnimationFrame(rotationRef.current); rotationRef.current = null; }
       dispatchRotate(false);
       return;
     }
@@ -294,24 +270,20 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
           if (retries++ < 20) setTimeout(tryStart, 150);
           return;
         }
-
         if (rotationRef.current) cancelAnimationFrame(rotationRef.current);
 
         let bearing = 0;
         try { bearing = rawMap.getBearing(); } catch { /**/ }
 
         const rotate = () => {
-          if (!isMountedRef.current) return;
-          // If orbit was toggled off, stop
-          if (!isOrbitActiveRef.current) {
+          if (!isMountedRef.current || !isOrbitActiveRef.current) {
             rotationRef.current = null;
             dispatchRotate(false);
             return;
           }
           try {
-            const increment = ORBIT_SPEEDS[orbitSpeedRef.current] ?? ORBIT_SPEEDS.normal;
-            bearing = (bearing + increment) % 360;
-            // Always keep pitch at TARGET_PITCH while orbiting (enforces 3D)
+            bearing = (bearing + ORBIT_SPEED) % 360;
+            // Always enforce 3D pitch while orbiting
             mapView.easeTo({ bearing, pitch: TARGET_PITCH, duration: 0, essential: true });
           } catch { /**/ }
           rotationRef.current = requestAnimationFrame(rotate);
@@ -320,36 +292,25 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
         rotationRef.current = requestAnimationFrame(rotate);
         dispatchRotate(true);
       };
-
       tryStart();
-    }, 1500); // reduced from 2500ms for faster startup
+    }, 800);
 
     return () => {
       clearTimeout(startupDelay);
-      if (rotationRef.current) {
-        cancelAnimationFrame(rotationRef.current);
-        rotationRef.current = null;
-      }
+      if (rotationRef.current) { cancelAnimationFrame(rotationRef.current); rotationRef.current = null; }
       dispatchRotate(false);
     };
+  // Run when orbit active state changes
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOrbitActive, dispatchRotate, mapRef]);
+  }, [isOrbitActive]);
 
-  // ── Initial 3D fly-to on mount ────────────────────────────────────────────
+  // ── Initial 3D fly-to ─────────────────────────────────────────────────────
   useEffect(() => {
     const mapView = mapRef.current;
     const rawMap = mapView?.getMap?.();
     if (!mapView || !rawMap) return;
-    mapView.flyTo({
-      center: [lng, lat],
-      zoom: 16,
-      pitch: TARGET_PITCH,   // always start in 3D
-      bearing: rawMap.getBearing(),
-      duration: 2000,
-      essential: true,
-    });
-  // Run once on mount
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    mapView.flyTo({ center: [lng, lat], zoom: 16, pitch: TARGET_PITCH, bearing: rawMap.getBearing(), duration: 2000, essential: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const preloadAll = useCallback(() => {
@@ -360,7 +321,6 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
       if (start - i >= 0) order.push(start - i);
       if (i > 0 && start + i < total) order.push(start + i);
     }
-
     order.forEach((idx, i) => {
       setTimeout(() => {
         const yearEntry = waybackYears[idx];
@@ -373,36 +333,29 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
     });
   }, [lat, lng]);
 
+  // Switch to satellite + apply initial year
   useEffect(() => {
     const map = mapRef.current?.getMap?.();
     if (!map) return;
-
     const sprite = map.getStyle()?.sprite;
     const isSatellite = sprite && String(sprite).includes('satellite');
-    const init = () => {
-      cleanupWaybackArtifacts(map);
-      applyYear(currentYear, false);
-      preloadAll();
-    };
-
+    const init = () => { cleanupWaybackArtifacts(map); applyYear(currentYear, false); preloadAll(); };
     if (!isSatellite) {
       map.setStyle('mapbox://styles/mapbox/satellite-streets-v12');
       map.once('style.load', () => setTimeout(init, 300));
-      return;
+    } else {
+      setTimeout(init, 300);
     }
-
-    setTimeout(init, 300);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const selectYear = useCallback((nextIndex: number, keepPlaying = false) => {
+  const selectYear = useCallback((nextIndex: number, fromTicker = false) => {
     const nextYear = waybackYears[nextIndex];
     setCurrentIndex(nextIndex);
     setIsLoadingTile(true);
-    // Only resume playing from ticker if user hasn't manually paused
-    if (keepPlaying && !userPausedRef.current) {
-      setIsPlaying(true);
-    } else if (!keepPlaying) {
+    // When called from ticker, keep playing. When called by clicking a dot, pause.
+    if (!fromTicker) {
+      stopTicker();
       setIsPlaying(false);
     }
     applyYear(nextYear, true);
@@ -410,88 +363,67 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
       if (!isMountedRef.current) return;
       setIsLoadingTile(false);
     });
-  }, [applyYear, lat, lng]);
+  }, [applyYear, lat, lng, stopTicker]);
 
-  // ── Year ticker ───────────────────────────────────────────────────────────
+  // ── Year slideshow ticker ─────────────────────────────────────────────────
   useEffect(() => {
-    if (tickerRef.current) clearTimeout(tickerRef.current);
+    stopTicker();
     if (!isPlaying || isTransitioning || isLoadingTile) return;
 
     tickerRef.current = setTimeout(() => {
-      if (!isMountedRef.current) return;
-      // If user paused while timeout was pending, respect it
-      if (userPausedRef.current) return;
+      if (!isMountedRef.current || !isPlayingRef.current) return;
 
       let next = direction === 'backward' ? currentIndex - 1 : currentIndex + 1;
-      if (next < 0) {
-        setDirection('forward');
-        next = 1;
-      } else if (next >= waybackYears.length) {
-        setDirection('backward');
-        next = waybackYears.length - 2;
-      }
+      if (next < 0) { setDirection('forward'); next = 1; }
+      else if (next >= waybackYears.length) { setDirection('backward'); next = waybackYears.length - 2; }
 
-      selectYear(next, true);
+      setCurrentIndex(next);
+      setIsLoadingTile(true);
+      applyYear(waybackYears[next], true);
+      preloadTileAndWait(waybackYears[next].tileUrl, 16, lat, lng).finally(() => {
+        if (!isMountedRef.current) return;
+        setIsLoadingTile(false);
+      });
     }, intervalSec * 1000);
 
-    return () => {
-      if (tickerRef.current) clearTimeout(tickerRef.current);
-    };
-  }, [currentIndex, direction, intervalSec, isLoadingTile, isPlaying, isTransitioning, selectYear]);
+    return stopTicker;
+  }, [currentIndex, direction, intervalSec, isLoadingTile, isPlaying, isTransitioning, applyYear, lat, lng, stopTicker]);
 
+  // ── Button handlers ───────────────────────────────────────────────────────
   const playDir = (dir: 'backward' | 'forward') => {
-    userPausedRef.current = false;
     setDirection(dir);
+    setIsPlaying(true);
+    setIsOrbitActive(true); // orbit is always on with playback
+    resetIdleTimer();
+  };
+
+  const handlePause = () => {
+    stopTicker(); // immediately cancel any pending tick
+    setIsPlaying(false);
+    resetIdleTimer();
+  };
+
+  const handleResume = () => {
     setIsPlaying(true);
     resetIdleTimer();
   };
 
-  const togglePlayPause = () => {
-    const next = !isPlaying;
-    userPausedRef.current = !next; // if pausing → mark as user-paused
-    if (tickerRef.current) {
-      clearTimeout(tickerRef.current);
-      tickerRef.current = null;
-    }
-    setIsPlaying(next);
-    resetIdleTimer();
-  };
-
-  const toggleOrbit = () => {
+  const handleOrbitToggle = () => {
     setIsOrbitActive(prev => {
       const next = !prev;
-      // When turning orbit on, ensure we snap back to 3D
       if (next) {
-        const mapView = mapRef.current;
-        try {
-          mapView?.easeTo({ pitch: TARGET_PITCH, duration: 500, essential: true });
-        } catch { /**/ }
+        // Snap back to 3D when enabling orbit
+        try { mapRef.current?.easeTo({ pitch: TARGET_PITCH, duration: 500, essential: true }); } catch { /**/ }
       }
       return next;
     });
     resetIdleTimer();
-    resetSettingsTimer();
   };
 
-  const handleSettingsClick = () => {
-    setShowSettings(prev => !prev);
-    resetIdleTimer();
-  };
-
-  // Small reusable icon button
+  // Compact icon button
   const Btn = ({
-    onClick,
-    active,
-    title,
-    children,
-    danger,
-  }: {
-    onClick: () => void;
-    active?: boolean;
-    title: string;
-    children: React.ReactNode;
-    danger?: boolean;
-  }) => (
+    onClick, active, title, children, danger,
+  }: { onClick: () => void; active?: boolean; title: string; children: React.ReactNode; danger?: boolean }) => (
     <button
       onClick={onClick}
       title={title}
@@ -499,7 +431,7 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
         danger
           ? 'bg-white/10 text-white/60 hover:bg-red-500/80 hover:text-white'
           : active
-          ? 'bg-indigo-600 text-white'
+          ? 'bg-indigo-600 text-white shadow-md'
           : 'bg-white/10 text-white/70 hover:bg-white/20'
       }`}
     >
@@ -512,78 +444,44 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
       className="fixed left-3 z-[6200] flex flex-col items-start gap-1.5 animate-in slide-in-from-bottom-2 duration-300"
       style={{ bottom: 'calc(max(env(safe-area-inset-bottom, 0px), 12px) + 68px)' }}
     >
-      {/* ── Settings Panel ───────────────────────────────────────────────── */}
+      {/* ── Settings panel ─────────────────────────────────────────────── */}
       {showSettings && (
         <div
           className="w-[320px] max-w-[calc(100vw-24px)] animate-in fade-in slide-in-from-bottom-1 duration-200"
-          onMouseMove={resetSettingsTimer}
-          onClick={resetSettingsTimer}
+          onMouseMove={() => {
+            if (settingsTimerRef.current) clearTimeout(settingsTimerRef.current);
+            settingsTimerRef.current = setTimeout(() => { if (isMountedRef.current) setShowSettings(false); }, 15000);
+          }}
         >
-          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-slate-900/92 px-3 py-2.5 shadow-lg backdrop-blur-md">
-            {/* Slideshow speed */}
-            <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Slide</span>
-            {[3, 5, 7, 10].map(seconds => (
+          {/* Fully opaque background */}
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-slate-900 px-2.5 py-2 shadow-lg">
+            <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Speed</span>
+            {[3, 5, 7, 10].map(s => (
               <button
-                key={seconds}
-                onClick={() => { setIntervalSec(seconds); resetSettingsTimer(); }}
+                key={s}
+                onClick={() => setIntervalSec(s)}
                 className={`rounded px-1.5 py-0.5 text-[10px] font-black transition-all ${
-                  intervalSec === seconds ? 'bg-indigo-600 text-white' : 'bg-white/10 text-white/55 hover:bg-white/20'
+                  intervalSec === s ? 'bg-indigo-600 text-white' : 'bg-white/10 text-white/55 hover:bg-white/20'
                 }`}
               >
-                {seconds}s
+                {s}s
               </button>
             ))}
-
             <div className="h-4 w-px bg-white/10" />
-
-            {/* Direction */}
             <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Dir</span>
             <button
-              onClick={() => { setDirection(prev => prev === 'backward' ? 'forward' : 'backward'); resetSettingsTimer(); }}
-              className="rounded bg-white/10 px-2 py-0.5 text-[10px] font-black text-white/70 transition-all hover:bg-white/20"
+              onClick={() => setDirection(prev => prev === 'backward' ? 'forward' : 'backward')}
+              className="rounded bg-white/10 px-2 py-0.5 text-[10px] font-black text-white/70 hover:bg-white/20"
             >
               {direction === 'backward' ? '2026→2014' : '2014→2026'}
-            </button>
-
-            {/* Full-width divider */}
-            <div className="w-full h-px bg-white/10 my-0.5" />
-
-            {/* Orbit speed */}
-            <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Rotate</span>
-            {(['slow', 'normal', 'fast'] as const).map(speed => (
-              <button
-                key={speed}
-                onClick={() => { setOrbitSpeed(speed); resetSettingsTimer(); }}
-                className={`rounded px-1.5 py-0.5 text-[10px] font-black capitalize transition-all ${
-                  orbitSpeed === speed ? 'bg-indigo-600 text-white' : 'bg-white/10 text-white/55 hover:bg-white/20'
-                }`}
-              >
-                {speed}
-              </button>
-            ))}
-
-            <div className="h-4 w-px bg-white/10" />
-
-            {/* 3D pitch label */}
-            <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">View</span>
-            <button
-              onClick={() => {
-                // Snap map back to 3D pitch
-                const mapView = mapRef.current;
-                try { mapView?.easeTo({ pitch: TARGET_PITCH, duration: 500, essential: true }); } catch { /**/ }
-                resetSettingsTimer();
-              }}
-              className="rounded bg-white/10 px-2 py-0.5 text-[10px] font-black text-white/70 transition-all hover:bg-white/20"
-            >
-              3D ({TARGET_PITCH}°)
             </button>
           </div>
         </div>
       )}
 
-      {/* ── Main Control Bar ─────────────────────────────────────────────── */}
+      {/* ── Main control bar ───────────────────────────────────────────── */}
       <div
-        className="w-[320px] max-w-[calc(100vw-24px)] rounded-xl border border-white/10 bg-slate-900/88 px-2.5 py-2 shadow-xl backdrop-blur-md"
+        className="w-[320px] max-w-[calc(100vw-24px)] rounded-xl border border-white/10 bg-slate-900 px-2.5 py-2 shadow-xl"
         onMouseMove={resetIdleTimer}
       >
         <div className="flex items-center gap-1.5">
@@ -621,16 +519,16 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
 
           {/* Play / Pause slideshow */}
           <Btn
-            onClick={togglePlayPause}
+            onClick={isPlaying ? handlePause : handleResume}
             active={isPlaying}
-            title={isPlaying ? 'Pause slideshow' : 'Resume slideshow'}
+            title={isPlaying ? 'Pause slideshow (unlocks map)' : 'Resume slideshow'}
           >
             {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3 ml-0.5" />}
           </Btn>
 
-          {/* Orbit / Rotation toggle */}
+          {/* Orbit toggle */}
           <Btn
-            onClick={toggleOrbit}
+            onClick={handleOrbitToggle}
             active={isOrbitActive}
             title={isOrbitActive ? 'Stop 3D rotation' : 'Start 3D rotation'}
           >
@@ -638,26 +536,26 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
           </Btn>
 
           {/* Settings */}
-          <Btn onClick={handleSettingsClick} active={showSettings} title="Speed & Direction settings">
+          <Btn
+            onClick={() => setShowSettings(prev => !prev)}
+            active={showSettings}
+            title="Speed & direction settings"
+          >
             <Settings className="h-3 w-3" />
           </Btn>
 
           {/* Close */}
-          <Btn onClick={handleClose} title={`Close Time Machine for ${projectName}`} danger>
+          <Btn onClick={handleClose} title={`Close Time Machine`} danger>
             <X className="h-3 w-3" />
           </Btn>
         </div>
 
-        {/* Year dots timeline */}
+        {/* Year dots */}
         <div className="mt-2 flex items-center justify-center gap-1">
           {waybackYears.map((yearEntry, index) => (
             <button
               key={yearEntry.year}
-              onClick={() => {
-                userPausedRef.current = false;
-                selectYear(index, false);
-                resetIdleTimer();
-              }}
+              onClick={() => { selectYear(index, false); resetIdleTimer(); }}
               className="flex h-4 w-4 items-center justify-center"
               title={String(yearEntry.year)}
             >
@@ -677,12 +575,10 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
         {/* Status label */}
         <div className="mt-1 text-center">
           <span className="text-[6px] font-bold uppercase tracking-[0.18em] text-white/35">
-            {isOrbitActive
-              ? isPlaying
-                ? `3D · ${direction === 'backward' ? 'back in time' : 'forward in time'}`
-                : `3D rotation · ${currentYear.date}`
-              : isPlaying
-                ? direction === 'backward' ? 'back in time' : 'forward in time'
+            {isPlaying
+              ? (direction === 'backward' ? '← back in time' : 'forward in time →')
+              : isOrbitActive
+                ? `3D · ${currentYear.date}`
                 : currentYear.date}
           </span>
         </div>
