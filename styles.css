@@ -61,6 +61,9 @@ body {
     --sal: env(safe-area-inset-left, 0px);
     /* Bottom nav bar height including safe area */
     --bottom-nav-height: calc(56px + var(--sab));
+    --mobile-bottom-bar-height: var(--bottom-nav-height);
+    --mobile-carousel-height: 0px;
+    --mobile-overlay-gap: 12px;
 }
 
 /* Utility classes for safe areas */

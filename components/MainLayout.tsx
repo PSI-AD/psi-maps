@@ -310,7 +310,6 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
   // Desktop: always visible when a project is open or a filter is active
   // Mobile: carousel appears instantly when a pin is tapped
   const showCarousel = isAnyFilterActive || !!selectedProject;
-  // Chips: lift above carousel when it's showing
   const chipsBottomClass = showCarousel
     ? 'bottom-[210px] lg:bottom-[96px]'
     : 'bottom-[80px]';
@@ -630,8 +629,13 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
       {/* Mobile Filter Tags — clean compact chips */}
       {isAnyFilterActive && (
         <div
-          className={`lg:hidden flex flex-nowrap items-center gap-1.5 px-3 py-1 fixed ${showCarousel ? 'bottom-[210px]' : 'bottom-[72px]'} left-0 right-0 z-[4400] overflow-x-auto whitespace-nowrap hide-scrollbar transition-all duration-300`}
-          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+          className="lg:hidden flex flex-nowrap items-center gap-1.5 px-3 py-1 fixed left-0 right-0 z-[4400] overflow-x-auto whitespace-nowrap hide-scrollbar transition-all duration-300"
+          style={{
+            bottom: showCarousel
+              ? 'calc(var(--mobile-bottom-bar-height, var(--bottom-nav-height)) + var(--mobile-carousel-height, 0px) + var(--mobile-overlay-gap, 12px))'
+              : 'calc(var(--mobile-bottom-bar-height, var(--bottom-nav-height)) + var(--mobile-overlay-gap, 12px))',
+            paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          }}
         >
           {/* Count + Reset — icon and number only, no "Properties" text */}
           <button
@@ -694,7 +698,7 @@ const MainLayout: React.FC<MainLayoutProps> = (props) => {
         <button
           onClick={() => { onCloseProject(); closePanelViaBack(); }}
           className="lg:hidden fixed z-[5500] w-12 h-12 rounded-full bg-blue-600 text-white shadow-xl shadow-blue-600/30 flex items-center justify-center active:scale-95 transition-all border-2 border-white/30"
-          style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 68px)', right: '16px' }}
+          style={{ bottom: 'calc(var(--mobile-bottom-bar-height, var(--bottom-nav-height)) + var(--mobile-overlay-gap, 12px))', right: '16px' }}
           aria-label="Show map"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>

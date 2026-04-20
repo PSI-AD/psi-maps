@@ -8,10 +8,12 @@ import InquireModal from './InquireModal';
 import ReportModal from './ReportModal';
 // @react-pdf/renderer is lazy-loaded in handleExportPdf() to save ~500KB from initial bundle
 import { getRelatedProjects, getClosestCategorizedAmenities } from '../utils/projectHelpers';
+import { getOptimizedImageUrl, getProjectThumbnailUrl } from '../utils/imageHelpers';
 
 import LightboxGallery from './LightboxGallery';
 import { useFavoritesContext } from '../hooks/useFavorites';
 import { recordProjectView } from '../utils/smartCache';
+import { generateSessionToken } from '../utils/id';
 import WalkabilityRadial from './WalkabilityRadial';
 import ConstructionTimeline from './ConstructionTimeline';
 import ViewSimulator from './ViewSimulator';
@@ -151,24 +153,32 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   const isProjectFav = project ? favCtx.isFavorite(project.id) : false;
   const isProjectCompared = project ? favCtx.isInCompare(project.id) : false;
 
+  const handleCopyShareLink = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      alert('Link copied to clipboard!');
+    } catch {
+      alert('Unable to share automatically. Please copy the URL manually.');
+    }
+  };
+
   // ── Native Web Share (with clipboard fallback) ──────────────────────
   const handleNativeShare = async () => {
     if (!project) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set('project', project.id);
+    const shareUrl = url.toString();
     const text = `Check out ${project.name} by ${project.developerName} in ${project.community || project.city || 'UAE'}.`;
     if (typeof navigator.share === 'function') {
       try {
-        await navigator.share({ title: project.name, text, url: window.location.href });
+        await navigator.share({ title: project.name, text, url: shareUrl });
+        return;
       } catch (err) {
-        console.log('Share cancelled or failed:', err);
-      }
-    } else {
-      try {
-        await navigator.clipboard.writeText(window.location.href);
-        alert('Link copied to clipboard!');
-      } catch {
-        alert('Unable to copy — please copy the URL manually.');
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        console.warn('Native share failed, falling back to clipboard:', err);
       }
     }
+    await handleCopyShareLink(shareUrl);
   };
 
   // ── PDF export handler ──────────────────────────────────────────────────
@@ -359,7 +369,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   };
 
   // ---- Custom Distance Calculator: Mapbox Search Box API v1 (POI + places) ----
-  const destSessionRef = useRef<string>(crypto.randomUUID());
+  const destSessionRef = useRef<string>(generateSessionToken());
 
   const fetchDestSuggestions = (query: string) => {
     setCustomDestQuery(query);
@@ -458,22 +468,36 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
         const [lng, lat] = data.features[0].geometry.coordinates;
         await fetchRealRoute(lng, lat, label);
       }
-      destSessionRef.current = crypto.randomUUID();
+      destSessionRef.current = generateSessionToken();
     } catch (err) {
       console.error('Mapbox retrieve error:', err);
     }
   };
 
-  // ── Build a unified gallery: prefer optimizedGallery, fall back to images[]
+  // ── Build a sidebar-safe gallery: prefer normalized source images, then fall back
   const gallery = useMemo(() => {
-    if (project.optimizedGallery && project.optimizedGallery.length > 0) {
-      return project.optimizedGallery;
-    }
-    const rawUrls = (project.images && project.images.length > 0)
-      ? project.images
-      : [project.thumbnailUrl || ''];
-    return rawUrls.filter(Boolean).map(url => ({ thumb: url, large: url }));
-  }, [project.optimizedGallery, project.images, project.thumbnailUrl]);
+    const imageUrls = project.images?.filter(Boolean) ?? [];
+    const optimizedUrls = project.optimizedGallery
+      ?.map(img => img.large || img.thumb)
+      .filter(Boolean) ?? [];
+    const fallbackUrls = [
+      project.responsiveMedia?.large,
+      project.responsiveMedia?.medium,
+      project.responsiveMedia?.thumb,
+      project.thumbnailUrl || '',
+    ].filter(Boolean) as string[];
+
+    const sourceUrls = imageUrls.length > 0
+      ? imageUrls
+      : optimizedUrls.length > 0
+        ? optimizedUrls
+        : fallbackUrls;
+
+    return Array.from(new Set(sourceUrls)).map(url => ({
+      thumb: getOptimizedImageUrl(url, 240, 160),
+      large: getOptimizedImageUrl(url, 1200, 800),
+    }));
+  }, [project.images, project.optimizedGallery, project.responsiveMedia, project.thumbnailUrl]);
 
   const hasMultipleImages = gallery.length > 1;
   const currentImage = gallery[activeIdx] ?? gallery[0];
@@ -846,9 +870,10 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
           {hasMultipleImages && (
             <div className="absolute top-0 left-0 z-50 pointer-events-auto p-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
               <button
+                type="button"
                 onClick={(e) => { e.stopPropagation(); setIsPlaying(p => !p); }}
                 aria-label={isPlaying ? 'Pause slideshow' : 'Play slideshow'}
-                className="pointer-events-auto p-2 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md text-white border border-white/20 transition-all flex items-center justify-center w-9 h-9"
+                className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md border border-white/20 transition-all hover:bg-black/60"
               >
                 {isPlaying ? (
                   <div className="relative w-full h-full flex items-center justify-center">
@@ -869,20 +894,22 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
           <div className="absolute top-0 right-0 flex flex-wrap justify-end items-center gap-1 z-50 pointer-events-auto max-w-[85%] md:max-w-none p-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
             {/* Fly-to-map — first on right side, replacing the old heart-by-name */}
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 const lng = Number(project.longitude);
                 const lat = Number(project.latitude);
                 if (!isNaN(lng) && !isNaN(lat)) onFlyTo(lng, lat, 17);
               }}
-              className="pointer-events-auto p-2 rounded-full bg-blue-600/80 hover:bg-blue-600 backdrop-blur-md text-white border border-blue-400/40 transition-all"
+              className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-blue-600/80 text-white backdrop-blur-md border border-blue-400/40 transition-all hover:bg-blue-600"
               title="Show on map" aria-label="Fly to on map"
             >
               <Navigation className="w-4 h-4" />
             </button>
             <button
+              type="button"
               onClick={() => { if (project) favCtx.toggleCompare(project.id); }}
-              className={`pointer-events-auto p-2 rounded-full backdrop-blur-md text-white border transition-all ${
+              className={`pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full backdrop-blur-md text-white border transition-all ${
                 isProjectCompared
                   ? 'bg-blue-600/90 border-blue-400/60 shadow-lg shadow-blue-500/30'
                   : 'bg-black/40 hover:bg-blue-600/80 border-white/20'
@@ -893,8 +920,9 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
               <GitCompare className="w-4 h-4" />
             </button>
             <button
+              type="button"
               onClick={() => { if (project) favCtx.toggleFavorite(project.id); }}
-              className={`pointer-events-auto p-2 rounded-full backdrop-blur-md border transition-all ${
+              className={`pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full backdrop-blur-md border transition-all ${
                 isProjectFav
                   ? 'bg-rose-600/90 text-white border-rose-400/60 shadow-lg shadow-rose-500/30'
                   : 'bg-black/40 hover:bg-rose-600/80 text-white border-white/20'
@@ -905,30 +933,34 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
               <Heart className={`w-4 h-4 ${isProjectFav ? 'fill-current' : ''}`} />
             </button>
             <button
+              type="button"
               onClick={() => setIsReportModalOpen(true)}
-              className="pointer-events-auto p-2 rounded-full bg-black/40 hover:bg-orange-600/80 backdrop-blur-md text-white border border-white/20 transition-all"
+              className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md border border-white/20 transition-all hover:bg-orange-600/80"
               title="Report Issue" aria-label="Report an issue with this listing"
             >
               <Flag className="w-4 h-4" />
             </button>
             <button
+              type="button"
               onClick={handleNativeShare}
-              className="pointer-events-auto p-2 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md text-white border border-white/20 transition-all"
+              className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md border border-white/20 transition-all hover:bg-black/60"
               title="Share" aria-label="Share listing"
             >
               <Share2 className="w-4 h-4" />
             </button>
             <button
+              type="button"
               onClick={handleExportPdf}
               disabled={isGeneratingPdf}
-              className="pointer-events-auto p-2 rounded-full bg-blue-600/80 hover:bg-blue-600 backdrop-blur-md text-white border border-blue-500/50 transition-all"
+              className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-blue-600/80 text-white backdrop-blur-md border border-blue-500/50 transition-all hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-70"
               title="Download PDF Brochure" aria-label="Download PDF Brochure"
             >
               {isGeneratingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
             </button>
             <button
+              type="button"
               onClick={onClose}
-              className="pointer-events-auto p-2 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md text-white border border-white/20 transition-all ml-1"
+              className="pointer-events-auto ml-1 inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md border border-white/20 transition-all hover:bg-black/60"
               title="Close" aria-label="Close panel"
             >
               <X className="w-5 h-5" />
@@ -937,8 +969,8 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
 
           {/* Hero image — skeleton shimmer underneath, fades in when loaded */}
           <img
-            key={currentImage?.thumb || 'fallback'}
-            src={currentImage?.thumb || '/placeholder-image.png'}
+            key={currentImage?.large || currentImage?.thumb || 'fallback'}
+            src={currentImage?.large || currentImage?.thumb || '/placeholder-image.png'}
             alt={project.name}
             loading="eager"
             fetchpriority="high"
@@ -946,7 +978,12 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
             onLoad={() => setIsMainImageLoaded(true)}
             onClick={(e) => { e.stopPropagation(); setGalleryIndex(activeIdx); }}
             className={`absolute inset-0 w-full h-full object-cover cursor-zoom-in transition-opacity duration-300 z-0 pointer-events-auto ${isMainImageLoaded ? 'opacity-100' : 'opacity-0'}`}
-            onError={(e) => { e.currentTarget.src = '/placeholder-image.png'; }}
+            onError={(e) => {
+              const img = e.currentTarget;
+              img.onerror = null;
+              setIsMainImageLoaded(true);
+              img.src = '/placeholder-image.png';
+            }}
           />
 
           {/* Prev / Next arrows — visible on hover */}
@@ -981,7 +1018,18 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                     className={`shrink-0 w-14 h-10 rounded-lg overflow-hidden border-2 transition-all ${activeIdx === idx ? 'border-white scale-105 shadow-lg' : 'border-white/40 opacity-70 hover:opacity-100 hover:border-white'
                       }`}
                   >
-                    <img src={img.thumb} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                    <img
+                      src={img.thumb || img.large || '/placeholder-image.png'}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const thumb = e.currentTarget;
+                        thumb.onerror = null;
+                        thumb.src = img.large || '/placeholder-image.png';
+                      }}
+                    />
                   </button>
                 ))
                 : Array(Math.min(gallery.length, 6)).fill(0).map((_, i) => (
@@ -1346,10 +1394,16 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                     className="w-full flex items-center gap-3 p-2.5 rounded-xl border border-slate-100 bg-white hover:border-blue-200 hover:bg-blue-50/50 transition-all group text-left"
                   >
                     <img
-                      src={p.thumbnailUrl || '/placeholder-image.png'}
+                      src={getProjectThumbnailUrl(p, 96, 96) || '/placeholder-image.png'}
                       alt={p.name}
                       className="w-12 h-12 rounded-lg object-cover shrink-0 bg-slate-100"
-                      onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder-image.png'; }}
+                      loading="eager"
+                      decoding="async"
+                      onError={(e) => {
+                        const img = e.currentTarget;
+                        img.onerror = null;
+                        img.src = '/placeholder-image.png';
+                      }}
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-slate-800 truncate group-hover:text-blue-700 transition-colors">{p.name}</p>
@@ -1381,10 +1435,16 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                     className="w-full flex items-center gap-3 p-2.5 rounded-xl border border-slate-100 bg-white hover:border-violet-200 hover:bg-violet-50/50 transition-all group text-left"
                   >
                     <img
-                      src={p.thumbnailUrl || '/placeholder-image.png'}
+                      src={getProjectThumbnailUrl(p, 96, 96) || '/placeholder-image.png'}
                       alt={p.name}
                       className="w-12 h-12 rounded-lg object-cover shrink-0 bg-slate-100"
-                      onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder-image.png'; }}
+                      loading="eager"
+                      decoding="async"
+                      onError={(e) => {
+                        const img = e.currentTarget;
+                        img.onerror = null;
+                        img.src = '/placeholder-image.png';
+                      }}
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-slate-800 truncate group-hover:text-violet-700 transition-colors">{p.name}</p>

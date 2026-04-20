@@ -4,21 +4,12 @@ import { pointsWithinPolygon } from '@turf/points-within-polygon';
 import { Project, Landmark } from '../types';
 import { collection, onSnapshot, query } from 'firebase/firestore';
 import { db } from '../utils/firebase';
-import { preloadCriticalImages, prefetchImages } from '../utils/performanceEngine';
+import { getOptimizedImageUrl } from '../utils/imageHelpers';
 import {
     cacheProjectData, loadCachedProjectData,
     cacheLandmarkData, loadCachedLandmarkData,
     initSmartCache,
 } from '../utils/smartCache';
-
-// Intercepts the PSI API image URL and forces it to return a fast, compressed thumbnail
-const getOptimizedImage = (url: string, width: number, height: number) => {
-    if (!url) return 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80';
-    if (url.includes('width=0&height=0')) {
-        return url.replace('width=0&height=0', `width=${width}&height=${height}`);
-    }
-    return url;
-};
 
 export const useProjectData = () => {
     const [liveProjects, setLiveProjects] = useState<Project[]>([]);
@@ -59,10 +50,6 @@ export const useProjectData = () => {
             if (cachedProjects.length > 0 && liveProjects.length === 0) {
                 console.log('[Cache] ⚡ Instant hydration:', cachedProjects.length, 'projects');
                 setLiveProjects(cachedProjects as Project[]);
-                preloadCriticalImages(
-                    cachedProjects.map((p: any) => p.thumbnailUrl).filter(Boolean),
-                    8
-                );
             }
 
             const { landmarks: cachedLandmarks } = await loadCachedLandmarkData();
@@ -116,13 +103,13 @@ export const useProjectData = () => {
                     longitude: isNaN(lng) ? 0 : lng,
                     type: data.propertyType || data.type || 'apartment',
                     // Request compressed 400x300 thumbnail for the map pins
-                    thumbnailUrl: getOptimizedImage(rawThumb, 400, 300),
+                    thumbnailUrl: getOptimizedImageUrl(rawThumb, 400, 300),
                     developerName: rawDeveloper,
                     projectUrl: data.projectUrl || '',
                     priceRange: priceString,
                     description: cleanDesc || 'Experience unparalleled luxury in this exclusive development.',
                     // Request medium-res images for the sidebar gallery
-                    images: allImages.map(img => getOptimizedImage(img, 1200, 800)),
+                    images: allImages.map(img => getOptimizedImageUrl(img, 1200, 800)),
                     bedrooms: data.availableBedrooms ? data.availableBedrooms.map((b: any) => b.noOfBedroom).join(', ') : (data.numberOfApartmentStudio ? 'Studios & Apartments' : '1 - 4 Beds'),
                     bathrooms: data.bathrooms || 'Premium Fittings',
                     builtupArea: data.areaRangeMax || data.builtupArea_SQFT || 0,
@@ -145,15 +132,6 @@ export const useProjectData = () => {
 
             // ── SWR Step 2: cache fresh Firestore data for next instant load ──
             cacheProjectData(projects).catch(() => { });
-            // Preload first 8 thumbnails for instant carousel
-            preloadCriticalImages(
-                projects.filter(p => !p.isHidden).map(p => p.thumbnailUrl).filter(Boolean),
-                8
-            );
-            // Prefetch remaining thumbnails in idle time
-            prefetchImages(
-                projects.filter(p => !p.isHidden).slice(8).map(p => p.thumbnailUrl).filter(Boolean)
-            );
         }, (error) => {
             console.error("🔥 FIRESTORE PROJECTS ERROR:", error);
             setIsRefreshing(false);

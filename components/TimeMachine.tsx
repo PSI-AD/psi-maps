@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { X, Play, Pause, SkipBack, SkipForward, Settings, RefreshCw } from 'lucide-react';
+import { X, Play, Pause, SkipBack, SkipForward, Settings, Loader2, RotateCcw } from 'lucide-react';
 import { waybackYears, WaybackYear } from '../data/waybackYears';
 
 interface TimeMachineProps {
@@ -10,7 +10,6 @@ interface TimeMachineProps {
   onClose: () => void;
 }
 
-// Tile preloader — no crossOrigin (Esri redirect drops CORS headers)
 function preloadTileAndWait(tileUrl: string, z: number, lat: number, lng: number): Promise<void> {
   return new Promise(resolve => {
     const n = Math.pow(2, z);
@@ -30,23 +29,41 @@ function preloadSurrounding(tileUrl: string, z: number, lat: number, lng: number
   const x = Math.floor(((lng + 180) / 360) * n);
   const latRad = (lat * Math.PI) / 180;
   const y = Math.floor(((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n);
-  for (let dx = -1; dx <= 1; dx++)
+  for (let dx = -1; dx <= 1; dx++) {
     for (let dy = -1; dy <= 1; dy++) {
       const img = new Image();
       img.src = tileUrl.replace('{z}', String(z)).replace('{y}', String(y + dy)).replace('{x}', String(x + dx));
     }
+  }
 }
+
+const WAYBACK_PREFIX = 'wayback-';
+const TARGET_PITCH = 60;
+
+// Rotation increments per RAF frame (≈60fps).
+// Original was 0.15°/frame. Reduced by 25% → 0.1125°/frame.
+// Orbit speed levels: slow, normal, fast (all 25% lower than before)
+const ORBIT_SPEEDS: Record<string, number> = {
+  slow:   0.0563,  // ~50% of original
+  normal: 0.1125,  // 75% of original (−25%)
+  fast:   0.1688,  // 112.5% of original but still 25% less than "double"
+};
 
 const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName, onClose }) => {
   const [currentIndex, setCurrentIndex] = useState(waybackYears.length - 1);
+  // isPlaying controls the year slideshow ticker
   const [isPlaying, setIsPlaying] = useState(true);
   const [direction, setDirection] = useState<'backward' | 'forward'>('backward');
   const [intervalSec, setIntervalSec] = useState(5);
   const [showSettings, setShowSettings] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isLoadingTile, setIsLoadingTile] = useState(false);
-  const [viewMode, setViewMode] = useState<'birdeye' | '3d'>('3d');
-  const [isRotating, setIsRotating] = useState(true);
+  // isOrbitActive controls the 3D rotation — fully independent from isPlaying
+  const [isOrbitActive, setIsOrbitActive] = useState(true);
+  const [orbitSpeed, setOrbitSpeed] = useState<'slow' | 'normal' | 'fast'>('normal');
+
+  // Track whether user explicitly paused to prevent ticker from overriding it
+  const userPausedRef = useRef(false);
 
   const tickerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rotationRef = useRef<number | null>(null);
@@ -55,22 +72,149 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
   const settingsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
+  const activeOverlayRef = useRef<{ layerId: string | null; sourceId: string | null }>({ layerId: null, sourceId: null });
+  const overlaySerialRef = useRef(0);
+  // Keep a live ref of isOrbitActive so the rotation loop can read it without stale closure
+  const isOrbitActiveRef = useRef(true);
+  const orbitSpeedRef = useRef<'slow' | 'normal' | 'fast'>('normal');
 
   const currentYear = waybackYears[currentIndex];
-  const TARGET_PITCH = viewMode === '3d' ? 60 : 0;
 
-  // Auto-fade settings after 10 seconds
   useEffect(() => {
-    if (showSettings) {
-      if (settingsTimerRef.current) clearTimeout(settingsTimerRef.current);
-      settingsTimerRef.current = setTimeout(() => {
-        if (isMountedRef.current) setShowSettings(false);
-      }, 10000);
-    }
-    return () => { if (settingsTimerRef.current) clearTimeout(settingsTimerRef.current); };
-  }, [showSettings]);
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
-  // Auto-hide after 15s idle when paused — reset on any interaction
+  // Keep refs in sync with state
+  useEffect(() => { isOrbitActiveRef.current = isOrbitActive; }, [isOrbitActive]);
+  useEffect(() => { orbitSpeedRef.current = orbitSpeed; }, [orbitSpeed]);
+
+  const dispatchRotate = useCallback((active: boolean) => {
+    window.dispatchEvent(new CustomEvent('time-machine-rotation', { detail: { active } }));
+  }, []);
+
+  const removeOverlay = useCallback((map: any, layerId?: string | null, sourceId?: string | null) => {
+    if (!map) return;
+    try {
+      if (layerId && map.getLayer(layerId)) map.removeLayer(layerId);
+    } catch { /**/ }
+    try {
+      if (sourceId && map.getSource(sourceId)) map.removeSource(sourceId);
+    } catch { /**/ }
+  }, []);
+
+  const cleanupWaybackArtifacts = useCallback((map: any) => {
+    if (!map?.getStyle) return;
+    const style = map.getStyle();
+    const layerIds = (style?.layers ?? [])
+      .map((layer: any) => layer.id)
+      .filter((id: string) => id.startsWith(WAYBACK_PREFIX));
+    const sourceIds = Object.keys(style?.sources ?? {}).filter(id => id.startsWith(WAYBACK_PREFIX));
+
+    layerIds.forEach((id: string) => {
+      try { if (map.getLayer(id)) map.removeLayer(id); } catch { /**/ }
+    });
+    sourceIds.forEach((id: string) => {
+      try { if (map.getSource(id)) map.removeSource(id); } catch { /**/ }
+    });
+    activeOverlayRef.current = { layerId: null, sourceId: null };
+  }, []);
+
+  const applyYear = useCallback((yearEntry: WaybackYear, animate = true) => {
+    const map = mapRef.current?.getMap?.();
+    if (!map) return;
+    if (!map.isStyleLoaded()) {
+      map.once('style.load', () => applyYear(yearEntry, animate));
+      return;
+    }
+
+    if (fadeTimerRef.current) {
+      clearInterval(fadeTimerRef.current);
+      fadeTimerRef.current = null;
+    }
+
+    const previousOverlay = activeOverlayRef.current;
+    const overlayKey = `${yearEntry.year}-${++overlaySerialRef.current}`;
+    const sourceId = `${WAYBACK_PREFIX}source-${overlayKey}`;
+    const layerId = `${WAYBACK_PREFIX}layer-${overlayKey}`;
+    const symbolLayerId = map.getStyle()?.layers?.find((layer: any) => layer.type === 'symbol')?.id;
+
+    try {
+      map.addSource(sourceId, {
+        type: 'raster',
+        tiles: [`${yearEntry.tileUrl}?release=${yearEntry.releaseNum}`],
+        tileSize: 256,
+      });
+      map.addLayer(
+        {
+          id: layerId,
+          type: 'raster',
+          source: sourceId,
+          paint: { 'raster-opacity': animate && previousOverlay.layerId ? 0 : 1 },
+        },
+        symbolLayerId,
+      );
+    } catch {
+      removeOverlay(map, layerId, sourceId);
+      return;
+    }
+
+    activeOverlayRef.current = { layerId, sourceId };
+
+    if (!animate || !previousOverlay.layerId) {
+      removeOverlay(map, previousOverlay.layerId, previousOverlay.sourceId);
+      if (isMountedRef.current) setIsTransitioning(false);
+      return;
+    }
+
+    setIsTransitioning(true);
+    let opacity = 0;
+    fadeTimerRef.current = setInterval(() => {
+      opacity += 0.08;
+
+      try {
+        map.setPaintProperty(layerId, 'raster-opacity', Math.min(opacity, 1));
+        if (previousOverlay.layerId && map.getLayer(previousOverlay.layerId)) {
+          map.setPaintProperty(previousOverlay.layerId, 'raster-opacity', Math.max(1 - opacity, 0));
+        }
+      } catch { /**/ }
+
+      if (opacity < 1) return;
+
+      if (fadeTimerRef.current) {
+        clearInterval(fadeTimerRef.current);
+        fadeTimerRef.current = null;
+      }
+      removeOverlay(map, previousOverlay.layerId, previousOverlay.sourceId);
+      if (isMountedRef.current) setIsTransitioning(false);
+    }, 40);
+  }, [mapRef, removeOverlay]);
+
+  const handleClose = useCallback(() => {
+    isMountedRef.current = false;
+    window.dispatchEvent(new CustomEvent('time-machine-active', { detail: { active: false } }));
+    window.dispatchEvent(new CustomEvent('time-machine-open', { detail: { active: false } }));
+    dispatchRotate(false);
+
+    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    if (tickerRef.current) clearTimeout(tickerRef.current);
+    if (fadeTimerRef.current) clearInterval(fadeTimerRef.current);
+    if (rotationRef.current) cancelAnimationFrame(rotationRef.current);
+
+    const mapView = mapRef.current;
+    const rawMap = mapView?.getMap?.();
+    if (rawMap) {
+      cleanupWaybackArtifacts(rawMap);
+      try {
+        mapView.easeTo({ pitch: 0, bearing: 0, duration: 1000, essential: true });
+      } catch { /**/ }
+    }
+
+    onClose();
+  }, [cleanupWaybackArtifacts, dispatchRotate, mapRef, onClose]);
+
   const resetIdleTimer = useCallback(() => {
     if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
     if (!isPlaying) {
@@ -78,20 +222,36 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
         if (isMountedRef.current) handleClose();
       }, 15000);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPlaying]);
+  }, [handleClose, isPlaying]);
+
+  // Settings auto-close after 15s (extended from 10s), reset on any interaction
+  const resetSettingsTimer = useCallback(() => {
+    if (settingsTimerRef.current) clearTimeout(settingsTimerRef.current);
+    if (showSettings) {
+      settingsTimerRef.current = setTimeout(() => {
+        if (isMountedRef.current) setShowSettings(false);
+      }, 15000);
+    }
+  }, [showSettings]);
+
+  useEffect(() => {
+    resetSettingsTimer();
+    return () => {
+      if (settingsTimerRef.current) clearTimeout(settingsTimerRef.current);
+    };
+  }, [resetSettingsTimer]);
 
   useEffect(() => {
     resetIdleTimer();
-    return () => { if (idleTimerRef.current) clearTimeout(idleTimerRef.current); };
+    return () => {
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    };
   }, [resetIdleTimer]);
 
-  // Dispatch time-machine-active for App.tsx to hide project sidebar
   useEffect(() => {
     window.dispatchEvent(new CustomEvent('time-machine-active', { detail: { active: isPlaying } }));
   }, [isPlaying]);
 
-  // Broadcast whether a Time Machine session is open so external orbit controls can target it.
   useEffect(() => {
     window.dispatchEvent(new CustomEvent('time-machine-open', { detail: { active: true } }));
     return () => {
@@ -100,16 +260,11 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
     };
   }, []);
 
-  // Notify MapCommandCenter of rotation state
-  const dispatchRotate = useCallback((active: boolean) => {
-    window.dispatchEvent(new CustomEvent('time-machine-rotation', { detail: { active } }));
-  }, []);
-
-  // Allow external orbit buttons to pause/resume the Time Machine orbit.
+  // External toggle-rotation event support
   useEffect(() => {
     const handleToggleRotation = (e: Event) => {
       const requestedState = (e as CustomEvent).detail?.active;
-      setIsRotating(prev => typeof requestedState === 'boolean' ? requestedState : !prev);
+      setIsOrbitActive(prev => typeof requestedState === 'boolean' ? requestedState : !prev);
       resetIdleTimer();
     };
 
@@ -117,111 +272,84 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
     return () => window.removeEventListener('time-machine-toggle-rotation', handleToggleRotation);
   }, [resetIdleTimer]);
 
-  // Camera rotation — auto-starts with Time Machine, but can be paused independently.
+  // ── Orbit / 3D rotation loop ──────────────────────────────────────────────
+  // The orbit is INDEPENDENT of isPlaying (year slideshow).
+  // It ALWAYS enforces TARGET_PITCH (3D) while active.
   useEffect(() => {
-    if (!isRotating) {
-      if (rotationRef.current) { cancelAnimationFrame(rotationRef.current); rotationRef.current = null; }
+    if (!isOrbitActive) {
+      if (rotationRef.current) {
+        cancelAnimationFrame(rotationRef.current);
+        rotationRef.current = null;
+      }
       dispatchRotate(false);
       return;
     }
 
-    // Retry getting the map + delay so the initial flyTo (2s) finishes first
     let retries = 0;
     const startupDelay = setTimeout(() => {
       const tryStart = () => {
-        const map = mapRef.current?.getMap?.();
-        if (!map) {
+        const mapView = mapRef.current;
+        const rawMap = mapView?.getMap?.();
+        if (!mapView || !rawMap) {
           if (retries++ < 20) setTimeout(tryStart, 150);
           return;
         }
+
         if (rotationRef.current) cancelAnimationFrame(rotationRef.current);
+
         let bearing = 0;
-        try { bearing = map.getBearing(); } catch { /* */ }
+        try { bearing = rawMap.getBearing(); } catch { /**/ }
+
         const rotate = () => {
           if (!isMountedRef.current) return;
-          try { bearing = (bearing + 0.15) % 360; map.easeTo({ bearing, duration: 0 }); } catch { /* keep loop alive */ }
+          // If orbit was toggled off, stop
+          if (!isOrbitActiveRef.current) {
+            rotationRef.current = null;
+            dispatchRotate(false);
+            return;
+          }
+          try {
+            const increment = ORBIT_SPEEDS[orbitSpeedRef.current] ?? ORBIT_SPEEDS.normal;
+            bearing = (bearing + increment) % 360;
+            // Always keep pitch at TARGET_PITCH while orbiting (enforces 3D)
+            mapView.easeTo({ bearing, pitch: TARGET_PITCH, duration: 0, essential: true });
+          } catch { /**/ }
           rotationRef.current = requestAnimationFrame(rotate);
         };
+
         rotationRef.current = requestAnimationFrame(rotate);
         dispatchRotate(true);
       };
+
       tryStart();
-    }, 2500); // Wait for flyTo animation to finish
+    }, 1500); // reduced from 2500ms for faster startup
 
     return () => {
       clearTimeout(startupDelay);
-      if (rotationRef.current) { cancelAnimationFrame(rotationRef.current); rotationRef.current = null; }
+      if (rotationRef.current) {
+        cancelAnimationFrame(rotationRef.current);
+        rotationRef.current = null;
+      }
       dispatchRotate(false);
     };
-  }, [isRotating, mapRef, dispatchRotate]);
-
-  // Apply wayback layer with crossfade — promotes NEXT→CURR after each transition
-  const applyYear = useCallback((yearEntry: WaybackYear, animate = true) => {
-    const map = mapRef.current?.getMap?.();
-    if (!map) return;
-    if (!map.isStyleLoaded()) {
-      map.once('style.load', () => applyYear(yearEntry, animate));
-      return;
-    }
-    if (fadeTimerRef.current) { clearInterval(fadeTimerRef.current); fadeTimerRef.current = null; }
-    const NEXT = 'wayback-next', CURR = 'wayback-current';
-    // Clean up any lingering NEXT layer from a previous interrupted transition
-    try { if (map.getLayer(NEXT)) map.removeLayer(NEXT); if (map.getSource(NEXT)) map.removeSource(NEXT); } catch { /**/ }
-    try {
-      map.addSource(NEXT, { type: 'raster', tiles: [yearEntry.tileUrl], tileSize: 256 });
-      const sym = map.getStyle()?.layers?.find((l: any) => l.type === 'symbol');
-      map.addLayer({ id: NEXT, type: 'raster', source: NEXT, paint: { 'raster-opacity': 0 } }, sym?.id);
-    } catch { return; }
-    if (!animate) {
-      try { map.setPaintProperty(NEXT, 'raster-opacity', 1); } catch { /**/ }
-      // Promote: remove old CURR, rename NEXT→CURR
-      try { if (map.getLayer(CURR)) map.removeLayer(CURR); if (map.getSource(CURR)) map.removeSource(CURR); } catch { /**/ }
-      return;
-    }
-    setIsTransitioning(true);
-    let op = 0;
-    fadeTimerRef.current = setInterval(() => {
-      op += 0.05;
-      if (op >= 1) {
-        op = 1;
-        if (fadeTimerRef.current) clearInterval(fadeTimerRef.current); fadeTimerRef.current = null;
-        // Promote NEXT to CURR: remove old CURR first
-        try { if (map.getLayer(CURR)) map.removeLayer(CURR); if (map.getSource(CURR)) map.removeSource(CURR); } catch { /**/ }
-        if (isMountedRef.current) setIsTransitioning(false);
-      }
-      try {
-        map.setPaintProperty(NEXT, 'raster-opacity', op);
-        if (map.getLayer(CURR)) map.setPaintProperty(CURR, 'raster-opacity', 1 - op);
-      } catch { /**/ }
-    }, 50);
-  }, [mapRef]);
-
-  // Fly to project with correct pitch for current view mode
-  useEffect(() => {
-    const map = mapRef.current?.getMap?.();
-    if (!map) return;
-    map.flyTo({ center: [lng, lat], zoom: 16, pitch: TARGET_PITCH, bearing: map.getBearing(), duration: 2000 });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapRef, lat, lng]); // TARGET_PITCH intentionally excluded — handled by viewMode effect
+  }, [isOrbitActive, dispatchRotate, mapRef]);
 
-  // Smoothly transition camera pitch when viewMode changes mid-session
+  // ── Initial 3D fly-to on mount ────────────────────────────────────────────
   useEffect(() => {
-    const map = mapRef.current?.getMap?.();
-    if (!map) return;
-    try { map.easeTo({ pitch: TARGET_PITCH, duration: 1000 }); } catch { /* */ }
-  }, [viewMode, TARGET_PITCH, mapRef]);
-
-  // Init: set satellite, apply first year, start preload
-  useEffect(() => {
-    const map = mapRef.current?.getMap?.();
-    if (!map) return;
-    const sprite = map.getStyle()?.sprite;
-    const isSat = sprite && String(sprite).includes('satellite');
-    const init = () => { applyYear(currentYear, false); preloadAll(); };
-    if (!isSat) { map.setStyle('mapbox://styles/mapbox/satellite-streets-v12'); map.once('style.load', () => setTimeout(init, 300)); }
-    else { setTimeout(init, 300); }
-    return () => { isMountedRef.current = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const mapView = mapRef.current;
+    const rawMap = mapView?.getMap?.();
+    if (!mapView || !rawMap) return;
+    mapView.flyTo({
+      center: [lng, lat],
+      zoom: 16,
+      pitch: TARGET_PITCH,   // always start in 3D
+      bearing: rawMap.getBearing(),
+      duration: 2000,
+      essential: true,
+    });
+  // Run once on mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const preloadAll = useCallback(() => {
@@ -232,199 +360,332 @@ const TimeMachine: React.FC<TimeMachineProps> = ({ mapRef, lat, lng, projectName
       if (start - i >= 0) order.push(start - i);
       if (i > 0 && start + i < total) order.push(start + i);
     }
-    let loaded = 0;
-    order.forEach((idx, i) => setTimeout(() => {
-      const y = waybackYears[idx];
-      if (!preloadedRef.current.has(y.year)) {
-        preloadSurrounding(y.tileUrl, 16, lat, lng);
-        preloadSurrounding(y.tileUrl, 15, lat, lng);
-        preloadedRef.current.add(y.year);
-      }
-      loaded++;
-    }, i * 300));
-    void loaded;
+
+    order.forEach((idx, i) => {
+      setTimeout(() => {
+        const yearEntry = waybackYears[idx];
+        if (!preloadedRef.current.has(yearEntry.year)) {
+          preloadSurrounding(yearEntry.tileUrl, 16, lat, lng);
+          preloadSurrounding(yearEntry.tileUrl, 15, lat, lng);
+          preloadedRef.current.add(yearEntry.year);
+        }
+      }, i * 300);
+    });
   }, [lat, lng]);
 
-  // Auto-advance with tile preload wait
+  useEffect(() => {
+    const map = mapRef.current?.getMap?.();
+    if (!map) return;
+
+    const sprite = map.getStyle()?.sprite;
+    const isSatellite = sprite && String(sprite).includes('satellite');
+    const init = () => {
+      cleanupWaybackArtifacts(map);
+      applyYear(currentYear, false);
+      preloadAll();
+    };
+
+    if (!isSatellite) {
+      map.setStyle('mapbox://styles/mapbox/satellite-streets-v12');
+      map.once('style.load', () => setTimeout(init, 300));
+      return;
+    }
+
+    setTimeout(init, 300);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const selectYear = useCallback((nextIndex: number, keepPlaying = false) => {
+    const nextYear = waybackYears[nextIndex];
+    setCurrentIndex(nextIndex);
+    setIsLoadingTile(true);
+    // Only resume playing from ticker if user hasn't manually paused
+    if (keepPlaying && !userPausedRef.current) {
+      setIsPlaying(true);
+    } else if (!keepPlaying) {
+      setIsPlaying(false);
+    }
+    applyYear(nextYear, true);
+    preloadTileAndWait(nextYear.tileUrl, 16, lat, lng).finally(() => {
+      if (!isMountedRef.current) return;
+      setIsLoadingTile(false);
+    });
+  }, [applyYear, lat, lng]);
+
+  // ── Year ticker ───────────────────────────────────────────────────────────
   useEffect(() => {
     if (tickerRef.current) clearTimeout(tickerRef.current);
     if (!isPlaying || isTransitioning || isLoadingTile) return;
+
     tickerRef.current = setTimeout(() => {
       if (!isMountedRef.current) return;
-      setCurrentIndex(prev => {
-        let next = direction === 'backward' ? prev - 1 : prev + 1;
-        if (next < 0) { setDirection('forward'); next = 1; }
-        else if (next >= waybackYears.length) { setDirection('backward'); next = waybackYears.length - 2; }
-        const ny = waybackYears[next];
-        setIsLoadingTile(true);
-        preloadTileAndWait(ny.tileUrl, 16, lat, lng).then(() => {
-          if (!isMountedRef.current) return;
-          setIsLoadingTile(false);
-          applyYear(ny, true);
-        });
-        return next;
-      });
+      // If user paused while timeout was pending, respect it
+      if (userPausedRef.current) return;
+
+      let next = direction === 'backward' ? currentIndex - 1 : currentIndex + 1;
+      if (next < 0) {
+        setDirection('forward');
+        next = 1;
+      } else if (next >= waybackYears.length) {
+        setDirection('backward');
+        next = waybackYears.length - 2;
+      }
+
+      selectYear(next, true);
     }, intervalSec * 1000);
-    return () => { if (tickerRef.current) clearTimeout(tickerRef.current); };
-  }, [isPlaying, direction, intervalSec, isTransitioning, isLoadingTile, applyYear, lat, lng]);
 
-  // Cleanup on close
-  const handleClose = () => {
-    isMountedRef.current = false;
-    window.dispatchEvent(new CustomEvent('time-machine-active', { detail: { active: false } }));
-    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-    setIsPlaying(false);
-    setIsRotating(false);
-    dispatchRotate(false);
-    if (rotationRef.current) cancelAnimationFrame(rotationRef.current);
-    if (tickerRef.current) clearTimeout(tickerRef.current);
-    if (fadeTimerRef.current) clearInterval(fadeTimerRef.current);
-    const map = mapRef.current?.getMap?.();
-    if (map) {
-      try { ['wayback-current', 'wayback-next'].forEach(id => { if (map.getLayer(id)) map.removeLayer(id); if (map.getSource(id)) map.removeSource(id); }); } catch { /**/ }
-      map.easeTo({ pitch: 0, bearing: 0, duration: 1000 });
-    }
-    onClose();
-  };
+    return () => {
+      if (tickerRef.current) clearTimeout(tickerRef.current);
+    };
+  }, [currentIndex, direction, intervalSec, isLoadingTile, isPlaying, isTransitioning, selectYear]);
 
-  // Arrows = continuous play in that direction; reset idle timer
   const playDir = (dir: 'backward' | 'forward') => {
+    userPausedRef.current = false;
     setDirection(dir);
     setIsPlaying(true);
     resetIdleTimer();
   };
 
-  // Btn helper
-  const Btn = ({ onClick, active, title, children }: { onClick: () => void; active?: boolean; title: string; children: React.ReactNode }) => (
+  const togglePlayPause = () => {
+    const next = !isPlaying;
+    userPausedRef.current = !next; // if pausing → mark as user-paused
+    if (tickerRef.current) {
+      clearTimeout(tickerRef.current);
+      tickerRef.current = null;
+    }
+    setIsPlaying(next);
+    resetIdleTimer();
+  };
+
+  const toggleOrbit = () => {
+    setIsOrbitActive(prev => {
+      const next = !prev;
+      // When turning orbit on, ensure we snap back to 3D
+      if (next) {
+        const mapView = mapRef.current;
+        try {
+          mapView?.easeTo({ pitch: TARGET_PITCH, duration: 500, essential: true });
+        } catch { /**/ }
+      }
+      return next;
+    });
+    resetIdleTimer();
+    resetSettingsTimer();
+  };
+
+  const handleSettingsClick = () => {
+    setShowSettings(prev => !prev);
+    resetIdleTimer();
+  };
+
+  // Small reusable icon button
+  const Btn = ({
+    onClick,
+    active,
+    title,
+    children,
+    danger,
+  }: {
+    onClick: () => void;
+    active?: boolean;
+    title: string;
+    children: React.ReactNode;
+    danger?: boolean;
+  }) => (
     <button
       onClick={onClick}
       title={title}
-      className={`w-6 h-6 rounded-full flex items-center justify-center transition-all shrink-0 ${active ? 'bg-indigo-600 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20'}`}
-    >{children}</button>
+      className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center transition-all ${
+        danger
+          ? 'bg-white/10 text-white/60 hover:bg-red-500/80 hover:text-white'
+          : active
+          ? 'bg-indigo-600 text-white'
+          : 'bg-white/10 text-white/70 hover:bg-white/20'
+      }`}
+    >
+      {children}
+    </button>
   );
 
   return (
-    /*
-     * Anchored bottom-left — above the PSI logo / bottom toolbar
-     * z-[6200] ensures it renders above all other UI
-     */
     <div
-      className="fixed left-4 z-[6200] flex flex-col items-start gap-1 animate-in slide-in-from-bottom-2 duration-300"
+      className="fixed left-3 z-[6200] flex flex-col items-start gap-1.5 animate-in slide-in-from-bottom-2 duration-300"
       style={{ bottom: 'calc(max(env(safe-area-inset-bottom, 0px), 12px) + 68px)' }}
     >
-      {/* ── Settings panel — opens above, auto-fades in 10s ── */}
+      {/* ── Settings Panel ───────────────────────────────────────────────── */}
       {showSettings && (
-        <div className="animate-in fade-in slide-in-from-bottom-1 duration-200">
-          <div className="inline-flex items-center gap-3 bg-slate-900/90 backdrop-blur-md rounded-xl px-3 py-2 border border-white/10 shadow-lg flex-wrap">
-            {/* View mode: Bird's Eye / 3D */}
-            <div className="flex items-center gap-1">
-              <span className="text-[7px] font-bold text-slate-400 uppercase tracking-wider">View</span>
-              <button onClick={() => setViewMode('birdeye')}
-                className={`px-1.5 py-0.5 rounded text-[9px] font-black transition-all ${viewMode === 'birdeye' ? 'bg-indigo-600 text-white' : 'bg-white/10 text-white/50 hover:bg-white/20'}`}
-              >Bird's Eye</button>
-              <button onClick={() => setViewMode('3d')}
-                className={`px-1.5 py-0.5 rounded text-[9px] font-black transition-all ${viewMode === '3d' ? 'bg-indigo-600 text-white' : 'bg-white/10 text-white/50 hover:bg-white/20'}`}
-              >3D</button>
-            </div>
-            <div className="w-px h-4 bg-white/10" />
-            {/* Speed */}
-            <div className="flex items-center gap-1">
-              <span className="text-[7px] font-bold text-slate-400 uppercase tracking-wider">Speed</span>
-              {[3, 5, 7, 10].map(s => (
-                <button key={s} onClick={() => { setIntervalSec(s); }}
-                  className={`px-1.5 py-0.5 rounded text-[9px] font-black transition-all ${intervalSec === s ? 'bg-indigo-600 text-white' : 'bg-white/10 text-white/50 hover:bg-white/20'}`}
-                >{s}s</button>
-              ))}
-            </div>
-            <div className="w-px h-4 bg-white/10" />
+        <div
+          className="w-[320px] max-w-[calc(100vw-24px)] animate-in fade-in slide-in-from-bottom-1 duration-200"
+          onMouseMove={resetSettingsTimer}
+          onClick={resetSettingsTimer}
+        >
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-slate-900/92 px-3 py-2.5 shadow-lg backdrop-blur-md">
+            {/* Slideshow speed */}
+            <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Slide</span>
+            {[3, 5, 7, 10].map(seconds => (
+              <button
+                key={seconds}
+                onClick={() => { setIntervalSec(seconds); resetSettingsTimer(); }}
+                className={`rounded px-1.5 py-0.5 text-[10px] font-black transition-all ${
+                  intervalSec === seconds ? 'bg-indigo-600 text-white' : 'bg-white/10 text-white/55 hover:bg-white/20'
+                }`}
+              >
+                {seconds}s
+              </button>
+            ))}
+
+            <div className="h-4 w-px bg-white/10" />
+
             {/* Direction */}
-            <div className="flex items-center gap-1">
-              <span className="text-[7px] font-bold text-slate-400 uppercase tracking-wider">Dir</span>
-              <button onClick={() => setDirection(d => d === 'backward' ? 'forward' : 'backward')}
-                className="px-2 py-0.5 rounded text-[9px] font-black bg-white/10 text-white/70 hover:bg-white/20 transition-all"
-              >{direction === 'backward' ? '2026→2014' : '2014→2026'}</button>
-            </div>
+            <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Dir</span>
+            <button
+              onClick={() => { setDirection(prev => prev === 'backward' ? 'forward' : 'backward'); resetSettingsTimer(); }}
+              className="rounded bg-white/10 px-2 py-0.5 text-[10px] font-black text-white/70 transition-all hover:bg-white/20"
+            >
+              {direction === 'backward' ? '2026→2014' : '2014→2026'}
+            </button>
+
+            {/* Full-width divider */}
+            <div className="w-full h-px bg-white/10 my-0.5" />
+
+            {/* Orbit speed */}
+            <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Rotate</span>
+            {(['slow', 'normal', 'fast'] as const).map(speed => (
+              <button
+                key={speed}
+                onClick={() => { setOrbitSpeed(speed); resetSettingsTimer(); }}
+                className={`rounded px-1.5 py-0.5 text-[10px] font-black capitalize transition-all ${
+                  orbitSpeed === speed ? 'bg-indigo-600 text-white' : 'bg-white/10 text-white/55 hover:bg-white/20'
+                }`}
+              >
+                {speed}
+              </button>
+            ))}
+
+            <div className="h-4 w-px bg-white/10" />
+
+            {/* 3D pitch label */}
+            <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">View</span>
+            <button
+              onClick={() => {
+                // Snap map back to 3D pitch
+                const mapView = mapRef.current;
+                try { mapView?.easeTo({ pitch: TARGET_PITCH, duration: 500, essential: true }); } catch { /**/ }
+                resetSettingsTimer();
+              }}
+              className="rounded bg-white/10 px-2 py-0.5 text-[10px] font-black text-white/70 transition-all hover:bg-white/20"
+            >
+              3D ({TARGET_PITCH}°)
+            </button>
           </div>
         </div>
       )}
 
-      {/* ── Main compact widget ── */}
-      <div className="bg-slate-900/85 backdrop-blur-md rounded-xl border border-white/10 shadow-xl px-3 py-2 flex flex-col gap-1">
-
-        {/* Row: arrows + year  |  play · settings · close */}
-        <div className="flex items-center gap-2">
-          {/* Arrows + year */}
+      {/* ── Main Control Bar ─────────────────────────────────────────────── */}
+      <div
+        className="w-[320px] max-w-[calc(100vw-24px)] rounded-xl border border-white/10 bg-slate-900/88 px-2.5 py-2 shadow-xl backdrop-blur-md"
+        onMouseMove={resetIdleTimer}
+      >
+        <div className="flex items-center gap-1.5">
+          {/* Play backwards */}
           <button
             onClick={() => playDir('backward')}
-            className={`w-6 h-6 rounded-full flex items-center justify-center text-white transition-colors shrink-0 ${isPlaying && direction === 'backward' ? 'bg-indigo-600' : 'bg-white/10 hover:bg-white/20'}`}
-            title="Play backwards"
+            className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-white transition-colors ${
+              isPlaying && direction === 'backward' ? 'bg-indigo-600' : 'bg-white/10 hover:bg-white/20'
+            }`}
+            title="Play backwards (2026 → 2014)"
           >
-            <SkipBack className="w-3 h-3" />
+            <SkipBack className="h-3 w-3" />
           </button>
 
-          <div className="bg-indigo-600 rounded-lg px-3 py-0.5 w-[62px] text-center shrink-0">
-            <span className="text-sm font-black text-white tracking-tight leading-none">
-              {currentYear.year}
-            </span>
+          {/* Year badge */}
+          <div className="relative min-w-[58px] shrink-0 rounded-lg bg-indigo-600 px-2.5 py-1 text-center">
+            <span className="text-sm font-black leading-none tracking-tight text-white">{currentYear.year}</span>
+            {isLoadingTile && (
+              <Loader2 className="absolute right-1 top-1/2 h-3 w-3 -translate-y-1/2 animate-spin text-white/85" />
+            )}
           </div>
 
+          {/* Play forwards */}
           <button
             onClick={() => playDir('forward')}
-            className={`w-6 h-6 rounded-full flex items-center justify-center text-white transition-colors shrink-0 ${isPlaying && direction === 'forward' ? 'bg-indigo-600' : 'bg-white/10 hover:bg-white/20'}`}
-            title="Play forwards"
+            className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-white transition-colors ${
+              isPlaying && direction === 'forward' ? 'bg-indigo-600' : 'bg-white/10 hover:bg-white/20'
+            }`}
+            title="Play forwards (2014 → 2026)"
           >
-            <SkipForward className="w-3 h-3" />
+            <SkipForward className="h-3 w-3" />
           </button>
 
-          {/* Separator */}
-          <div className="w-px h-4 bg-white/15 shrink-0" />
+          <div className="h-4 w-px shrink-0 bg-white/15" />
 
-          {/* Play/Pause · Settings · Close */}
-          <Btn onClick={() => setIsPlaying(p => !p)} active={isPlaying} title={isPlaying ? 'Pause' : 'Play'}>
-            {isPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 ml-0.5" />}
-          </Btn>
-          <Btn onClick={() => setIsRotating(r => !r)} active={isRotating} title={isRotating ? 'Pause Orbit' : 'Resume Orbit'}>
-            <RefreshCw className={`w-3 h-3 ${isRotating ? 'animate-spin' : ''}`} style={isRotating ? { animationDuration: '4s' } : undefined} />
-          </Btn>
-          <Btn onClick={() => setShowSettings(s => !s)} active={showSettings} title="Speed & Direction">
-            <Settings className="w-3 h-3" />
-          </Btn>
-          <button
-            onClick={handleClose}
-            className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-white/60 hover:bg-red-500/80 hover:text-white transition-colors shrink-0"
-            title="Close Time Machine"
+          {/* Play / Pause slideshow */}
+          <Btn
+            onClick={togglePlayPause}
+            active={isPlaying}
+            title={isPlaying ? 'Pause slideshow' : 'Resume slideshow'}
           >
-            <X className="w-3 h-3" />
-          </button>
+            {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3 ml-0.5" />}
+          </Btn>
+
+          {/* Orbit / Rotation toggle */}
+          <Btn
+            onClick={toggleOrbit}
+            active={isOrbitActive}
+            title={isOrbitActive ? 'Stop 3D rotation' : 'Start 3D rotation'}
+          >
+            <RotateCcw className="h-3 w-3" />
+          </Btn>
+
+          {/* Settings */}
+          <Btn onClick={handleSettingsClick} active={showSettings} title="Speed & Direction settings">
+            <Settings className="h-3 w-3" />
+          </Btn>
+
+          {/* Close */}
+          <Btn onClick={handleClose} title={`Close Time Machine for ${projectName}`} danger>
+            <X className="h-3 w-3" />
+          </Btn>
         </div>
 
-        {/* Dot timeline */}
-        <div className="flex items-center gap-0.5">
-          {waybackYears.map((y, i) => (
+        {/* Year dots timeline */}
+        <div className="mt-2 flex items-center justify-center gap-1">
+          {waybackYears.map((yearEntry, index) => (
             <button
-              key={y.year}
-              onClick={() => { setIsPlaying(false); setCurrentIndex(i); applyYear(y, true); }}
-              className="flex flex-col items-center gap-0"
-              title={String(y.year)}
+              key={yearEntry.year}
+              onClick={() => {
+                userPausedRef.current = false;
+                selectYear(index, false);
+                resetIdleTimer();
+              }}
+              className="flex h-4 w-4 items-center justify-center"
+              title={String(yearEntry.year)}
             >
-              <div className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                i === currentIndex
-                  ? 'bg-indigo-400 scale-125 shadow-lg shadow-indigo-400/50'
-                  : i < currentIndex ? 'bg-white/40' : 'bg-white/15'
-              }`} />
-              <span className={`text-[6px] font-bold leading-tight ${i === currentIndex ? 'text-indigo-300' : 'text-white/25'}`}>
-                {y.year}
-              </span>
+              <div
+                className={`rounded-full transition-all duration-300 ${
+                  index === currentIndex
+                    ? 'h-2.5 w-2.5 bg-indigo-400 shadow-lg shadow-indigo-400/40'
+                    : index < currentIndex
+                      ? 'h-1.5 w-1.5 bg-white/45'
+                      : 'h-1.5 w-1.5 bg-white/18'
+                }`}
+              />
             </button>
           ))}
         </div>
 
-        {/* Direction hint */}
-        <span className="text-[6px] font-bold text-white/35 uppercase tracking-wider text-center">
-          {isPlaying
-            ? direction === 'backward' ? '← back in time' : 'forward in time →'
-            : currentYear.date}
-        </span>
+        {/* Status label */}
+        <div className="mt-1 text-center">
+          <span className="text-[6px] font-bold uppercase tracking-[0.18em] text-white/35">
+            {isOrbitActive
+              ? isPlaying
+                ? `3D · ${direction === 'backward' ? 'back in time' : 'forward in time'}`
+                : `3D rotation · ${currentYear.date}`
+              : isPlaying
+                ? direction === 'backward' ? 'back in time' : 'forward in time'
+                : currentYear.date}
+          </span>
+        </div>
       </div>
     </div>
   );

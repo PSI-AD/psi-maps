@@ -1,3 +1,5 @@
+import type { Project } from '../types';
+
 /**
  * Optimizes image URLs for performance by adding resize/quality parameters.
  * Supports:
@@ -46,4 +48,24 @@ export const getOptimizedImageUrl = (
 
     // ── Default: pass through ──────────────────────────────────────────────────
     return url;
+};
+
+type ProjectThumbnailSource = Pick<Project, 'thumbnailUrl' | 'images' | 'optimizedGallery' | 'responsiveMedia'>;
+
+export const getProjectThumbnailUrl = (
+    project: Partial<ProjectThumbnailSource> | undefined | null,
+    width: number,
+    height?: number,
+    quality = 80
+): string => {
+    if (!project) return '';
+
+    const baseUrl =
+        project.thumbnailUrl ||
+        project.responsiveMedia?.thumb ||
+        project.optimizedGallery?.[0]?.thumb ||
+        project.images?.[0] ||
+        '';
+
+    return getOptimizedImageUrl(baseUrl, width, height, quality);
 };

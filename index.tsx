@@ -3,7 +3,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './styles.css';
-import { registerServiceWorker } from './utils/swRegistration';
+import { registerServiceWorker, unregisterServiceWorker } from './utils/swRegistration';
 import { initSyncEngine } from './utils/backgroundSync';
 
 const rootElement = document.getElementById('root');
@@ -18,44 +18,49 @@ root.render(
   </React.StrictMode>
 );
 
-// ── Register PWA Service Worker ──────────────────────────────────────────────
-registerServiceWorker({
-  onSuccess: (reg) => {
-    console.log('[PWA] Content cached for offline use');
-  },
-  onUpdate: (reg) => {
-    console.log('[PWA] New version available');
-    // Dispatch event for AppUpdatePrompt to show the update UI
-    // (instead of silently reloading, which would lose user state)
-    window.dispatchEvent(new CustomEvent('psi-sw-update-available', {
-      detail: { registration: reg },
-    }));
-  },
-  onOffline: () => {
-    console.log('[PWA] App is running offline');
-  },
-  onOnline: () => {
-    console.log('[PWA] Connection restored');
-  },
-  onNotificationNavigation: (data) => {
-    console.log('[PWA] Notification deep link:', data);
-    // Navigate to the target — App.tsx listens for 'psi-deep-link' events
-    if (data.projectId) {
-      window.dispatchEvent(new CustomEvent('psi-deep-link', {
-        detail: { projectId: data.projectId, url: data.url },
+if (import.meta.env.DEV) {
+  void unregisterServiceWorker();
+  console.log('[PWA] Dev mode detected — service worker disabled');
+} else {
+  // ── Register PWA Service Worker ────────────────────────────────────────────
+  registerServiceWorker({
+    onSuccess: (reg) => {
+      console.log('[PWA] Content cached for offline use');
+    },
+    onUpdate: (reg) => {
+      console.log('[PWA] New version available');
+      // Dispatch event for AppUpdatePrompt to show the update UI
+      // (instead of silently reloading, which would lose user state)
+      window.dispatchEvent(new CustomEvent('psi-sw-update-available', {
+        detail: { registration: reg },
       }));
-    }
-    if (data.action) {
-      // Handle action-based deep links (search, favorites, chat)
-      window.dispatchEvent(new CustomEvent('psi-deep-link-action', {
-        detail: { action: data.action, url: data.url },
-      }));
-    }
-  },
-});
+    },
+    onOffline: () => {
+      console.log('[PWA] App is running offline');
+    },
+    onOnline: () => {
+      console.log('[PWA] Connection restored');
+    },
+    onNotificationNavigation: (data) => {
+      console.log('[PWA] Notification deep link:', data);
+      // Navigate to the target — App.tsx listens for 'psi-deep-link' events
+      if (data.projectId) {
+        window.dispatchEvent(new CustomEvent('psi-deep-link', {
+          detail: { projectId: data.projectId, url: data.url },
+        }));
+      }
+      if (data.action) {
+        // Handle action-based deep links (search, favorites, chat)
+        window.dispatchEvent(new CustomEvent('psi-deep-link-action', {
+          detail: { action: data.action, url: data.url },
+        }));
+      }
+    },
+  });
 
-// ── Initialize Background Sync Engine ────────────────────────────────────────
-initSyncEngine();
+  // ── Initialize Background Sync Engine ──────────────────────────────────────
+  initSyncEngine();
+}
 
 // ── Initialize Firebase Platform (deferred — after first paint) ──────────────
 import { initFirebasePlatform, onForegroundMessage, AnalyticsEvents } from './utils/firebasePlatform';

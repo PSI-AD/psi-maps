@@ -4,6 +4,7 @@ import { Project, Landmark, LandmarkCategory, ClientPresentation } from '../type
 import { db } from '../utils/firebase';
 import { doc, setDoc, addDoc, collection, deleteDoc, writeBatch, updateDoc, getDocs, onSnapshot } from 'firebase/firestore';
 import { generateCleanId } from '../utils/helpers';
+import { generateSessionToken } from '../utils/id';
 import { fetchAndSaveBoundary } from '../utils/boundaryService';
 import { Database, RefreshCw, Plus, Edit2, Trash2, MapPin, Search, Eye, EyeOff, ImageIcon, Zap, Check, Sliders, MonitorPlay, Users, ExternalLink } from 'lucide-react';
 import { optimizeAndUploadImage } from '../utils/imageOptimizer';
@@ -278,7 +279,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
 
   // ── Mapbox Search Box API v1 (better POI + place results than Geocoding v5) ──
   // Session token groups suggest+retrieve calls for billing
-  const mapSearchSessionRef = useRef<string>(crypto.randomUUID());
+  const mapSearchSessionRef = useRef<string>(generateSessionToken());
 
   const fetchMapSuggestions = (query: string) => {
     setMapSearchQuery(query);
@@ -337,7 +338,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = (props) => {
         setMapModalViewState({ longitude: lng, latitude: lat, zoom: 16 });
       }
       // Generate new session token for next search
-      mapSearchSessionRef.current = crypto.randomUUID();
+      mapSearchSessionRef.current = generateSessionToken();
     } catch (err) {
       console.error('Mapbox retrieve error:', err);
     }

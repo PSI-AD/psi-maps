@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef, useEffect } from 'react';
+import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import SearchBar from './SearchBar';
 import { Project, Landmark } from '../types';
 import { Settings, Filter as FilterIcon, X, Pencil, Search, Map as MapIcon, Box, RefreshCw, Layers, ZoomIn, ZoomOut, Play, Pause, Landmark as LandmarkIcon, MapPin, Navigation, Heart, Clock } from 'lucide-react';
@@ -103,14 +103,22 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
 
     // ── Quick toolbar continuous rotation (same as MapCommandCenter) ────
     const [isQuickRotating, setIsQuickRotating] = useState(false);
+    const [isTimeMachineOpen, setIsTimeMachineOpen] = useState(false);
+    const [isTimeMachineRotating, setIsTimeMachineRotating] = useState(false);
     const rotationAnimRef = useRef<number | undefined>(undefined);
+    const mobileBarRef = useRef<HTMLDivElement>(null);
+
+    const stopQuickRotation = useCallback(() => {
+        if (rotationAnimRef.current !== undefined) {
+            cancelAnimationFrame(rotationAnimRef.current);
+            rotationAnimRef.current = undefined;
+        }
+        setIsQuickRotating(false);
+    }, []);
 
     useEffect(() => {
         if (!isQuickRotating) {
-            if (rotationAnimRef.current !== undefined) {
-                cancelAnimationFrame(rotationAnimRef.current);
-                rotationAnimRef.current = undefined;
-            }
+            stopQuickRotation();
             return;
         }
 
@@ -146,7 +154,53 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                 rotationAnimRef.current = undefined;
             }
         };
-    }, [isQuickRotating]); // mapRef intentionally omitted — ref objects never change identity
+    }, [isQuickRotating, stopQuickRotation]); // mapRef intentionally omitted — ref objects never change identity
+
+    useEffect(() => {
+        const onTimeMachineOpen = (e: Event) => {
+            const active = (e as CustomEvent).detail?.active ?? false;
+            setIsTimeMachineOpen(active);
+            if (active) stopQuickRotation();
+            if (!active) setIsTimeMachineRotating(false);
+        };
+        const onTimeMachineRotation = (e: Event) => {
+            const active = (e as CustomEvent).detail?.active ?? false;
+            setIsTimeMachineRotating(active);
+            if (active) stopQuickRotation();
+        };
+
+        window.addEventListener('time-machine-open', onTimeMachineOpen);
+        window.addEventListener('time-machine-rotation', onTimeMachineRotation);
+        return () => {
+            window.removeEventListener('time-machine-open', onTimeMachineOpen);
+            window.removeEventListener('time-machine-rotation', onTimeMachineRotation);
+        };
+    }, [stopQuickRotation]);
+
+    useEffect(() => {
+        const root = document.documentElement;
+        const mobileBar = mobileBarRef.current;
+        if (!mobileBar) return;
+
+        const updateMobileBarHeight = () => {
+            root.style.setProperty('--mobile-bottom-bar-height', `${mobileBar.getBoundingClientRect().height}px`);
+        };
+
+        updateMobileBarHeight();
+
+        const observer = typeof ResizeObserver !== 'undefined'
+            ? new ResizeObserver(() => updateMobileBarHeight())
+            : null;
+
+        observer?.observe(mobileBar);
+        window.addEventListener('resize', updateMobileBarHeight);
+
+        return () => {
+            observer?.disconnect();
+            window.removeEventListener('resize', updateMobileBarHeight);
+            root.style.removeProperty('--mobile-bottom-bar-height');
+        };
+    }, []);
 
     // ── Global tour state — track global + neighborhood separately for proper sync ──
     const [isTourPlaying, setIsTourPlaying] = useState(false);
@@ -156,13 +210,6 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
     const isNeighborhoodTourRef = useRef(false);
 
     useEffect(() => {
-        const stopQuickRotation = () => {
-            if (rotationAnimRef.current !== undefined) {
-                cancelAnimationFrame(rotationAnimRef.current);
-                rotationAnimRef.current = undefined;
-            }
-            setIsQuickRotating(false);
-        };
         const onGlobalTour = (e: Event) => {
             const detail = (e as CustomEvent).detail;
             isGlobalTourRef.current = !!detail?.active;
@@ -188,7 +235,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
             window.removeEventListener('neighborhood-tour-changed', onNeighborhoodTour);
             window.removeEventListener('global-tour-start', onTourStart);
         };
-    }, []);
+    }, [stopQuickRotation]);
 
     // Compute nearby projects and landmarks for the currently selected project
     const nearbyTourData = useMemo(() => {
@@ -460,6 +507,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
     const isAnyFilterActive = propertyType !== 'All' || developerFilter !== 'All' || statusFilter !== 'All';
 
     const selectCls = "w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-base lg:text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer shadow-sm appearance-none";
+    const quickToolButtonClass = "inline-flex h-10 w-10 items-center justify-center rounded-lg text-slate-500 transition-all";
 
     return (
         <>
@@ -483,54 +531,76 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
                 {mapRef && (
                     <div className="hidden xl:flex items-center gap-1 bg-slate-50/80 border border-slate-200 rounded-xl px-1.5 py-1 shrink-0">
                         <button
+                            type="button"
                             onClick={() => {
                                 const map = mapRef?.current?.getMap?.();
                                 if (!map) return;
                                 const targetPitch = map.getPitch() > 30 ? 0 : 60;
                                 map.flyTo({ pitch: targetPitch, duration: 1500 });
                             }}
-                            className="p-2 rounded-lg hover:bg-blue-50 text-slate-500 hover:text-blue-600 transition-all"
+                            className={`${quickToolButtonClass} hover:bg-blue-50 hover:text-blue-600`}
                             title="Toggle 3D View"
+                            aria-label="Toggle 3D View"
                         >
                             <Box className="w-4 h-4" />
                         </button>
                         <button
-                            onClick={() => setIsQuickRotating(r => !r)}
-                            className={`p-2 rounded-lg transition-all ${isQuickRotating
-                                ? 'bg-amber-100 text-amber-600 shadow-inner' : 'hover:bg-blue-50 text-slate-500 hover:text-blue-600'}`}
-                            title={isQuickRotating ? 'Stop Rotation' : 'Rotate Map'}
+                            type="button"
+                            onClick={() => {
+                                if (isTimeMachineOpen) {
+                                    window.dispatchEvent(new CustomEvent('time-machine-toggle-rotation'));
+                                    return;
+                                }
+                                setIsQuickRotating(r => !r);
+                            }}
+                            className={`${quickToolButtonClass} ${(isQuickRotating || isTimeMachineRotating)
+                                ? 'bg-amber-100 text-amber-600 shadow-inner' : 'hover:bg-blue-50 hover:text-blue-600'}`}
+                            title={isTimeMachineOpen
+                                ? (isTimeMachineRotating ? 'Pause Time Machine Orbit' : 'Resume Time Machine Orbit')
+                                : (isQuickRotating ? 'Stop Rotation' : 'Rotate Map')}
+                            aria-label={isTimeMachineOpen
+                                ? (isTimeMachineRotating ? 'Pause Time Machine Orbit' : 'Resume Time Machine Orbit')
+                                : (isQuickRotating ? 'Stop Rotation' : 'Rotate Map')}
                         >
-                            <RefreshCw className={`w-4 h-4 ${isQuickRotating ? 'animate-spin' : ''}`} style={isQuickRotating ? { animationDuration: '4s' } : undefined} />
+                            <RefreshCw className={`w-4 h-4 ${(isQuickRotating || isTimeMachineRotating) ? 'animate-spin' : ''}`} style={(isQuickRotating || isTimeMachineRotating) ? { animationDuration: '4s' } : undefined} />
                         </button>
                         <div className="w-px h-5 bg-slate-200 mx-0.5" />
                         <button
+                            type="button"
                             onClick={() => setMapStyle?.('mapbox://styles/mapbox/streets-v12')}
-                            className={`p-2 rounded-lg transition-all ${(mapStyle || '').includes('streets') && !(mapStyle || '').includes('satellite')
-                                ? 'bg-blue-100 text-blue-600' : 'text-slate-500 hover:bg-blue-50 hover:text-blue-600'}`}
+                            className={`${quickToolButtonClass} ${(mapStyle || '').includes('streets') && !(mapStyle || '').includes('satellite')
+                                ? 'bg-blue-100 text-blue-600' : 'hover:bg-blue-50 hover:text-blue-600'}`}
                             title="Map View"
+                            aria-label="Switch to map view"
                         >
                             <MapIcon className="w-4 h-4" />
                         </button>
                         <button
+                            type="button"
                             onClick={() => setMapStyle?.('mapbox://styles/mapbox/satellite-streets-v12')}
-                            className={`p-2 rounded-lg transition-all ${(mapStyle || '').includes('satellite')
-                                ? 'bg-blue-100 text-blue-600' : 'text-slate-500 hover:bg-blue-50 hover:text-blue-600'}`}
+                            className={`${quickToolButtonClass} ${(mapStyle || '').includes('satellite')
+                                ? 'bg-blue-100 text-blue-600' : 'hover:bg-blue-50 hover:text-blue-600'}`}
                             title="Satellite View"
+                            aria-label="Switch to satellite view"
                         >
                             <Layers className="w-4 h-4" />
                         </button>
                         <div className="w-px h-5 bg-slate-200 mx-0.5" />
                         <button
+                            type="button"
                             onClick={() => mapRef?.current?.getMap?.()?.zoomIn({ duration: 500 })}
-                            className="p-2 rounded-lg hover:bg-blue-50 text-slate-500 hover:text-blue-600 transition-all"
+                            className={`${quickToolButtonClass} hover:bg-blue-50 hover:text-blue-600`}
                             title="Zoom In"
+                            aria-label="Zoom in"
                         >
                             <ZoomIn className="w-4 h-4" />
                         </button>
                         <button
+                            type="button"
                             onClick={() => mapRef?.current?.getMap?.()?.zoomOut({ duration: 500 })}
-                            className="p-2 rounded-lg hover:bg-blue-50 text-slate-500 hover:text-blue-600 transition-all"
+                            className={`${quickToolButtonClass} hover:bg-blue-50 hover:text-blue-600`}
                             title="Zoom Out"
+                            aria-label="Zoom out"
                         >
                             <ZoomOut className="w-4 h-4" />
                         </button>
@@ -804,6 +874,7 @@ const BottomControlBar: React.FC<BottomControlBarProps> = ({
 
             {/* ─────────────────── MOBILE TAB BAR ─────────────────── */}
             <div
+                ref={mobileBarRef}
                 className={`lg:hidden fixed bottom-0 left-0 w-full border-t z-[6000] transition-colors duration-300 ${activeThemeClass}`}
                 style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 12px)' }}
             >

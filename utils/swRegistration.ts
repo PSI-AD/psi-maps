@@ -130,13 +130,16 @@ export async function unregisterServiceWorker(): Promise<boolean> {
     if (!('serviceWorker' in navigator)) return false;
 
     try {
-        const registration = await navigator.serviceWorker.ready;
-        const success = await registration.unregister();
-        if (success) {
-            // Clear all caches too
-            const keys = await caches.keys();
-            await Promise.all(keys.map((key) => caches.delete(key)));
-            console.log('[PWA] Service Worker unregistered and caches cleared');
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        const results = await Promise.all(registrations.map((registration) => registration.unregister()));
+        const success = results.some(Boolean);
+
+        // Clear all caches too
+        const keys = await caches.keys();
+        await Promise.all(keys.map((key) => caches.delete(key)));
+
+        if (success || registrations.length > 0) {
+            console.log('[PWA] Service Worker(s) unregistered and caches cleared');
         }
         return success;
     } catch (error) {

@@ -2,9 +2,8 @@ import React, { useRef, useEffect, useMemo, useState } from 'react';
 import { distance as turfDistance } from '@turf/distance';
 import { Project, ClientPresentation } from '../types';
 import { MapPin, Building, BedDouble, ChevronLeft, ChevronRight, X, Play, Square, Heart } from 'lucide-react';
-import { getOptimizedImageUrl } from '../utils/imageHelpers';
+import { getProjectThumbnailUrl } from '../utils/imageHelpers';
 import { useFavoritesContext } from '../hooks/useFavorites';
-import { getPreloadHandlers, getProximityRef, preloadVisibleProjects } from '../utils/predictivePreloader';
 import { CarouselSkeleton } from './SkeletonUI';
 
 interface FilteredProjectsCarouselProps {
@@ -43,6 +42,7 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
 }) => {
     const { toggleFavorite, isFavorite } = useFavoritesContext();
     const scrollRef = useRef<HTMLDivElement>(null);
+    const mobileContainerRef = useRef<HTMLDivElement>(null);
     const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
     // Keep a stable ref to onSelectProject so the interval closure doesn't go stale
     const onSelectRef = useRef(onSelectProject);
@@ -61,6 +61,8 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
     const activeTourRef = useRef<{ community: string; projects: Project[]; isExternal?: boolean } | null>(null);
     // Touch-tap tracker — MUST be before any early return to satisfy Rules of Hooks
     const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+    const isDraggingRef = useRef(false);
+    const suppressClickUntilRef = useRef(0);
 
     // Auto-expand panel when AI chat disappears (was true → now false)
     const prevAiChatRef = useRef(isAiChatOpen);
@@ -272,6 +274,38 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
         }));
     }, [playingCommunity]);
 
+    useEffect(() => {
+        const root = document.documentElement;
+        const isHidden = !isVisible || (projects.length === 0 && !isTourMode && !isLoading);
+
+        if (isHidden) {
+            root.style.setProperty('--mobile-carousel-height', '0px');
+            return;
+        }
+
+        const mobileContainer = mobileContainerRef.current;
+        if (!mobileContainer) return;
+
+        const updateCarouselHeight = () => {
+            root.style.setProperty('--mobile-carousel-height', `${mobileContainer.getBoundingClientRect().height}px`);
+        };
+
+        updateCarouselHeight();
+
+        const observer = typeof ResizeObserver !== 'undefined'
+            ? new ResizeObserver(() => updateCarouselHeight())
+            : null;
+
+        observer?.observe(mobileContainer);
+        window.addEventListener('resize', updateCarouselHeight);
+
+        return () => {
+            observer?.disconnect();
+            window.removeEventListener('resize', updateCarouselHeight);
+            root.style.setProperty('--mobile-carousel-height', '0px');
+        };
+    }, [isVisible, projects.length, isLoading, isTourMode, isAiChatOpen]);
+
     // ── Auto-scroll to selected project on click ──────────────────────────
     useEffect(() => {
         if (!selectedProjectId) return;
@@ -310,7 +344,11 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
     // Show skeleton placeholders during initial data load
     if (isVisible && projects.length === 0 && isLoading && !isTourMode) {
         return (
-            <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+72px)] left-0 right-0 z-[3400] lg:absolute lg:bottom-6 lg:left-6 lg:right-auto lg:w-[380px]">
+            <div
+                ref={mobileContainerRef}
+                className="fixed left-0 right-0 z-[3400] bottom-[var(--mobile-results-offset)] lg:absolute lg:bottom-6 lg:left-6 lg:right-auto lg:w-[380px]"
+                style={{ ['--mobile-results-offset' as string]: 'calc(var(--mobile-bottom-bar-height, var(--bottom-nav-height)) + var(--mobile-overlay-gap, 12px))' }}
+            >
                 <CarouselSkeleton count={3} />
             </div>
         );
@@ -359,20 +397,19 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
     // ── Single card renderer ────────────────────────────────────────────────
     const renderCard = (project: Project, idx: number) => {
         const isSelected = selectedProjectId === project.id;
-        const preloadHandlers = getPreloadHandlers(project);
 
         return (
             <div
                 key={project.id}
                 ref={el => {
                     itemRefs.current[project.id] = el;
-                    if (el) getProximityRef(project.id, (project as any).thumbnailUrl)(el);
                 }}
-                onClick={() => onSelectProject(project)}
-                onMouseEnter={preloadHandlers.onMouseEnter}
-                onMouseLeave={preloadHandlers.onMouseLeave}
+                onClick={() => {
+                    if (performance.now() < suppressClickUntilRef.current) return;
+                    onSelectProject(project);
+                }}
                 className={`
-                    shrink-0 w-[82vw] sm:w-[300px] snap-center pointer-events-auto
+                    shrink-0 w-[82vw] sm:w-[300px] snap-center pointer-events-auto select-none
                     lg:w-full lg:shrink-0 lg:rounded-none
                     ${idx === 0 ? '' : 'lg:border-t lg:border-slate-100'}
                     bg-white rounded-2xl p-3 flex gap-3 cursor-pointer
@@ -387,16 +424,17 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                 {/* Thumbnail — eager for first 4, lazy for the rest */}
                 <div className="w-[88px] h-[88px] lg:w-20 lg:h-20 shrink-0 rounded-xl overflow-hidden skeleton relative shadow-sm bg-slate-100">
                     <img
-                        src={getOptimizedImageUrl(
-                            (project as any).thumbnailUrl || ((project as any).images?.[0]) || '',
-                            160, 160
-                        )}
+                        src={getProjectThumbnailUrl(project, 160, 160)}
                         alt={project.name}
-                        loading={idx < 4 ? 'eager' : 'lazy'}
-                        decoding={idx < 4 ? 'sync' : 'async'}
-                        fetchPriority={idx < 2 ? 'high' : 'auto'}
+                        loading="eager"
+                        decoding="async"
+                        fetchPriority={idx < 6 ? 'high' : 'auto'}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        onError={e => {
+                            const img = e.currentTarget;
+                            img.onerror = null;
+                            img.src = '/placeholder-image.png';
+                        }}
                     />
                     {project.status && (
                         <div className="absolute top-1.5 left-1.5 bg-black/60 backdrop-blur-sm text-white text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md leading-none">
@@ -461,12 +499,15 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
     return (
         <div className={`
             absolute z-[4000]
-            bottom-[calc(env(safe-area-inset-bottom,0px)+76px)] left-0 w-full pointer-events-auto
+            left-0 w-full pointer-events-auto bottom-[var(--mobile-results-offset)]
             lg:bottom-[96px] lg:top-[80px] lg:left-0 lg:w-[360px] lg:pointer-events-none
             flex flex-col
             transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]
             ${(isCollapsed || isAiChatOpen) ? 'lg:-translate-x-full' : 'lg:translate-x-6'}
-        `}>
+        `}
+            ref={mobileContainerRef}
+            style={{ ['--mobile-results-offset' as string]: 'calc(var(--mobile-bottom-bar-height, var(--bottom-nav-height)) + var(--mobile-overlay-gap, 12px))' }}
+        >
             {/* ── Desktop: Collapse toggle button — sticks out from right edge ── */}
             <button
                 onClick={(e) => { e.stopPropagation(); setIsCollapsed(!isCollapsed); }}
@@ -539,7 +580,7 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                     ref={scrollRef}
                     className="
                         flex gap-3 overflow-x-auto
-                        snap-x snap-mandatory
+                        snap-x snap-proximity
                         pb-3 pt-1 px-3
                         lg:flex-col lg:overflow-y-auto lg:overflow-x-hidden
                         lg:snap-none
@@ -551,7 +592,37 @@ const FilteredProjectsCarousel: React.FC<FilteredProjectsCarouselProps> = ({
                         lg:shadow-2xl lg:shadow-slate-300/30
                         pointer-events-auto hide-scrollbar scroll-smooth
                     "
-                    style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x pan-y' }}
+                    style={{
+                        WebkitOverflowScrolling: 'touch',
+                        touchAction: 'pan-x pinch-zoom',
+                        overscrollBehaviorX: 'contain',
+                        overscrollBehaviorY: 'contain',
+                    }}
+                    onTouchStartCapture={(e) => {
+                        const touch = e.touches[0];
+                        touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+                        isDraggingRef.current = false;
+                    }}
+                    onTouchMoveCapture={(e) => {
+                        if (!touchStartRef.current) return;
+                        const touch = e.touches[0];
+                        const deltaX = Math.abs(touch.clientX - touchStartRef.current.x);
+                        const deltaY = Math.abs(touch.clientY - touchStartRef.current.y);
+                        if (deltaX > 8 && deltaX > deltaY) {
+                            isDraggingRef.current = true;
+                        }
+                    }}
+                    onTouchEndCapture={() => {
+                        if (isDraggingRef.current) {
+                            suppressClickUntilRef.current = performance.now() + 250;
+                        }
+                        touchStartRef.current = null;
+                        isDraggingRef.current = false;
+                    }}
+                    onTouchCancelCapture={() => {
+                        touchStartRef.current = null;
+                        isDraggingRef.current = false;
+                    }}
                 >
                     {displayGroups.map(([communityName, commProjects]) => {
                         // Sync: exact match for community header tours, OR any external tour running

@@ -9,7 +9,8 @@
 //   4. Idle-time component loading → pre-import lazy chunks
 // ═══════════════════════════════════════════════════════════════════════════════
 
-import { prefetchImages, prefetchComponent } from './performanceEngine';
+import { prefetchComponent } from './performanceEngine';
+import { getProjectThumbnailUrl } from './imageHelpers';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -116,26 +117,11 @@ export function preloadScreen(
             }).catch(() => { });
         }
 
-        // 2. Preload images associated with this screen
-        if (data) {
-            const imagesToPrefetch: string[] = [];
-
-            if (data.thumbnailUrl) imagesToPrefetch.push(data.thumbnailUrl);
-            if (data.images && Array.isArray(data.images)) {
-                imagesToPrefetch.push(...data.images.slice(0, 5));
-            }
-            if (data.developerLogo) imagesToPrefetch.push(data.developerLogo);
-
-            if (imagesToPrefetch.length > 0) {
-                prefetchImages(imagesToPrefetch);
-            }
-        }
-
-        // 3. Store in cache
+        // 2. Store in cache
         preloadCache.set(cacheKey, entry);
         pendingPreloads.delete(cacheKey);
 
-        // 4. Evict old entries if cache is full
+        // 3. Evict old entries if cache is full
         evictStaleEntries();
     };
 
@@ -266,7 +252,7 @@ export function preloadProjectScreen(project: {
     }
 
     preloadScreen('project', project.id, {
-        thumbnailUrl: project.thumbnailUrl,
+        thumbnailUrl: getProjectThumbnailUrl(project, 160, 160),
         images: project.images || [],
         developerLogo: project.developerLogo,
         name: project.name,
@@ -284,23 +270,15 @@ export function preloadVisibleProjects(projects: Array<{
     id: string;
     thumbnailUrl?: string;
     images?: string[];
+    optimizedGallery?: { thumb: string; large: string }[];
+    responsiveMedia?: { thumb: string; medium: string; large: string } | null;
 }>): void {
     const schedule = typeof requestIdleCallback !== 'undefined'
         ? requestIdleCallback
         : (cb: () => void) => setTimeout(cb, 200);
 
     schedule(() => {
-        // Preload thumbnails for visible projects
-        const urls = projects
-            .slice(0, 12)
-            .map(p => p.thumbnailUrl)
-            .filter(Boolean) as string[];
-
-        if (urls.length > 0) {
-            prefetchImages(urls);
-        }
-
-        // Pre-warm the ProjectSidebar component
+        // Pre-warm the ProjectSidebar component only.
         if (!loadedComponents.has('ProjectSidebar')) {
             prefetchComponent(
                 componentRegistry.ProjectSidebar,

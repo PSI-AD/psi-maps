@@ -1,67 +1,63 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import logoImage from '../assets/icon.png';
+import splashImage from '../assets/splash.png';
+import appPreviewImage from '../tmp/pdfs/rendered/psi-maps-app-summary-page-1.png';
 import {
-    PlayCircle, Sparkles, Compass, LayoutTemplate,
-    Calculator, FileText, Images, Database,
-    ArrowRight, MapPin, TrendingUp, Star, ChevronRight,
-    Building2, Zap, Globe, BarChart3, Shield, Users,
-    CheckCircle, Eye, Layers, Map as MapIcon,
+    ArrowRight,
+    Building2,
+    CheckCircle,
+    ChevronRight,
+    Compass,
+    Database,
+    LayoutTemplate,
+    Layers,
+    Map as MapIcon,
+    PlayCircle,
+    Search,
+    Sparkles,
+    Star,
+    TrendingUp,
+    Zap,
 } from 'lucide-react';
 
-/*
- * ═══════════════════════════════════════════════════════════════════════════
- *  PSI Maps Pro — Presentation Showcase
- *  Monday.com-inspired premium SaaS aesthetic
- * ═══════════════════════════════════════════════════════════════════════════
- */
-
-// ── Scroll-triggered animation hook ──────────────────────────────────────
 function useInView(options?: IntersectionObserverInit) {
     const ref = useRef<HTMLDivElement>(null);
     const [inView, setInView] = useState(false);
+
     useEffect(() => {
         if (!ref.current) return;
-        const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setInView(true); },
-            { threshold: 0.15, ...options });
-        obs.observe(ref.current);
-        return () => obs.disconnect();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) setInView(true);
+            },
+            { threshold: 0.15, ...options },
+        );
+
+        observer.observe(ref.current);
+        return () => observer.disconnect();
+    }, [options]);
+
     return { ref, inView };
 }
 
-// ── Animated counter ─────────────────────────────────────────────────────
-function AnimatedCounter({ target, suffix = '' }: { target: number; suffix?: string }) {
-    const [val, setVal] = useState(0);
-    const { ref, inView } = useInView();
-    useEffect(() => {
-        if (!inView) return;
-        let frame: number;
-        const start = performance.now();
-        const dur = 1800;
-        const step = (now: number) => {
-            const t = Math.min((now - start) / dur, 1);
-            const ease = 1 - Math.pow(1 - t, 4);
-            setVal(Math.round(ease * target));
-            if (t < 1) frame = requestAnimationFrame(step);
-        };
-        frame = requestAnimationFrame(step);
-        return () => cancelAnimationFrame(frame);
-    }, [inView, target]);
-    return <span ref={ref}>{val.toLocaleString()}{suffix}</span>;
-}
-
-// ── Section wrapper with scroll reveal ───────────────────────────────────
-function RevealSection({ children, className = '', delay = 0 }: {
-    children: React.ReactNode; className?: string; delay?: number;
+function RevealSection({
+    children,
+    className = '',
+    delay = 0,
+}: {
+    children: React.ReactNode;
+    className?: string;
+    delay?: number;
 }) {
     const { ref, inView } = useInView();
+
     return (
         <div
             ref={ref}
             className={`transition-all duration-700 ease-out ${className}`}
             style={{
                 opacity: inView ? 1 : 0,
-                transform: inView ? 'translateY(0)' : 'translateY(40px)',
+                transform: inView ? 'translateY(0)' : 'translateY(34px)',
                 transitionDelay: `${delay}ms`,
             }}
         >
@@ -70,665 +66,959 @@ function RevealSection({ children, className = '', delay = 0 }: {
     );
 }
 
-// ── Gradient badge ───────────────────────────────────────────────────────
-function Badge({ children, gradient }: { children: React.ReactNode; gradient: string }) {
+function AnimatedCounter({ target, suffix = '' }: { target: number; suffix?: string }) {
+    const [value, setValue] = useState(0);
+    const { ref, inView } = useInView();
+
+    useEffect(() => {
+        if (!inView) return;
+
+        let frame = 0;
+        const start = performance.now();
+        const duration = 1400;
+
+        const tick = (now: number) => {
+            const progress = Math.min((now - start) / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 4);
+            setValue(Math.round(target * eased));
+            if (progress < 1) frame = requestAnimationFrame(tick);
+        };
+
+        frame = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(frame);
+    }, [inView, target]);
+
     return (
-        <span className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[11px] font-black tracking-widest uppercase text-white bg-gradient-to-r ${gradient} shadow-lg`}>
-            {children}
+        <span ref={ref}>
+            {value}
+            {suffix}
         </span>
     );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// MAIN COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
-const PresentationShowcase: React.FC = () => {
-    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+function SectionHeader({
+    eyebrow,
+    title,
+    description,
+}: {
+    eyebrow: string;
+    title: string;
+    description: string;
+}) {
+    return (
+        <div className="max-w-3xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#12263a]/10 bg-white/70 px-4 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.28em] text-[#0f5c73] shadow-[0_20px_40px_-32px_rgba(6,19,29,0.7)]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#18c8c8]" />
+                {eyebrow}
+            </div>
+            <h2
+                className="mt-5 text-4xl font-black tracking-[-0.04em] text-[#06131d] sm:text-5xl"
+                style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+            >
+                {title}
+            </h2>
+            <p className="mt-4 text-lg leading-8 text-[#385061]">{description}</p>
+        </div>
+    );
+}
 
-    // Unlock scrolling: add 'is-presentation' class to body (overrides overflow:hidden from index.html)
+function BrandLogo({ kind }: { kind: 'react' | 'mapbox' | 'firebase' | 'tailwind' | 'typescript' | 'vite' | 'capacitor' | 'gemini' }) {
+    const shell =
+        'flex h-14 w-14 items-center justify-center rounded-[20px] border border-white/10 bg-[#091922] shadow-[0_30px_70px_-35px_rgba(6,19,29,0.9)]';
+
+    if (kind === 'react') {
+        return (
+            <div className={shell}>
+                <svg viewBox="0 0 64 64" className="h-9 w-9">
+                    <circle cx="32" cy="32" r="5" fill="#61dafb" />
+                    <ellipse cx="32" cy="32" rx="22" ry="9" fill="none" stroke="#61dafb" strokeWidth="3" />
+                    <ellipse cx="32" cy="32" rx="22" ry="9" fill="none" stroke="#61dafb" strokeWidth="3" transform="rotate(60 32 32)" />
+                    <ellipse cx="32" cy="32" rx="22" ry="9" fill="none" stroke="#61dafb" strokeWidth="3" transform="rotate(120 32 32)" />
+                </svg>
+            </div>
+        );
+    }
+
+    if (kind === 'mapbox') {
+        return (
+            <div className={shell}>
+                <svg viewBox="0 0 64 64" className="h-9 w-9">
+                    <circle cx="32" cy="32" r="23" fill="#ffffff" />
+                    <circle cx="32" cy="32" r="10" fill="#091922" />
+                    <path d="M32 13 36 24 47 32 36 40 32 51 28 40 17 32 28 24Z" fill="#091922" />
+                </svg>
+            </div>
+        );
+    }
+
+    if (kind === 'firebase') {
+        return (
+            <div className={shell}>
+                <svg viewBox="0 0 64 64" className="h-9 w-9">
+                    <path d="M18 45.5 28 15l8 10.5-18 20Z" fill="#ffca28" />
+                    <path d="M23 49 44 19l2 19.5L23 49Z" fill="#ffa000" />
+                    <path d="M19 45.5 46 38.5 33.5 56Z" fill="#f57c00" />
+                </svg>
+            </div>
+        );
+    }
+
+    if (kind === 'tailwind') {
+        return (
+            <div className={shell}>
+                <svg viewBox="0 0 64 64" className="h-9 w-9">
+                    <path d="M18 25c3.2-6.8 8.4-10 15.5-10 10.5 0 11.9 7.8 17.2 8.8 3 .6 5.6-.6 8.3-3.8-3.1 6.8-8.3 10-15.5 10-10.5 0-11.9-7.8-17.2-8.8-3-.6-5.6.6-8.3 3.8Z" fill="#38bdf8" />
+                    <path d="M6 39c3.1-6.8 8.3-10 15.4-10 10.5 0 11.9 7.8 17.2 8.8 3 .6 5.6-.6 8.4-3.8-3.2 6.8-8.4 10-15.5 10-10.5 0-11.9-7.8-17.2-8.8-3-.6-5.6.6-8.3 3.8Z" fill="#38bdf8" />
+                </svg>
+            </div>
+        );
+    }
+
+    if (kind === 'typescript') {
+        return (
+            <div className={shell}>
+                <svg viewBox="0 0 64 64" className="h-9 w-9">
+                    <rect x="10" y="10" width="44" height="44" rx="10" fill="#3178c6" />
+                    <path d="M21 24h21v6h-7.5v22h-6V30H21z" fill="#fff" />
+                    <path d="M43.5 34.5c1.7 0 3.3.3 4.8 1.1v5c-1.6-1-3-1.5-4.7-1.5-1.5 0-2.4.4-2.4 1.3 0 .8.7 1.1 3 1.9 3.7 1.2 5.3 2.7 5.3 5.8 0 4-3.2 6.3-8 6.3-2.3 0-4.8-.5-6.6-1.6V48c1.8 1.2 3.8 1.8 6 1.8 1.7 0 2.6-.5 2.6-1.5 0-1-.8-1.3-3.2-2.1-3.4-1.1-5-2.6-5-5.5 0-3.8 3.1-6.2 8.2-6.2Z" fill="#fff" />
+                </svg>
+            </div>
+        );
+    }
+
+    if (kind === 'vite') {
+        return (
+            <div className={shell}>
+                <svg viewBox="0 0 64 64" className="h-9 w-9">
+                    <defs>
+                        <linearGradient id="vite-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="#41d1ff" />
+                            <stop offset="100%" stopColor="#bd34fe" />
+                        </linearGradient>
+                    </defs>
+                    <path d="M33 8 15 13l13 39a4 4 0 0 0 7.4.2L49 13 33 8Z" fill="url(#vite-gradient)" />
+                    <path d="m43 18-11 22.5-6-13 17-9.5Z" fill="#ffd62e" />
+                </svg>
+            </div>
+        );
+    }
+
+    if (kind === 'capacitor') {
+        return (
+            <div className={shell}>
+                <svg viewBox="0 0 64 64" className="h-9 w-9">
+                    <circle cx="32" cy="32" r="20" fill="none" stroke="#53b9ff" strokeWidth="4" />
+                    <circle cx="19" cy="32" r="4.5" fill="#53b9ff" />
+                    <circle cx="45" cy="32" r="4.5" fill="#53b9ff" />
+                    <path d="M24 22c2.8-2.4 5.9-3.6 9.3-3.6s6.5 1.2 9.3 3.6" fill="none" stroke="#53b9ff" strokeLinecap="round" strokeWidth="4" />
+                    <path d="M24 42c2.8 2.4 5.9 3.6 9.3 3.6s6.5-1.2 9.3-3.6" fill="none" stroke="#53b9ff" strokeLinecap="round" strokeWidth="4" />
+                </svg>
+            </div>
+        );
+    }
+
+    return (
+        <div className={shell}>
+            <svg viewBox="0 0 64 64" className="h-9 w-9">
+                <path d="M33 9c7.4 0 11.2 4.2 11.2 9.1 0 4-2.4 6.8-5.8 8.1 4.7.8 8.3 4.5 8.3 10 0 7.7-5.7 13.8-16 13.8S14 44.1 14 36.7c0-5.3 3.2-9.1 7.7-10.3-3.2-1.3-5.3-4-5.3-7.8C16.4 13.4 22.2 9 33 9Zm-2 25.1c-4.7 0-7.4 2-7.4 5.1 0 3.2 2.7 5.4 7.3 5.4 4.9 0 7.7-2 7.7-5.3 0-3.2-2.7-5.2-7.6-5.2Zm1.2-18.2c-4 0-6.5 1.8-6.5 4.6s2.4 4.5 6.6 4.5c4.2 0 6.5-1.8 6.5-4.5 0-2.8-2.3-4.6-6.6-4.6Z" fill="#8df5d6" />
+            </svg>
+        </div>
+    );
+}
+
+const techStack = [
+    {
+        name: 'React',
+        version: '18.3.1',
+        kind: 'react' as const,
+        description: 'Component runtime for the interactive UI, lazy-loaded experiences, and polished motion.',
+        tint: 'from-[#06131d] via-[#0b2d3d] to-[#11465d]',
+    },
+    {
+        name: 'Mapbox GL JS',
+        version: '3.2.0',
+        kind: 'mapbox' as const,
+        description: 'The 3D map engine powering cinematic flyovers, styles, markers, overlays, and terrain-rich scenes.',
+        tint: 'from-[#05131c] via-[#12263a] to-[#203a4b]',
+    },
+    {
+        name: 'Firebase',
+        version: '12.9.0',
+        kind: 'firebase' as const,
+        description: 'Firestore, Hosting, Analytics, Functions, and real-time sync for the operating backbone.',
+        tint: 'from-[#241600] via-[#4a2500] to-[#7a3300]',
+    },
+    {
+        name: 'Google Gemini',
+        version: '@google/genai',
+        kind: 'gemini' as const,
+        description: 'Context-aware property guidance, investment storytelling, and guided discovery inside the map.',
+        tint: 'from-[#0a1820] via-[#0d3532] to-[#14605b]',
+    },
+    {
+        name: 'Tailwind CSS',
+        version: '3.4.1',
+        kind: 'tailwind' as const,
+        description: 'The design layer used to build premium layouts, glass surfaces, and fast visual iteration.',
+        tint: 'from-[#06131d] via-[#083b49] to-[#0b7285]',
+    },
+    {
+        name: 'TypeScript',
+        version: '5.8.2',
+        kind: 'typescript' as const,
+        description: 'Typed contracts for projects, landmarks, presentation flows, utilities, and admin operations.',
+        tint: 'from-[#05111d] via-[#0c2842] to-[#154980]',
+    },
+    {
+        name: 'Vite',
+        version: '6.2.0',
+        kind: 'vite' as const,
+        description: 'Fast bundling and code-splitting so heavy map features still feel immediate in the browser.',
+        tint: 'from-[#0f1026] via-[#24124c] to-[#3f1c76]',
+    },
+    {
+        name: 'Capacitor',
+        version: '8.x',
+        kind: 'capacitor' as const,
+        description: 'One codebase delivered to web, PWA, iOS, and Android with native-grade behavior and packaging.',
+        tint: 'from-[#07111c] via-[#0c3150] to-[#0f5f99]',
+    },
+];
+
+const toolChips = [
+    'Mapbox GL Draw',
+    'Turf.js',
+    '@react-pdf/renderer',
+    'use-supercluster',
+    'Swiper',
+    'Axios',
+    'EmailJS',
+    'Firebase Functions',
+];
+
+const workflowSteps = [
+    {
+        step: '01',
+        title: 'Open the territory',
+        description: 'Start with a cinematic live map, then frame the right city, community, landmark cluster, or curated tour.',
+        icon: MapIcon,
+        accent: 'from-[#18c8c8] to-[#0f8ab3]',
+    },
+    {
+        step: '02',
+        title: 'Expose spatial advantage',
+        description: 'Switch styles, lift into 3D, orbit assets, compare overlays, and reveal why one location commands a premium.',
+        icon: Compass,
+        accent: 'from-[#0f8ab3] to-[#1c6dd0]',
+    },
+    {
+        step: '03',
+        title: 'Translate into value',
+        description: 'Move from imagery into ROI stories, nearby intelligence, rent-vs-buy logic, and investor-ready explanations.',
+        icon: TrendingUp,
+        accent: 'from-[#f7b34d] to-[#ef7d2a]',
+    },
+    {
+        step: '04',
+        title: 'Package the decision',
+        description: 'Turn exploration into branded brochures, saved client presentations, and polished talking points for sales teams.',
+        icon: LayoutTemplate,
+        accent: 'from-[#ef7d2a] to-[#d64b39]',
+    },
+];
+
+const featureGroups = [
+    {
+        eyebrow: 'Map Command Center',
+        title: 'Spatial Navigation And Live Map Control',
+        icon: Compass,
+        accent: 'from-[#06131d] to-[#12415b]',
+        bullets: [
+            '3D buildings, cinematic pitch, orbit, reset north, and precision fly-to camera moves.',
+            'Street, light, outdoors, and satellite map styles with instant switching.',
+            'Lasso selection, polygon drawing, crosshair focus, zoom controls, and map PNG export.',
+            'Community boundary overlays, landmark pins, clustered projects, and route layers.',
+            'ROI heatmap overlays, timeline controls, and the historical Time Machine mode.',
+            'Sunlight simulation, heatmap logic, and isochrone-ready analysis hooks already wired in.',
+        ],
+    },
+    {
+        eyebrow: 'Property Intelligence',
+        title: 'From Beautiful Listing To Full Investment Narrative',
+        icon: Building2,
+        accent: 'from-[#12415b] to-[#18c8c8]',
+        bullets: [
+            'Rich project sidebar with gallery, lightbox, progress ring, and slideshow controls.',
+            'Price ranges, bedrooms, bathrooms, areas, completion, status, and developer context.',
+            'Construction timeline, monthly snapshots, view simulation, and before/after comparison.',
+            'Rent-vs-buy calculator, investment story panels, walkability, noise, and traffic signals.',
+            'Floor plan requests, inquiry flows, downloadable reports, and lead capture touchpoints.',
+            'Favorites, shortlisting, comparison-ready review flows, and shareable pitch content.',
+        ],
+    },
+    {
+        eyebrow: 'Nearby Intelligence',
+        title: 'Neighborhood Context That Makes The Map Persuasive',
+        icon: Search,
+        accent: 'from-[#08394c] to-[#0f8ab3]',
+        bullets: [
+            'Nearby schools, hospitals, retail, culture, hotels, leisure, airports, and ports.',
+            'Drive-time, walk-time, and straight-distance context surfaced around any project or landmark.',
+            'Reverse search from landmarks back to nearby projects within the chosen radius.',
+            'Landmark fact cards, image galleries, and brand-aware context for destination storytelling.',
+            'Street View, route planning, and AR-ready moments for deeper location immersion.',
+            'A premium way to prove lifestyle value, not just show a pin on a map.',
+        ],
+    },
+    {
+        eyebrow: 'AI And Presentation',
+        title: 'Smart Guidance For Sales Teams And Investor Demos',
+        icon: Sparkles,
+        accent: 'from-[#0d3532] to-[#18a975]',
+        bullets: [
+            'AI chat assistant tuned to the active project, landmark, community, or developer context.',
+            'Guided prompts that launch tours, apply filters, open nearby searches, and frame decisions.',
+            'Saved presentation playlists backed by Firestore with configurable property intervals.',
+            'Standalone `/presentation` mode for clean, client-facing storytelling outside the core app.',
+            'One-click PDF brochures with branded layouts and map-aware content.',
+            'Exactly the layer that turns a product demo into a boardroom-grade presentation.',
+        ],
+    },
+    {
+        eyebrow: 'Operations And Growth',
+        title: 'Admin, CMS, Performance, And Mobile Delivery',
+        icon: Database,
+        accent: 'from-[#3c1d0a] to-[#b86822]',
+        bullets: [
+            'Admin dashboard with CRUD for projects, landmarks, developers, communities, and cities.',
+            'Visibility toggles, banner controls, camera timing, footer theme settings, and coordinate review.',
+            'Predictive preloading, smart caching, recent-view restore, and resilient networking services.',
+            'PWA install prompts, offline overlays, push notifications, deep links, and app shortcuts.',
+            'Native-feel gestures, haptics, safe areas, and navigation stacks for mobile use.',
+            'Capacitor wrappers for iOS and Android so the experience travels beyond the browser.',
+        ],
+    },
+];
+
+const proofPoints = [
+    {
+        icon: Layers,
+        title: '52 UI Components',
+        body: 'A broad component system tailored to mapping, sales storytelling, admin operations, and investor workflows.',
+    },
+    {
+        icon: Database,
+        title: '24 Utility Services',
+        body: 'Caching, analytics, networking, image optimization, persistence, Firebase, valuation, and more.',
+    },
+    {
+        icon: Zap,
+        title: '7 Core Hooks',
+        body: 'Device capabilities, gestures, favorites, map state, navigation, and project data keep the app responsive.',
+    },
+    {
+        icon: Sparkles,
+        title: '10 Data Scripts',
+        body: 'Audit, enrichment, seeding, scraping, image optimization, and operational maintenance already built in.',
+    },
+];
+
+const visualGallery = [
+    {
+        title: 'Product overview',
+        caption: 'A real exported PSI Maps overview visual, used here as a dependable high-resolution product shot.',
+        image: appPreviewImage,
+    },
+    {
+        title: 'Brand icon system',
+        caption: 'The product identity asset, bundled directly with the app so it renders consistently in presentation mode.',
+        image: logoImage,
+    },
+    {
+        title: 'Mobile app visual',
+        caption: 'Native-ready PSI Maps branding artwork that reinforces the multi-platform delivery story.',
+        image: splashImage,
+    },
+];
+
+const finalOutcomes = [
+    'Investor-grade storytelling with map, context, and value in one flow.',
+    'Sales presentation mode that feels premium enough for launches and client meetings.',
+    'Operational depth strong enough for admins, analysts, and marketing teams.',
+];
+
+const PresentationShowcase: React.FC = () => {
+    const [tilt, setTilt] = useState({ x: 0, y: 0 });
+
     useEffect(() => {
         document.body.classList.add('is-presentation');
-        return () => { document.body.classList.remove('is-presentation'); };
-    }, []);
-
-    const handleMouseMove = useCallback((e: React.MouseEvent) => {
-        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-        setMousePos({
-            x: ((e.clientX - rect.left) / rect.width - 0.5) * 20,
-            y: ((e.clientY - rect.top) / rect.height - 0.5) * 20,
-        });
+        window.scrollTo({ top: 0, behavior: 'auto' });
+        return () => document.body.classList.remove('is-presentation');
     }, []);
 
     return (
-        <div className="min-h-screen bg-slate-50 overflow-hidden" style={{ fontFamily: "'Inter', 'system-ui', sans-serif" }}>
-            {/* Google Fonts */}
-            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+        <div className="min-h-screen overflow-hidden bg-[#f4efe7] text-[#06131d]" style={{ fontFamily: "'Manrope', sans-serif" }}>
+            <link rel="preconnect" href="https://fonts.googleapis.com" />
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+            <link
+                href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap"
+                rel="stylesheet"
+            />
+            <style>{`
+                @keyframes psi-grid-pan {
+                    from { background-position: 0 0; }
+                    to { background-position: 140px 140px; }
+                }
+                @keyframes psi-float {
+                    0%, 100% { transform: translateY(0px); }
+                    50% { transform: translateY(-10px); }
+                }
+                @keyframes psi-float-slow {
+                    0%, 100% { transform: translate3d(0, 0, 0); }
+                    50% { transform: translate3d(0, -14px, 0); }
+                }
+                @keyframes psi-pulse-ring {
+                    0% { transform: scale(0.85); opacity: 0.9; }
+                    100% { transform: scale(1.7); opacity: 0; }
+                }
+                @keyframes psi-drift {
+                    0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+                    50% { transform: translate3d(16px, -18px, 0) rotate(8deg); }
+                }
+                .psi-grid {
+                    background-image:
+                        linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px);
+                    background-size: 42px 42px;
+                    animation: psi-grid-pan 18s linear infinite;
+                }
+                .psi-float { animation: psi-float 6s ease-in-out infinite; }
+                .psi-float-slow { animation: psi-float-slow 9s ease-in-out infinite; }
+                .psi-drift { animation: psi-drift 11s ease-in-out infinite; }
+                .psi-ring::after {
+                    content: '';
+                    position: absolute;
+                    inset: -6px;
+                    border-radius: 999px;
+                    border: 1px solid rgba(24, 200, 200, 0.38);
+                    animation: psi-pulse-ring 2s ease-out infinite;
+                }
+            `}</style>
 
-            {/* ═══════════════════════════════════════════════════════════════ */}
-            {/* 1. HERO SECTION */}
-            {/* ═══════════════════════════════════════════════════════════════ */}
-            <section className="relative min-h-[100vh] flex items-center justify-center px-6 overflow-hidden" onMouseMove={handleMouseMove}>
-                {/* Background blobs */}
-                <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                    <div className="absolute -top-32 -left-32 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-indigo-200/40 to-violet-200/30 blur-3xl" />
-                    <div className="absolute top-1/3 -right-40 w-[500px] h-[500px] rounded-full bg-gradient-to-br from-rose-200/30 to-amber-200/20 blur-3xl" />
-                    <div className="absolute bottom-0 left-1/3 w-[700px] h-[400px] rounded-full bg-gradient-to-br from-emerald-100/30 to-teal-100/20 blur-3xl" />
-                    {/* Grid pattern */}
-                    <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle, #6366f1 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
-                </div>
+            <section className="relative overflow-hidden bg-[#06131d] px-6 pb-24 pt-7 text-white">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(24,200,200,0.18),transparent_32%),radial-gradient(circle_at_85%_20%,rgba(247,179,77,0.18),transparent_25%),linear-gradient(135deg,#06131d_0%,#0b2231_52%,#102b3a_100%)]" />
+                <div className="absolute left-[-14rem] top-12 h-[26rem] w-[26rem] rounded-full bg-[#18c8c8]/12 blur-3xl" />
+                <div className="absolute right-[-8rem] top-40 h-[24rem] w-[24rem] rounded-full bg-[#ef7d2a]/14 blur-3xl" />
 
-                <div className="relative z-10 max-w-7xl mx-auto w-full flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
-                    {/* Text */}
-                    <RevealSection className="flex-1 text-center lg:text-left">
-                        <Badge gradient="from-indigo-600 to-violet-600">
-                            <Zap className="w-3 h-3" /> Next-Gen PropTech
-                        </Badge>
-
-                        <h1 className="mt-6 text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.05]">
-                            <span className="bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-900 bg-clip-text text-transparent">
-                                Real Estate
-                            </span>
-                            <br />
-                            <span className="bg-gradient-to-r from-indigo-600 via-violet-500 to-purple-600 bg-clip-text text-transparent">
-                                Intelligence,
-                            </span>
-                            <br />
-                            <span className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700 bg-clip-text text-transparent">
-                                Visualized.
-                            </span>
-                        </h1>
-
-                        <p className="mt-6 text-lg sm:text-xl text-slate-500 max-w-lg leading-relaxed font-medium">
-                            The most advanced interactive property map platform.
-                            Cinematic tours, AI-powered guidance, and real-time market intelligence — all in one place.
-                        </p>
-
-                        <div className="mt-8 flex flex-wrap gap-4 justify-center lg:justify-start">
-                            <button className="px-7 py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold rounded-2xl shadow-xl shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:scale-105 transition-all duration-300 flex items-center gap-2 text-sm">
-                                Launch PSI Maps <ArrowRight className="w-4 h-4" />
-                            </button>
-                            <button className="px-7 py-3.5 bg-white text-slate-700 font-bold rounded-2xl shadow-lg border border-slate-200 hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center gap-2 text-sm">
-                                <PlayCircle className="w-4 h-4 text-indigo-500" /> Watch Demo
-                            </button>
+                <div className="relative mx-auto max-w-7xl">
+                    <div className="flex flex-wrap items-center justify-between gap-6 rounded-full border border-white/10 bg-white/5 px-5 py-4 backdrop-blur-xl">
+                        <div className="flex items-center gap-4">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/12">
+                                <img src={logoImage} alt="PSI Maps Pro" className="h-9 w-9 object-contain" />
+                            </div>
+                            <div>
+                                <div className="text-[11px] font-extrabold uppercase tracking-[0.34em] text-[#8ed7d9]">PSI Maps Pro</div>
+                                <div className="text-sm font-semibold text-white/70">Spatial intelligence for real estate presentations</div>
+                            </div>
                         </div>
-
-                        {/* Trust indicators */}
-                        <div className="mt-10 flex gap-8 justify-center lg:justify-start text-sm text-slate-400">
-                            <div className="flex items-center gap-1.5"><CheckCircle className="w-4 h-4 text-emerald-500" /> <span className="font-bold text-slate-600"><AnimatedCounter target={2400} suffix="+" /></span> Properties</div>
-                            <div className="flex items-center gap-1.5"><Globe className="w-4 h-4 text-indigo-500" /> <span className="font-bold text-slate-600"><AnimatedCounter target={7} /></span> Emirates</div>
-                            <div className="flex items-center gap-1.5"><Users className="w-4 h-4 text-violet-500" /> <span className="font-bold text-slate-600"><AnimatedCounter target={85} /></span> Developers</div>
+                        <div className="flex flex-wrap items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.22em] text-white/60">
+                            <a href="#workflow" className="rounded-full px-3 py-2 transition hover:bg-white/8 hover:text-white">Flow</a>
+                            <a href="#technology" className="rounded-full px-3 py-2 transition hover:bg-white/8 hover:text-white">Technology</a>
+                            <a href="#feature-atlas" className="rounded-full px-3 py-2 transition hover:bg-white/8 hover:text-white">Features</a>
                         </div>
-                    </RevealSection>
+                    </div>
 
-                    {/* Floating mock UI card */}
-                    <RevealSection className="flex-1 max-w-lg w-full" delay={200}>
-                        <div
-                            className="relative"
-                            style={{
-                                transform: `perspective(1000px) rotateY(${mousePos.x * 0.3}deg) rotateX(${-mousePos.y * 0.3}deg)`,
-                                transition: 'transform 0.1s ease-out',
-                            }}
-                        >
-                            {/* Main card */}
-                            <div className="bg-white rounded-3xl shadow-2xl shadow-indigo-500/10 border border-slate-200/60 p-6 relative overflow-hidden">
-                                {/* Fake map */}
-                                <div className="h-52 rounded-2xl bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900 relative overflow-hidden">
-                                    <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle, rgba(99,102,241,0.4) 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
-                                    {/* Fake pins */}
-                                    <div className="absolute top-8 left-12 flex items-center gap-1 bg-indigo-500 text-white text-[9px] font-bold px-2 py-1 rounded-full shadow-lg animate-bounce" style={{ animationDuration: '3s' }}>
-                                        <MapPin className="w-2.5 h-2.5" /> Saadiyat
+                    <div className="mt-16 grid items-center gap-14 lg:grid-cols-[1.02fr_0.98fr]">
+                        <RevealSection>
+                            <div className="inline-flex items-center gap-2 rounded-full border border-[#18c8c8]/30 bg-[#18c8c8]/10 px-4 py-2 text-[11px] font-extrabold uppercase tracking-[0.28em] text-[#9ef2f2]">
+                                <Sparkles className="h-3.5 w-3.5" />
+                                World-Class Presentation Layer
+                            </div>
+
+                            <h1
+                                className="mt-7 max-w-3xl text-5xl font-black leading-[0.95] tracking-[-0.06em] sm:text-6xl xl:text-7xl"
+                                style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+                            >
+                                Present the map like the{' '}
+                                <span className="bg-[linear-gradient(110deg,#d2fff6_0%,#71e8f1_45%,#f7b34d_100%)] bg-clip-text text-transparent">
+                                    flagship product
+                                </span>{' '}
+                                it already is.
+                            </h1>
+
+                            <p className="mt-7 max-w-2xl text-lg leading-8 text-white/74 sm:text-xl">
+                                This page turns PSI Maps Pro into a premium sales-stage experience: the live map, the intelligence layer,
+                                the presentation system, the technology stack, and the full feature set all framed with stronger visuals and
+                                a more convincing story.
+                            </p>
+
+                            <div className="mt-9 flex flex-wrap gap-3">
+                                <a
+                                    href="#feature-atlas"
+                                    className="inline-flex items-center gap-2 rounded-full bg-[#f7b34d] px-6 py-3.5 text-sm font-extrabold uppercase tracking-[0.22em] text-[#06131d] shadow-[0_30px_70px_-30px_rgba(247,179,77,0.7)] transition hover:-translate-y-0.5"
+                                >
+                                    Explore the feature atlas
+                                    <ArrowRight className="h-4 w-4" />
+                                </a>
+                                <a
+                                    href="#technology"
+                                    className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/6 px-6 py-3.5 text-sm font-extrabold uppercase tracking-[0.22em] text-white/85 transition hover:border-white/20 hover:bg-white/10"
+                                >
+                                    View the software stack
+                                    <ChevronRight className="h-4 w-4" />
+                                </a>
+                            </div>
+
+                            <div className="mt-10 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                                <div className="rounded-[28px] border border-white/10 bg-white/7 p-5 backdrop-blur-xl">
+                                    <div className="text-[11px] font-extrabold uppercase tracking-[0.24em] text-white/52">Components</div>
+                                    <div className="mt-3 text-4xl font-black tracking-[-0.05em]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                                        <AnimatedCounter target={52} suffix="+" />
                                     </div>
-                                    <div className="absolute top-16 right-16 flex items-center gap-1 bg-emerald-500 text-white text-[9px] font-bold px-2 py-1 rounded-full shadow-lg animate-bounce" style={{ animationDuration: '3.5s', animationDelay: '0.5s' }}>
-                                        <MapPin className="w-2.5 h-2.5" /> Yas Island
-                                    </div>
-                                    <div className="absolute bottom-12 left-1/3 flex items-center gap-1 bg-rose-500 text-white text-[9px] font-bold px-2 py-1 rounded-full shadow-lg animate-bounce" style={{ animationDuration: '4s', animationDelay: '1s' }}>
-                                        <MapPin className="w-2.5 h-2.5" /> Al Reem
-                                    </div>
-                                    {/* Tour indicator */}
-                                    <div className="absolute bottom-3 left-3 bg-black/50 backdrop-blur-lg text-white text-[10px] font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5">
-                                        <PlayCircle className="w-3.5 h-3.5 text-indigo-400" /> Cinematic Tour Active
-                                    </div>
+                                    <div className="mt-2 text-sm text-white/62">specialized UI modules</div>
                                 </div>
+                                <div className="rounded-[28px] border border-white/10 bg-white/7 p-5 backdrop-blur-xl">
+                                    <div className="text-[11px] font-extrabold uppercase tracking-[0.24em] text-white/52">Services</div>
+                                    <div className="mt-3 text-4xl font-black tracking-[-0.05em]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                                        <AnimatedCounter target={24} suffix="+" />
+                                    </div>
+                                    <div className="mt-2 text-sm text-white/62">utility engines behind the scenes</div>
+                                </div>
+                                <div className="rounded-[28px] border border-white/10 bg-white/7 p-5 backdrop-blur-xl">
+                                    <div className="text-[11px] font-extrabold uppercase tracking-[0.24em] text-white/52">Hooks</div>
+                                    <div className="mt-3 text-4xl font-black tracking-[-0.05em]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                                        <AnimatedCounter target={7} />
+                                    </div>
+                                    <div className="mt-2 text-sm text-white/62">core interaction and state layers</div>
+                                </div>
+                                <div className="rounded-[28px] border border-white/10 bg-white/7 p-5 backdrop-blur-xl">
+                                    <div className="text-[11px] font-extrabold uppercase tracking-[0.24em] text-white/52">Automation</div>
+                                    <div className="mt-3 text-4xl font-black tracking-[-0.05em]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                                        <AnimatedCounter target={10} />
+                                    </div>
+                                    <div className="mt-2 text-sm text-white/62">scripts for audits, seeding, and ops</div>
+                                </div>
+                            </div>
+                        </RevealSection>
 
-                                {/* Fake property cards */}
-                                <div className="mt-4 grid grid-cols-2 gap-3">
-                                    {[
-                                        { name: 'Bloom Living', dev: 'Aldar', price: 'AED 1.2M', color: 'from-indigo-500 to-violet-500' },
-                                        { name: 'Yas Bay', dev: 'Miral', price: 'AED 2.8M', color: 'from-emerald-500 to-teal-500' },
-                                    ].map((p, i) => (
-                                        <div key={i} className="bg-slate-50 rounded-2xl p-3 border border-slate-100">
-                                            <div className={`h-16 rounded-xl bg-gradient-to-br ${p.color} opacity-80`} />
-                                            <p className="mt-2 text-[11px] font-black text-slate-800 truncate">{p.name}</p>
-                                            <p className="text-[9px] text-slate-400 font-bold">{p.dev}</p>
-                                            <p className="mt-1 text-[11px] font-black text-indigo-600">{p.price}</p>
+                        <RevealSection delay={150} className="relative">
+                            <div
+                                className="relative rounded-[36px] border border-white/10 bg-white/6 p-4 shadow-[0_70px_140px_-70px_rgba(0,0,0,0.8)] backdrop-blur-2xl"
+                                onMouseMove={(event) => {
+                                    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+                                    const x = ((event.clientX - rect.left) / rect.width - 0.5) * 16;
+                                    const y = ((event.clientY - rect.top) / rect.height - 0.5) * 16;
+                                    setTilt({ x, y });
+                                }}
+                                onMouseLeave={() => setTilt({ x: 0, y: 0 })}
+                                style={{
+                                    transform: `perspective(1200px) rotateY(${tilt.x * 0.45}deg) rotateX(${-tilt.y * 0.45}deg)`,
+                                }}
+                            >
+                                <div className="relative overflow-hidden rounded-[30px] border border-white/8 bg-[#071622]">
+                                    <div className="absolute inset-0 psi-grid opacity-35" />
+                                    <div className="absolute left-8 top-6 h-28 w-28 rounded-full bg-[#18c8c8]/22 blur-3xl" />
+                                    <div className="absolute right-4 top-16 h-32 w-32 rounded-full bg-[#ef7d2a]/20 blur-3xl" />
+                                    <div className="absolute bottom-2 left-1/2 h-40 w-40 -translate-x-1/2 rounded-full bg-[#2b68ff]/14 blur-3xl" />
+
+                                    <div className="relative z-10 border-b border-white/8 px-6 py-5">
+                                        <div className="flex items-center justify-between gap-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10">
+                                                    <MapIcon className="h-5 w-5 text-[#9ef2f2]" />
+                                                </div>
+                                                <div>
+                                                    <div className="text-[11px] font-extrabold uppercase tracking-[0.28em] text-[#8ed7d9]">Live Map Stage</div>
+                                                    <div className="mt-1 text-lg font-extrabold text-white">Cinematic intelligence canvas</div>
+                                                </div>
+                                            </div>
+                                            <div className="rounded-full border border-[#18c8c8]/24 bg-[#18c8c8]/10 px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.24em] text-[#9ef2f2]">
+                                                Real-time + presentation ready
+                                            </div>
                                         </div>
-                                    ))}
+                                    </div>
+
+                                    <div className="relative h-[32rem] overflow-hidden p-6">
+                                        <svg className="absolute inset-0 h-full w-full opacity-90" viewBox="0 0 620 520" fill="none">
+                                            <path
+                                                d="M76 368C130 328 159 260 238 236c60-18 89 24 137 24 59 0 93-60 157-94"
+                                                stroke="rgba(255,255,255,0.26)"
+                                                strokeWidth="2"
+                                                strokeDasharray="8 10"
+                                            />
+                                            <path
+                                                d="M78 365C143 327 178 294 244 262c59-28 101 6 148 4 51-2 84-46 140-87"
+                                                stroke="url(#route-glow)"
+                                                strokeWidth="5"
+                                                strokeLinecap="round"
+                                            />
+                                            <defs>
+                                                <linearGradient id="route-glow" x1="78" y1="365" x2="532" y2="179" gradientUnits="userSpaceOnUse">
+                                                    <stop stopColor="#18c8c8" />
+                                                    <stop offset="0.55" stopColor="#88e2ff" />
+                                                    <stop offset="1" stopColor="#f7b34d" />
+                                                </linearGradient>
+                                            </defs>
+                                        </svg>
+
+                                        <div className="absolute left-6 top-6 space-y-3">
+                                            <div className="rounded-2xl border border-white/10 bg-[#081520]/80 p-3 shadow-[0_24px_60px_-34px_rgba(0,0,0,0.7)] backdrop-blur-xl">
+                                                <div className="text-[10px] font-extrabold uppercase tracking-[0.24em] text-white/48">Command Center</div>
+                                                <div className="mt-3 space-y-2">
+                                                    {[
+                                                        { label: '3D', icon: Building2, active: true },
+                                                        { label: 'Orbit', icon: PlayCircle, active: true },
+                                                        { label: 'ROI', icon: TrendingUp, active: false },
+                                                        { label: 'Lasso', icon: Layers, active: false },
+                                                    ].map((item) => (
+                                                        <div
+                                                            key={item.label}
+                                                            className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-xs font-bold ${item.active ? 'bg-white/10 text-white' : 'bg-white/5 text-white/60'}`}
+                                                        >
+                                                            <item.icon className={`h-4 w-4 ${item.active ? 'text-[#9ef2f2]' : 'text-white/45'}`} />
+                                                            {item.label}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="absolute right-7 top-7 rounded-[26px] border border-white/10 bg-[#0d2030]/80 px-4 py-3 shadow-[0_28px_60px_-34px_rgba(0,0,0,0.75)] backdrop-blur-xl psi-float">
+                                            <div className="text-[10px] font-extrabold uppercase tracking-[0.24em] text-white/48">Live Metrics</div>
+                                            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                                                {[
+                                                    { label: 'ROI lift', value: '+12.4%' },
+                                                    { label: 'Cultural radius', value: '<500m' },
+                                                    { label: 'Walk score', value: '9.1/10' },
+                                                ].map((item) => (
+                                                    <div key={item.label} className="rounded-2xl border border-white/8 bg-white/5 px-3 py-3">
+                                                        <div className="text-[10px] font-extrabold uppercase tracking-[0.22em] text-white/45">{item.label}</div>
+                                                        <div className="mt-1 text-lg font-black text-white">{item.value}</div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="absolute left-[18%] top-[36%]">
+                                            <div className="relative psi-ring flex h-5 w-5 items-center justify-center rounded-full bg-[#18c8c8]">
+                                                <div className="h-2.5 w-2.5 rounded-full bg-white" />
+                                            </div>
+                                            <div className="mt-3 rounded-full bg-white px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#073042] shadow-[0_24px_60px_-34px_rgba(0,0,0,0.7)]">
+                                                Saadiyat Cultural District
+                                            </div>
+                                        </div>
+
+                                        <div className="absolute left-[44%] top-[47%] psi-float-slow">
+                                            <div className="relative psi-ring flex h-5 w-5 items-center justify-center rounded-full bg-[#ffd76d]">
+                                                <div className="h-2.5 w-2.5 rounded-full bg-[#06131d]" />
+                                            </div>
+                                            <div className="mt-3 rounded-full bg-[#f7b34d] px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#06131d] shadow-[0_24px_60px_-34px_rgba(0,0,0,0.7)]">
+                                                Investment hotspot
+                                            </div>
+                                        </div>
+
+                                        <div className="absolute right-[16%] top-[28%]">
+                                            <div className="relative psi-ring flex h-5 w-5 items-center justify-center rounded-full bg-[#93b8ff]">
+                                                <div className="h-2.5 w-2.5 rounded-full bg-white" />
+                                            </div>
+                                            <div className="mt-3 rounded-full bg-white px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#17334a] shadow-[0_24px_60px_-34px_rgba(0,0,0,0.7)]">
+                                                Yas & leisure corridor
+                                            </div>
+                                        </div>
+
+                                        <div className="absolute bottom-8 left-7 max-w-[23rem] rounded-[30px] border border-white/10 bg-[#081520]/84 p-5 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.8)] backdrop-blur-xl">
+                                            <div className="flex items-center justify-between gap-4">
+                                                <div>
+                                                    <div className="text-[10px] font-extrabold uppercase tracking-[0.22em] text-[#9ef2f2]">Selected showcase</div>
+                                                    <div className="mt-1 text-2xl font-black tracking-[-0.04em] text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                                                        Bloom Living
+                                                    </div>
+                                                </div>
+                                                <div className="rounded-2xl bg-white/10 px-3 py-2 text-right">
+                                                    <div className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-white/45">From</div>
+                                                    <div className="text-lg font-black text-[#f7d27b]">AED 1.2M</div>
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-4 flex flex-wrap gap-2">
+                                                {['Cinematic tour', 'Nearby intelligence', 'PDF brochure', 'AI guidance'].map((tag) => (
+                                                    <span key={tag} className="rounded-full border border-white/10 bg-white/6 px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.18em] text-white/70">
+                                                        {tag}
+                                                    </span>
+                                                ))}
+                                            </div>
+
+                                            <div className="mt-5 grid grid-cols-3 gap-3">
+                                                <div className="rounded-2xl bg-white/6 p-3">
+                                                    <div className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-white/45">Type</div>
+                                                    <div className="mt-1 text-sm font-bold text-white">Luxury villas</div>
+                                                </div>
+                                                <div className="rounded-2xl bg-white/6 p-3">
+                                                    <div className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-white/45">State</div>
+                                                    <div className="mt-1 text-sm font-bold text-white">Live sync</div>
+                                                </div>
+                                                <div className="rounded-2xl bg-white/6 p-3">
+                                                    <div className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-white/45">Delivery</div>
+                                                    <div className="mt-1 text-sm font-bold text-white">Web + native</div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="absolute bottom-16 right-8 max-w-[15rem] rounded-[28px] border border-[#18c8c8]/18 bg-[#0b2431]/84 p-4 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.8)] backdrop-blur-xl psi-drift">
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#18c8c8]/18">
+                                                    <Sparkles className="h-5 w-5 text-[#9ef2f2]" />
+                                                </div>
+                                                <div>
+                                                    <div className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#9ef2f2]">AI insight</div>
+                                                    <div className="text-sm font-bold text-white">Best positioned for lifestyle-led investors</div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="absolute bottom-8 right-8 hidden w-[15rem] overflow-hidden rounded-[28px] border border-white/10 bg-[#081520]/88 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.82)] backdrop-blur-xl xl:block">
+                                            <img
+                                                src={appPreviewImage}
+                                                alt="PSI Maps Pro product preview"
+                                                className="h-48 w-full object-cover object-top"
+                                            />
+                                            <div className="border-t border-white/10 p-4">
+                                                <div className="text-[10px] font-extrabold uppercase tracking-[0.22em] text-[#9ef2f2]">Real product visual</div>
+                                                <div className="mt-1 text-sm font-bold text-white">Bundled screenshot preview</div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-
-                            {/* Floating AI chip */}
-                            <div className="absolute -bottom-4 -left-4 bg-white/90 backdrop-blur-xl rounded-2xl shadow-2xl shadow-violet-500/20 border border-violet-200/60 px-4 py-3 flex items-center gap-3 animate-bounce" style={{ animationDuration: '5s' }}>
-                                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shrink-0">
-                                    <Sparkles className="w-4 h-4 text-white" />
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-black text-violet-600 uppercase tracking-wider">AI Suggestion</p>
-                                    <p className="text-[11px] font-bold text-slate-700">Explore nearby landmarks?</p>
-                                </div>
-                            </div>
-
-                            {/* Floating stat */}
-                            <div className="absolute -top-3 -right-3 bg-white/90 backdrop-blur-xl rounded-2xl shadow-2xl shadow-emerald-500/20 border border-emerald-200/60 px-4 py-2.5 flex items-center gap-2.5">
-                                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center">
-                                    <TrendingUp className="w-3.5 h-3.5 text-white" />
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-bold text-slate-400">ROI Estimate</p>
-                                    <p className="text-sm font-black text-emerald-600">+12.4%</p>
-                                </div>
-                            </div>
-                        </div>
-                    </RevealSection>
-                </div>
-
-                {/* Scroll indicator */}
-                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-slate-400 animate-bounce">
-                    <span className="text-[10px] font-bold tracking-widest uppercase">Scroll to explore</span>
-                    <ChevronRight className="w-4 h-4 rotate-90" />
+                        </RevealSection>
+                    </div>
                 </div>
             </section>
 
-            {/* ═══════════════════════════════════════════════════════════════ */}
-            {/* 2. CINEMATIC MAP TOURS */}
-            {/* ═══════════════════════════════════════════════════════════════ */}
-            <section className="relative py-28 px-6">
-                <div className="absolute inset-0 pointer-events-none">
-                    <div className="absolute top-20 right-0 w-[500px] h-[500px] rounded-full bg-violet-100/30 blur-3xl" />
-                </div>
-                <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-16">
-                    <RevealSection className="flex-1">
-                        <Badge gradient="from-violet-600 to-purple-600">
-                            <PlayCircle className="w-3 h-3" /> Map Intelligence
-                        </Badge>
-                        <h2 className="mt-5 text-4xl sm:text-5xl font-black text-slate-900 tracking-tight leading-tight">
-                            Cinematic
-                            <span className="bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent"> 3D Flyovers</span>
-                        </h2>
-                        <p className="mt-4 text-lg text-slate-500 leading-relaxed max-w-lg">
-                            Automated drone-style tours that fly between properties at 60° pitch with smooth easing.
-                            Each project gets a cinematic reveal with synchronized info panels.
-                        </p>
-                        <div className="mt-8 grid grid-cols-2 gap-4">
-                            {[
-                                { icon: <Eye className="w-4 h-4" />, label: '60° Pitch', desc: 'Dramatic aerial angle' },
-                                { icon: <MapIcon className="w-4 h-4" />, label: 'Auto Sequence', desc: 'Smart route planning' },
-                                { icon: <Layers className="w-4 h-4" />, label: '3D Buildings', desc: 'Extruded city models' },
-                                { icon: <Zap className="w-4 h-4" />, label: 'Smooth Easing', desc: 'Cinematic transitions' },
-                            ].map((f, i) => (
-                                <div key={i} className="flex items-start gap-3 p-3 rounded-xl hover:bg-violet-50/50 transition-colors">
-                                    <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center text-violet-600 shrink-0 mt-0.5">{f.icon}</div>
-                                    <div>
-                                        <p className="text-sm font-black text-slate-800">{f.label}</p>
-                                        <p className="text-xs text-slate-400 font-medium">{f.desc}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+            <section id="workflow" className="relative px-6 py-24">
+                <div className="absolute inset-x-0 top-0 h-24 bg-[linear-gradient(180deg,rgba(6,19,29,0.08),transparent)]" />
+                <div className="mx-auto max-w-7xl">
+                    <RevealSection>
+                        <SectionHeader
+                            eyebrow="Step By Step"
+                            title="A presentation flow that walks the client from map to conviction."
+                            description="This is no longer a generic feature dump. The page now guides the audience through a premium sequence: open the geography, reveal the advantage, explain the economics, and package the decision."
+                        />
                     </RevealSection>
 
-                    {/* Floating mock visual */}
-                    <RevealSection className="flex-1 max-w-lg w-full" delay={150}>
-                        <div className="bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 rounded-3xl p-8 shadow-2xl shadow-violet-500/20 relative overflow-hidden">
-                            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
-                            <div className="relative z-10">
-                                {/* Fake tour UI */}
-                                <div className="flex items-center gap-2 mb-6">
-                                    <div className="w-3 h-3 rounded-full bg-red-400" />
-                                    <div className="w-3 h-3 rounded-full bg-amber-400" />
-                                    <div className="w-3 h-3 rounded-full bg-emerald-400" />
-                                    <span className="ml-2 text-[10px] text-white/60 font-bold">PSI Maps Pro — Cinematic Tour</span>
-                                </div>
-                                <div className="h-44 rounded-2xl bg-white/10 backdrop-blur relative overflow-hidden">
-                                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/40 to-purple-700/40" />
-                                    {/* Flight path line */}
-                                    <svg className="absolute inset-0 w-full h-full" viewBox="0 0 400 200">
-                                        <path d="M40,150 Q100,40 200,100 T360,50" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2" strokeDasharray="8,4">
-                                            <animate attributeName="stroke-dashoffset" from="100" to="0" dur="3s" repeatCount="indefinite" />
-                                        </path>
-                                        <circle cx="200" cy="100" r="6" fill="#818cf8">
-                                            <animate attributeName="cx" values="40;200;360" dur="3s" repeatCount="indefinite" />
-                                            <animate attributeName="cy" values="150;100;50" dur="3s" repeatCount="indefinite" />
-                                        </circle>
-                                    </svg>
-                                    {/* Location labels */}
-                                    <div className="absolute top-3 left-3 bg-white/20 backdrop-blur px-2 py-1 rounded-lg text-[9px] font-bold text-white">Saadiyat Island</div>
-                                    <div className="absolute bottom-3 right-3 bg-white/20 backdrop-blur px-2 py-1 rounded-lg text-[9px] font-bold text-white">Yas Bay</div>
-                                </div>
-                                {/* Progress bar */}
-                                <div className="mt-4 flex items-center gap-3">
-                                    <PlayCircle className="w-5 h-5 text-white/80" />
-                                    <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                                        <div className="h-full bg-white rounded-full" style={{ width: '65%', transition: 'width 3s linear' }} />
+                    <div className="mt-14 grid gap-6 lg:grid-cols-4">
+                        {workflowSteps.map((step, index) => (
+                            <RevealSection key={step.step} delay={index * 120}>
+                                <div className="group h-full rounded-[32px] border border-[#12263a]/10 bg-white/80 p-6 shadow-[0_35px_80px_-50px_rgba(6,19,29,0.45)] backdrop-blur-xl transition hover:-translate-y-1 hover:shadow-[0_40px_110px_-50px_rgba(6,19,29,0.55)]">
+                                    <div className={`inline-flex rounded-full bg-gradient-to-r ${step.accent} px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.24em] text-white`}>
+                                        Step {step.step}
                                     </div>
-                                    <span className="text-[10px] text-white/60 font-bold">3 of 8</span>
+                                    <div className={`mt-5 flex h-14 w-14 items-center justify-center rounded-[22px] bg-gradient-to-br ${step.accent} text-white shadow-[0_30px_70px_-30px_rgba(6,19,29,0.4)]`}>
+                                        <step.icon className="h-6 w-6" />
+                                    </div>
+                                    <h3 className="mt-5 text-2xl font-black tracking-[-0.04em] text-[#06131d]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                                        {step.title}
+                                    </h3>
+                                    <p className="mt-3 text-base leading-7 text-[#4f6674]">{step.description}</p>
                                 </div>
+                            </RevealSection>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            <section id="technology" className="relative overflow-hidden bg-[#0a1820] px-6 py-24 text-white">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_0%,rgba(24,200,200,0.14),transparent_30%),radial-gradient(circle_at_90%_20%,rgba(247,179,77,0.12),transparent_28%),linear-gradient(135deg,#08151d_0%,#0d2030_50%,#08151d_100%)]" />
+                <div className="absolute bottom-0 left-1/3 h-64 w-64 rounded-full bg-[#18c8c8]/10 blur-3xl" />
+
+                <div className="relative mx-auto max-w-7xl">
+                    <RevealSection>
+                        <SectionHeader
+                            eyebrow="Technology Used"
+                            title="The software stack is part of the pitch, so it deserves the spotlight."
+                            description="This section calls out the real technologies already in the repo and turns them into polished visual badges. It gives the product technical credibility without breaking the design language."
+                        />
+                    </RevealSection>
+
+                    <div className="mt-14 grid gap-5 lg:grid-cols-2 xl:grid-cols-4">
+                        {techStack.map((item, index) => (
+                            <RevealSection key={item.name} delay={index * 90}>
+                                <div className={`h-full rounded-[30px] border border-white/10 bg-gradient-to-br ${item.tint} p-5 shadow-[0_40px_90px_-50px_rgba(0,0,0,0.8)]`}>
+                                    <div className="flex items-start justify-between gap-4">
+                                        <BrandLogo kind={item.kind} />
+                                        <span className="rounded-full border border-white/10 bg-white/7 px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.22em] text-white/70">
+                                            {item.version}
+                                        </span>
+                                    </div>
+                                    <h3 className="mt-5 text-2xl font-black tracking-[-0.04em]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                                        {item.name}
+                                    </h3>
+                                    <p className="mt-3 text-sm leading-7 text-white/72">{item.description}</p>
+                                </div>
+                            </RevealSection>
+                        ))}
+                    </div>
+
+                    <RevealSection className="mt-10">
+                        <div className="rounded-[32px] border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
+                            <div className="text-[11px] font-extrabold uppercase tracking-[0.26em] text-[#8ed7d9]">Supporting Toolchain</div>
+                            <div className="mt-5 flex flex-wrap gap-3">
+                                {toolChips.map((tool) => (
+                                    <span
+                                        key={tool}
+                                        className="rounded-full border border-white/10 bg-white/6 px-4 py-2 text-[11px] font-extrabold uppercase tracking-[0.18em] text-white/70"
+                                    >
+                                        {tool}
+                                    </span>
+                                ))}
                             </div>
                         </div>
                     </RevealSection>
                 </div>
             </section>
 
-            {/* ═══════════════════════════════════════════════════════════════ */}
-            {/* 3. AI MAP GUIDE */}
-            {/* ═══════════════════════════════════════════════════════════════ */}
-            <section className="relative py-28 px-6 bg-white">
-                <div className="absolute inset-0 pointer-events-none">
-                    <div className="absolute bottom-0 left-0 w-[600px] h-[400px] rounded-full bg-indigo-100/20 blur-3xl" />
-                </div>
-                <div className="max-w-7xl mx-auto flex flex-col-reverse lg:flex-row items-center gap-16">
-                    {/* Visual on LEFT */}
-                    <RevealSection className="flex-1 max-w-md w-full" delay={150}>
-                        <div className="relative">
-                            {/* Glassmorphic chat */}
-                            <div className="bg-white/80 backdrop-blur-2xl rounded-3xl shadow-2xl shadow-indigo-500/15 border border-indigo-200/50 p-6">
-                                <div className="flex items-center gap-3 mb-5">
-                                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
-                                        <Sparkles className="w-5 h-5 text-white" />
+            <section className="px-6 py-24">
+                <div className="mx-auto max-w-7xl">
+                    <RevealSection>
+                        <SectionHeader
+                            eyebrow="Visual Proof"
+                            title="The presentation now includes real bundled visuals that load with the app."
+                            description="I switched the page to use imported local assets instead of fragile path assumptions, and added real PSI Maps visuals so the presentation feels grounded in the product."
+                        />
+                    </RevealSection>
+
+                    <div className="mt-14 grid gap-6 lg:grid-cols-3">
+                        {visualGallery.map((item, index) => (
+                            <RevealSection key={item.title} delay={index * 100}>
+                                <div className="overflow-hidden rounded-[32px] border border-[#12263a]/10 bg-white shadow-[0_35px_90px_-55px_rgba(6,19,29,0.45)]">
+                                    <div className="aspect-[4/3] overflow-hidden bg-[#e8e0d2]">
+                                        <img
+                                            src={item.image}
+                                            alt={item.title}
+                                            className="h-full w-full object-cover"
+                                        />
                                     </div>
-                                    <div>
-                                        <p className="text-[10px] font-black text-indigo-500 uppercase tracking-wider">AI Map Guide</p>
-                                        <p className="text-sm font-bold text-slate-800">Context-aware assistant</p>
+                                    <div className="p-6">
+                                        <h3 className="text-2xl font-black tracking-[-0.04em] text-[#06131d]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                                            {item.title}
+                                        </h3>
+                                        <p className="mt-3 text-base leading-7 text-[#486171]">{item.caption}</p>
                                     </div>
                                 </div>
-                                <div className="bg-slate-50 rounded-2xl p-4 mb-4">
-                                    <p className="text-[13px] text-slate-600 font-bold leading-relaxed">
-                                        What would you like to explore about <span className="text-indigo-600 font-black">Bloom Living</span>?
+                            </RevealSection>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            <section id="feature-atlas" className="px-6 py-24">
+                <div className="mx-auto max-w-7xl">
+                    <RevealSection>
+                        <SectionHeader
+                            eyebrow="Feature Atlas"
+                            title="Every major feature is now framed like a capability system, not a checklist."
+                            description="The landing page covers the full platform in grouped modules so the audience sees depth, not clutter. Each card ties together what the product does, why it matters, and how it raises the perceived quality of the map."
+                        />
+                    </RevealSection>
+
+                    <div className="mt-14 grid gap-6 xl:grid-cols-2">
+                        {featureGroups.map((group, index) => (
+                            <RevealSection key={group.title} delay={index * 80}>
+                                <div className="h-full rounded-[34px] border border-[#12263a]/10 bg-white/82 p-7 shadow-[0_35px_80px_-50px_rgba(6,19,29,0.42)] backdrop-blur-xl">
+                                    <div className="flex flex-wrap items-start justify-between gap-5">
+                                        <div>
+                                            <div className={`inline-flex rounded-full bg-gradient-to-r ${group.accent} px-4 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.24em] text-white`}>
+                                                {group.eyebrow}
+                                            </div>
+                                            <h3 className="mt-5 max-w-xl text-3xl font-black tracking-[-0.04em] text-[#06131d]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                                                {group.title}
+                                            </h3>
+                                        </div>
+                                        <div className={`flex h-14 w-14 items-center justify-center rounded-[22px] bg-gradient-to-br ${group.accent} text-white shadow-[0_30px_80px_-34px_rgba(6,19,29,0.35)]`}>
+                                            <group.icon className="h-6 w-6" />
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-7 grid gap-3">
+                                        {group.bullets.map((bullet) => (
+                                            <div key={bullet} className="flex items-start gap-3 rounded-[22px] border border-[#12263a]/8 bg-[#f8f6f0] px-4 py-4">
+                                                <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-[#0f8ab3]" />
+                                                <p className="text-sm leading-7 text-[#415868]">{bullet}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </RevealSection>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            <section className="px-6 py-24">
+                <div className="mx-auto max-w-7xl">
+                    <RevealSection>
+                        <SectionHeader
+                            eyebrow="Platform Proof"
+                            title="The presentation now signals that this is a serious operating product, not a prototype."
+                            description="These proof cards make the underlying product depth visible at a glance and support the premium narrative with real codebase scale."
+                        />
+                    </RevealSection>
+
+                    <div className="mt-14 grid gap-6 lg:grid-cols-2 xl:grid-cols-4">
+                        {proofPoints.map((point, index) => (
+                            <RevealSection key={point.title} delay={index * 100}>
+                                <div className="h-full rounded-[30px] border border-[#12263a]/10 bg-white p-6 shadow-[0_35px_80px_-52px_rgba(6,19,29,0.44)]">
+                                    <div className="flex h-14 w-14 items-center justify-center rounded-[22px] bg-[#081520] text-[#9ef2f2] shadow-[0_30px_80px_-42px_rgba(6,19,29,0.8)]">
+                                        <point.icon className="h-6 w-6" />
+                                    </div>
+                                    <h3 className="mt-5 text-2xl font-black tracking-[-0.04em] text-[#06131d]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                                        {point.title}
+                                    </h3>
+                                    <p className="mt-3 text-base leading-7 text-[#456070]">{point.body}</p>
+                                </div>
+                            </RevealSection>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            <section className="px-6 pb-24">
+                <div className="mx-auto max-w-7xl">
+                    <RevealSection>
+                        <div className="relative overflow-hidden rounded-[40px] bg-[#06131d] px-8 py-10 text-white shadow-[0_45px_120px_-60px_rgba(6,19,29,0.8)] sm:px-12 sm:py-14">
+                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(24,200,200,0.18),transparent_30%),radial-gradient(circle_at_100%_20%,rgba(247,179,77,0.16),transparent_25%),linear-gradient(135deg,#06131d_0%,#0a1f2d_45%,#112838_100%)]" />
+                            <div className="absolute bottom-[-5rem] right-[-4rem] h-64 w-64 rounded-full bg-[#18c8c8]/10 blur-3xl" />
+                            <div className="relative grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
+                                <div>
+                                    <div className="inline-flex items-center gap-2 rounded-full border border-[#18c8c8]/28 bg-[#18c8c8]/10 px-4 py-2 text-[11px] font-extrabold uppercase tracking-[0.28em] text-[#9ef2f2]">
+                                        <Star className="h-3.5 w-3.5" />
+                                        World-Class Close
+                                    </div>
+                                    <h2 className="mt-6 max-w-2xl text-4xl font-black tracking-[-0.05em] sm:text-5xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                                        The page now sells the product on content, visuals, and credibility.
+                                    </h2>
+                                    <p className="mt-5 max-w-2xl text-lg leading-8 text-white/72">
+                                        Instead of a generic SaaS landing page, this version positions PSI Maps Pro as a premium spatial
+                                        intelligence platform for investors, sales teams, and launches. The story is clearer, the map looks
+                                        stronger, and the software stack is finally visible as part of the brand.
                                     </p>
                                 </div>
-                                {/* Action chips */}
-                                <div className="space-y-2">
-                                    {[
-                                        { label: 'Nearby Landmarks', sub: '12 places', color: 'from-emerald-500 to-emerald-600', icon: <Compass className="w-3.5 h-3.5" /> },
-                                        { label: 'Projects by Aldar', sub: '8 projects', color: 'from-violet-500 to-purple-600', icon: <Building2 className="w-3.5 h-3.5" /> },
-                                        { label: 'Off-Plan Projects', sub: '5 nearby', color: 'from-amber-500 to-orange-500', icon: <TrendingUp className="w-3.5 h-3.5" /> },
-                                    ].map((chip, i) => (
-                                        <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-white border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow">
-                                            <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${chip.color} flex items-center justify-center text-white shrink-0`}>{chip.icon}</div>
-                                            <div className="flex-1">
-                                                <span className="text-[13px] font-black text-slate-800">{chip.label}</span>
-                                                <span className="ml-2 text-[10px] font-bold text-slate-400 uppercase">{chip.sub}</span>
+
+                                <div className="grid gap-4">
+                                    {finalOutcomes.map((item) => (
+                                        <div key={item} className="flex items-start gap-4 rounded-[26px] border border-white/10 bg-white/6 p-5 backdrop-blur-xl">
+                                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/10">
+                                                <CheckCircle className="h-5 w-5 text-[#9ef2f2]" />
                                             </div>
-                                            <PlayCircle className="w-4 h-4 text-slate-300" />
+                                            <p className="text-base leading-7 text-white/78">{item}</p>
                                         </div>
                                     ))}
                                 </div>
                             </div>
-                            {/* Floating pill */}
-                            <div className="absolute -bottom-3 -right-3 bg-gradient-to-r from-indigo-500 to-violet-500 text-white text-[10px] font-black px-4 py-2 rounded-full shadow-lg shadow-violet-500/30 flex items-center gap-1.5">
-                                <Zap className="w-3 h-3" /> Remote Control for Your Map
-                            </div>
-                        </div>
-                    </RevealSection>
-
-                    {/* Text on RIGHT */}
-                    <RevealSection className="flex-1">
-                        <Badge gradient="from-indigo-600 to-blue-600">
-                            <Sparkles className="w-3 h-3" /> AI Powered
-                        </Badge>
-                        <h2 className="mt-5 text-4xl sm:text-5xl font-black text-slate-900 tracking-tight leading-tight">
-                            Your AI
-                            <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent"> Map Guide</span>
-                        </h2>
-                        <p className="mt-4 text-lg text-slate-500 leading-relaxed max-w-lg">
-                            A floating glassmorphic assistant that reads context from the map.
-                            Select a project and get instant, actionable suggestions — each one is a
-                            remote‑control button that triggers existing map features.
-                        </p>
-                        <ul className="mt-6 space-y-3">
-                            {['Context-aware action chips', 'Triggers existing tours & filters', 'Always active, disabled only during tours', 'Dual design styles (Classic & Modern)'].map((t, i) => (
-                                <li key={i} className="flex items-center gap-3 text-sm text-slate-600 font-medium">
-                                    <CheckCircle className="w-4 h-4 text-indigo-500 shrink-0" /> {t}
-                                </li>
-                            ))}
-                        </ul>
-                    </RevealSection>
-                </div>
-            </section>
-
-            {/* ═══════════════════════════════════════════════════════════════ */}
-            {/* 4. SMART NEIGHBORHOOD DISCOVERY */}
-            {/* ═══════════════════════════════════════════════════════════════ */}
-            <section className="relative py-28 px-6">
-                <div className="absolute inset-0 pointer-events-none">
-                    <div className="absolute top-0 right-1/4 w-[400px] h-[400px] rounded-full bg-emerald-100/30 blur-3xl" />
-                </div>
-                <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-16">
-                    <RevealSection className="flex-1">
-                        <Badge gradient="from-emerald-600 to-teal-600">
-                            <Compass className="w-3 h-3" /> Discovery
-                        </Badge>
-                        <h2 className="mt-5 text-4xl sm:text-5xl font-black text-slate-900 tracking-tight leading-tight">
-                            Smart Neighborhood
-                            <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent"> Discovery</span>
-                        </h2>
-                        <p className="mt-4 text-lg text-slate-500 leading-relaxed max-w-lg">
-                            Every landmark near a property is enriched with "Wow" facts — not generic data.
-                            Museums, schools, parks, and hospitals each tell a story about the neighborhood.
-                        </p>
-                    </RevealSection>
-
-                    <RevealSection className="flex-1 max-w-lg w-full" delay={150}>
-                        <div className="grid grid-cols-2 gap-3">
-                            {[
-                                { name: 'Louvre Abu Dhabi', icon: <Star className="w-4 h-4" />, fact: 'World\'s largest art museum dome', dist: '2.3 km', gradient: 'from-amber-400 to-orange-500' },
-                                { name: 'NYUAD', icon: <Building2 className="w-4 h-4" />, fact: 'Top 20 globally ranked university', dist: '1.1 km', gradient: 'from-indigo-400 to-blue-500' },
-                                { name: 'Mangrove Walk', icon: <Compass className="w-4 h-4" />, fact: 'UNESCO biosphere kayak trail', dist: '3.5 km', gradient: 'from-emerald-400 to-teal-500' },
-                                { name: 'Cleveland Clinic', icon: <Shield className="w-4 h-4" />, fact: 'US #1 hospital, ME campus', dist: '4.2 km', gradient: 'from-rose-400 to-pink-500' },
-                            ].map((l, i) => (
-                                <div key={i} className="bg-white rounded-2xl p-4 border border-slate-200/60 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 duration-300 group">
-                                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${l.gradient} flex items-center justify-center text-white shadow-md mb-3`}>{l.icon}</div>
-                                    <p className="text-sm font-black text-slate-800">{l.name}</p>
-                                    <p className="text-[11px] text-slate-400 font-medium mt-1 leading-snug">{l.fact}</p>
-                                    <div className="mt-3 flex items-center gap-1 text-[10px] font-bold text-emerald-600">
-                                        <MapPin className="w-3 h-3" /> {l.dist} away
-                                    </div>
-                                </div>
-                            ))}
                         </div>
                     </RevealSection>
                 </div>
             </section>
-
-            {/* ═══════════════════════════════════════════════════════════════ */}
-            {/* 5. DYNAMIC SPATIAL UI */}
-            {/* ═══════════════════════════════════════════════════════════════ */}
-            <section className="relative py-28 px-6 bg-white">
-                <div className="absolute inset-0 pointer-events-none">
-                    <div className="absolute top-1/2 -left-20 w-[400px] h-[400px] rounded-full bg-rose-100/20 blur-3xl" />
-                </div>
-                <div className="max-w-7xl mx-auto flex flex-col-reverse lg:flex-row items-center gap-16">
-                    {/* Visual */}
-                    <RevealSection className="flex-1 max-w-md w-full" delay={150}>
-                        <div className="bg-slate-900 rounded-3xl p-5 shadow-2xl relative overflow-hidden">
-                            <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
-                            <div className="flex gap-3 relative z-10">
-                                {/* Accordion sidebar */}
-                                <div className="w-[120px] bg-slate-800 rounded-2xl p-3 space-y-2 shrink-0">
-                                    <div className="h-2.5 bg-indigo-500 rounded-full w-full" />
-                                    <div className="h-2 bg-slate-600 rounded-full w-3/4" />
-                                    <div className="h-2 bg-slate-700 rounded-full w-full" />
-                                    <div className="h-6 bg-slate-700 rounded-lg mt-3" />
-                                    <div className="h-6 bg-indigo-500/30 border border-indigo-500/40 rounded-lg" />
-                                    <div className="h-6 bg-slate-700 rounded-lg" />
-                                    <div className="h-6 bg-slate-700 rounded-lg" />
-                                    <div className="h-1.5 bg-slate-700 rounded-full w-2/3 mt-3" />
-                                </div>
-                                {/* Map area */}
-                                <div className="flex-1 bg-slate-700 rounded-2xl relative overflow-hidden">
-                                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/10 to-violet-600/10" />
-                                    <div className="absolute top-2 right-2 bg-slate-800 rounded-lg px-2 py-1 text-[8px] text-white/60 font-bold">MAP IS ALWAYS THE STAR</div>
-                                    {/* Fake cluster dots */}
-                                    <div className="absolute top-1/4 left-1/3 w-6 h-6 rounded-full bg-indigo-500/60 flex items-center justify-center text-[8px] text-white font-black">12</div>
-                                    <div className="absolute bottom-1/3 right-1/4 w-5 h-5 rounded-full bg-emerald-500/60 flex items-center justify-center text-[8px] text-white font-black">8</div>
-                                    <div className="absolute top-1/2 left-1/2 w-4 h-4 rounded-full bg-amber-500/60 flex items-center justify-center text-[7px] text-white font-black">3</div>
-                                </div>
-                            </div>
-                            {/* Label */}
-                            <div className="mt-3 flex items-center gap-2 text-[10px] text-slate-400 font-bold relative z-10">
-                                <LayoutTemplate className="w-3 h-3" /> Sidebar auto-shrinks to maximize map space
-                            </div>
-                        </div>
-                    </RevealSection>
-
-                    {/* Text */}
-                    <RevealSection className="flex-1">
-                        <Badge gradient="from-rose-500 to-pink-600">
-                            <LayoutTemplate className="w-3 h-3" /> Spatial UI
-                        </Badge>
-                        <h2 className="mt-5 text-4xl sm:text-5xl font-black text-slate-900 tracking-tight leading-tight">
-                            Dynamic
-                            <span className="bg-gradient-to-r from-rose-500 to-pink-600 bg-clip-text text-transparent"> Spatial UI</span>
-                        </h2>
-                        <p className="mt-4 text-lg text-slate-500 leading-relaxed max-w-lg">
-                            The accordion sidebar dynamically shrinks and expands so the interactive map
-                            always takes center stage. Every pixel is optimized for spatial exploration.
-                        </p>
-                        <ul className="mt-6 space-y-3">
-                            {['Accordion sidebar with smart collapse', 'Map-first responsive layout', 'Dynamic property cards with scroll-sync', 'Touch-optimized for mobile'].map((t, i) => (
-                                <li key={i} className="flex items-center gap-3 text-sm text-slate-600 font-medium">
-                                    <CheckCircle className="w-4 h-4 text-rose-500 shrink-0" /> {t}
-                                </li>
-                            ))}
-                        </ul>
-                    </RevealSection>
-                </div>
-            </section>
-
-            {/* ═══════════════════════════════════════════════════════════════ */}
-            {/* 6. FINANCIAL ROI ENGINE */}
-            {/* ═══════════════════════════════════════════════════════════════ */}
-            <section className="relative py-28 px-6">
-                <div className="absolute inset-0 pointer-events-none">
-                    <div className="absolute bottom-0 right-0 w-[500px] h-[400px] rounded-full bg-amber-100/30 blur-3xl" />
-                </div>
-                <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-16">
-                    <RevealSection className="flex-1">
-                        <Badge gradient="from-amber-500 to-orange-500">
-                            <Calculator className="w-3 h-3" /> Financial Tools
-                        </Badge>
-                        <h2 className="mt-5 text-4xl sm:text-5xl font-black text-slate-900 tracking-tight leading-tight">
-                            Financial
-                            <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent"> ROI Engine</span>
-                        </h2>
-                        <p className="mt-4 text-lg text-slate-500 leading-relaxed max-w-lg">
-                            Built-in Rent vs. Buy calculators, mortgage estimators, and investment ROI projections.
-                            Every property page becomes a financial decision dashboard.
-                        </p>
-                    </RevealSection>
-
-                    <RevealSection className="flex-1 max-w-lg w-full" delay={150}>
-                        <div className="bg-white rounded-3xl shadow-2xl shadow-amber-500/10 border border-amber-200/50 p-6 space-y-4">
-                            {/* Fake calculator */}
-                            <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-md">
-                                    <Calculator className="w-5 h-5 text-white" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-black text-slate-800">Investment Calculator</p>
-                                    <p className="text-[11px] text-slate-400 font-medium">Bloom Living — 2BR Apartment</p>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                {[
-                                    { label: 'Purchase Price', value: 'AED 1,200,000', color: 'text-slate-800' },
-                                    { label: 'Monthly Rent', value: 'AED 8,500', color: 'text-indigo-600' },
-                                    { label: 'Annual Yield', value: '8.5%', color: 'text-emerald-600' },
-                                    { label: '5-Year ROI', value: '+42.3%', color: 'text-amber-600' },
-                                ].map((m, i) => (
-                                    <div key={i} className="bg-slate-50 rounded-xl p-3">
-                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{m.label}</p>
-                                        <p className={`text-base font-black ${m.color} mt-1`}>{m.value}</p>
-                                    </div>
-                                ))}
-                            </div>
-                            {/* Fake chart */}
-                            <div className="h-24 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl relative overflow-hidden flex items-end px-3 pb-2 gap-1.5">
-                                {[35, 42, 38, 55, 48, 62, 58, 72, 68, 80, 85, 92].map((h, i) => (
-                                    <div key={i} className="flex-1 bg-gradient-to-t from-amber-400 to-orange-400 rounded-t-md transition-all" style={{ height: `${h}%`, opacity: 0.7 + (i * 0.025) }} />
-                                ))}
-                                <div className="absolute top-2 right-3 text-[9px] font-black text-amber-600 flex items-center gap-1">
-                                    <TrendingUp className="w-3 h-3" /> 12-Month Trend
-                                </div>
-                            </div>
-                        </div>
-                    </RevealSection>
-                </div>
-            </section>
-
-            {/* ═══════════════════════════════════════════════════════════════ */}
-            {/* 7 + 8 + 9 — BENTO GRID */}
-            {/* ═══════════════════════════════════════════════════════════════ */}
-            <section className="relative py-28 px-6 bg-white">
-                <div className="absolute inset-0 pointer-events-none">
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] rounded-full bg-gradient-to-br from-indigo-50/50 to-violet-50/30 blur-3xl" />
-                </div>
-                <div className="max-w-7xl mx-auto">
-                    <RevealSection className="text-center mb-16">
-                        <Badge gradient="from-slate-700 to-slate-900">
-                            <Zap className="w-3 h-3" /> More Features
-                        </Badge>
-                        <h2 className="mt-5 text-4xl sm:text-5xl font-black text-slate-900 tracking-tight">
-                            Everything You Need,
-                            <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent"> Built In</span>
-                        </h2>
-                        <p className="mt-4 text-lg text-slate-400 max-w-2xl mx-auto">
-                            From instant PDF brochures to immersive galleries and automated data enrichment.
-                        </p>
-                    </RevealSection>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {/* 7. PDF Reporting */}
-                        <RevealSection delay={0}>
-                            <div className="bg-white rounded-3xl p-7 border border-slate-200/60 shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 h-full group">
-                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center shadow-lg shadow-rose-500/20 mb-5">
-                                    <FileText className="w-6 h-6 text-white" />
-                                </div>
-                                <h3 className="text-xl font-black text-slate-900">Instant PDF Reporting</h3>
-                                <p className="mt-2 text-sm text-slate-500 leading-relaxed">
-                                    One-click property brochures with project details, floor plans,
-                                    images, and investment metrics — branded and ready to share.
-                                </p>
-                                {/* Fake PDF preview */}
-                                <div className="mt-5 bg-slate-50 rounded-2xl p-4 border border-slate-100 group-hover:bg-rose-50/30 transition-colors">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <div className="w-6 h-6 rounded bg-rose-100 flex items-center justify-center"><FileText className="w-3 h-3 text-rose-500" /></div>
-                                        <span className="text-[10px] font-bold text-slate-500">BloomLiving_Brochure.pdf</span>
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <div className="h-2 bg-slate-200 rounded-full w-full" />
-                                        <div className="h-2 bg-slate-200 rounded-full w-4/5" />
-                                        <div className="h-8 bg-slate-200 rounded mt-2" />
-                                        <div className="h-2 bg-slate-200 rounded-full w-3/5" />
-                                    </div>
-                                </div>
-                            </div>
-                        </RevealSection>
-
-                        {/* 8. Immersive Visuals */}
-                        <RevealSection delay={100}>
-                            <div className="bg-white rounded-3xl p-7 border border-slate-200/60 shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 h-full group">
-                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 mb-5">
-                                    <Images className="w-6 h-6 text-white" />
-                                </div>
-                                <h3 className="text-xl font-black text-slate-900">Immersive Visuals</h3>
-                                <p className="mt-2 text-sm text-slate-500 leading-relaxed">
-                                    Full-screen lightbox galleries, interactive floor plan viewers,
-                                    and embedded Google Street View — all within the map experience.
-                                </p>
-                                {/* Fake gallery */}
-                                <div className="mt-5 grid grid-cols-3 gap-1.5 rounded-2xl overflow-hidden group-hover:gap-2 transition-all">
-                                    {[
-                                        'from-indigo-400 to-blue-500',
-                                        'from-violet-400 to-purple-500',
-                                        'from-emerald-400 to-teal-500',
-                                        'from-amber-400 to-orange-500',
-                                        'from-rose-400 to-pink-500',
-                                        'from-cyan-400 to-blue-500',
-                                    ].map((g, i) => (
-                                        <div key={i} className={`h-14 bg-gradient-to-br ${g} rounded-lg opacity-70 hover:opacity-100 transition-opacity cursor-pointer`} />
-                                    ))}
-                                </div>
-                            </div>
-                        </RevealSection>
-
-                        {/* 9. Data Enrichment */}
-                        <RevealSection delay={200}>
-                            <div className="bg-white rounded-3xl p-7 border border-slate-200/60 shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 h-full group">
-                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 mb-5">
-                                    <Database className="w-6 h-6 text-white" />
-                                </div>
-                                <h3 className="text-xl font-black text-slate-900">Automated Enrichment</h3>
-                                <p className="mt-2 text-sm text-slate-500 leading-relaxed">
-                                    Backend magic that auto-fetches developer logos, audits map coordinates,
-                                    and maintains data quality across 2,400+ properties.
-                                </p>
-                                {/* Fake pipeline */}
-                                <div className="mt-5 space-y-2.5">
-                                    {[
-                                        { label: 'Logo Fetch', status: 'complete', icon: <CheckCircle className="w-3.5 h-3.5" /> },
-                                        { label: 'Coordinate Audit', status: 'complete', icon: <CheckCircle className="w-3.5 h-3.5" /> },
-                                        { label: 'Image Optimization', status: 'running', icon: <Zap className="w-3.5 h-3.5" /> },
-                                        { label: 'SEO Metadata', status: 'queued', icon: <BarChart3 className="w-3.5 h-3.5" /> },
-                                    ].map((s, i) => (
-                                        <div key={i} className="flex items-center gap-3 px-3 py-2 rounded-xl bg-slate-50 group-hover:bg-emerald-50/30 transition-colors">
-                                            <span className={s.status === 'complete' ? 'text-emerald-500' : s.status === 'running' ? 'text-amber-500 animate-pulse' : 'text-slate-300'}>
-                                                {s.icon}
-                                            </span>
-                                            <span className="text-[12px] font-bold text-slate-700 flex-1">{s.label}</span>
-                                            <span className={`text-[9px] font-black uppercase tracking-wider ${s.status === 'complete' ? 'text-emerald-500' : s.status === 'running' ? 'text-amber-500' : 'text-slate-300'
-                                                }`}>{s.status}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </RevealSection>
-                    </div>
-                </div>
-            </section>
-
-            {/* ═══════════════════════════════════════════════════════════════ */}
-            {/* 10. FOOTER CTA */}
-            {/* ═══════════════════════════════════════════════════════════════ */}
-            <section className="relative py-32 px-6 overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700" />
-                <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
-                {/* Floating blobs */}
-                <div className="absolute -top-20 -left-20 w-[300px] h-[300px] rounded-full bg-white/10 blur-3xl" />
-                <div className="absolute -bottom-20 -right-20 w-[400px] h-[400px] rounded-full bg-purple-400/20 blur-3xl" />
-
-                <RevealSection className="relative z-10 text-center max-w-3xl mx-auto">
-                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur rounded-full text-white/80 text-[11px] font-bold mb-6">
-                        <Sparkles className="w-3.5 h-3.5" /> Ready to transform your real estate experience?
-                    </div>
-
-                    <h2 className="text-4xl sm:text-6xl font-black text-white tracking-tight leading-tight">
-                        Launch
-                        <br />
-                        <span className="bg-gradient-to-r from-amber-300 via-yellow-300 to-orange-300 bg-clip-text text-transparent">
-                            PSI Maps Pro
-                        </span>
-                    </h2>
-
-                    <p className="mt-6 text-lg text-indigo-200 leading-relaxed max-w-xl mx-auto">
-                        Join the future of property intelligence. Interactive maps, AI guidance,
-                        cinematic tours, and financial tools — all in one powerful platform.
-                    </p>
-
-                    <div className="mt-10 flex flex-wrap gap-4 justify-center">
-                        <button className="px-8 py-4 bg-white text-indigo-700 font-black rounded-2xl shadow-2xl shadow-black/20 hover:shadow-white/30 hover:scale-105 transition-all duration-300 text-sm flex items-center gap-2">
-                            Get Started Free <ArrowRight className="w-4 h-4" />
-                        </button>
-                        <button className="px-8 py-4 bg-white/10 backdrop-blur text-white font-bold rounded-2xl border border-white/20 hover:bg-white/20 hover:scale-105 transition-all duration-300 text-sm flex items-center gap-2">
-                            <PlayCircle className="w-4 h-4" /> Schedule Demo
-                        </button>
-                    </div>
-
-                    {/* Trust bar */}
-                    <div className="mt-14 flex flex-wrap gap-8 justify-center text-sm text-indigo-200/80">
-                        <div className="flex items-center gap-2"><Shield className="w-4 h-4" /> Enterprise Security</div>
-                        <div className="flex items-center gap-2"><Globe className="w-4 h-4" /> UAE Coverage</div>
-                        <div className="flex items-center gap-2"><Zap className="w-4 h-4" /> Real-time Data</div>
-                        <div className="flex items-center gap-2"><Users className="w-4 h-4" /> Team Collaboration</div>
-                    </div>
-                </RevealSection>
-            </section>
-
-            {/* Footer */}
-            <footer className="bg-slate-900 py-8 px-6 text-center">
-                <p className="text-sm text-slate-500 font-medium">
-                    © 2026 PSI Maps Pro — Property Sciences Intelligence. All rights reserved.
-                </p>
-            </footer>
         </div>
     );
 };

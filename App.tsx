@@ -23,7 +23,7 @@ import haptic from './utils/haptics';
 import { useNativeHardware } from './hooks/useNativeHardware';
 import { loadAppState } from './utils/performanceEngine';
 import { recordRecentView, addSearchEntry } from './utils/localPersistence';
-import { warmUpPreloader, preloadProjectScreen, recordNavigation, preloadPredictedScreens, preloadVisibleProjects } from './utils/predictivePreloader';
+import { warmUpPreloader, preloadProjectScreen, recordNavigation, preloadPredictedScreens } from './utils/predictivePreloader';
 import { AnalyticsEvents, PerfTraces } from './utils/firebasePlatform';
 import { sampleROIZones } from './data/roiZones';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -184,13 +184,6 @@ const AppInner: React.FC = () => {
   useEffect(() => {
     warmUpPreloader();
   }, []);
-
-  // ── Preload visible projects' thumbnails when they change ──────────────
-  useEffect(() => {
-    if (filteredProjects.length > 0) {
-      preloadVisibleProjects(filteredProjects);
-    }
-  }, [filteredProjects]);
 
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
   const [isAdminOpen, setIsAdminOpen] = useState(false);

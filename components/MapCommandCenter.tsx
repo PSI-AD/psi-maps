@@ -15,34 +15,41 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
     const [isLassoActive, setIsLassoActive] = useState(false);
     const [is3DBuildings, setIs3DBuildings] = useState(false); // starts unknown; synced from map on mount
     const [mapReady, setMapReady] = useState(false);
+    const [isTimeMachineOpen, setIsTimeMachineOpen] = useState(false);
     const [timeMachineRotating, setTimeMachineRotating] = useState(false);
     const animationRef = useRef<number | undefined>(undefined);
 
-    // Listen for Time Machine rotation events
+    const stopRotation = useCallback(() => {
+        if (animationRef.current !== undefined) {
+            cancelAnimationFrame(animationRef.current);
+            animationRef.current = undefined;
+        }
+        setIsRotating(false);
+    }, []);
+
+    // Listen for Time Machine session + rotation events so the orbit button can control it.
     useEffect(() => {
-        const handler = (e: Event) => {
+        const onRotation = (e: Event) => {
             const active = (e as CustomEvent).detail?.active ?? false;
             setTimeMachineRotating(active);
-            // If Time Machine is taking over rotation, stop our own rAF
-            if (active && animationRef.current !== undefined) {
-                cancelAnimationFrame(animationRef.current);
-                animationRef.current = undefined;
-                setIsRotating(false);
-            }
+            if (active) stopRotation();
         };
-        window.addEventListener('time-machine-rotation', handler);
-        return () => window.removeEventListener('time-machine-rotation', handler);
-    }, []);
+        const onOpen = (e: Event) => {
+            const active = (e as CustomEvent).detail?.active ?? false;
+            setIsTimeMachineOpen(active);
+            if (active) stopRotation();
+            if (!active) setTimeMachineRotating(false);
+        };
+        window.addEventListener('time-machine-rotation', onRotation);
+        window.addEventListener('time-machine-open', onOpen);
+        return () => {
+            window.removeEventListener('time-machine-rotation', onRotation);
+            window.removeEventListener('time-machine-open', onOpen);
+        };
+    }, [stopRotation]);
 
     // Auto-stop rotation when any tour starts (global property or neighborhood landmark)
     useEffect(() => {
-        const stopRotation = () => {
-            if (animationRef.current !== undefined) {
-                cancelAnimationFrame(animationRef.current);
-                animationRef.current = undefined;
-            }
-            setIsRotating(false);
-        };
         const onGlobalTour = (e: Event) => {
             if ((e as CustomEvent).detail?.active) stopRotation();
         };
@@ -60,7 +67,7 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
             window.removeEventListener('neighborhood-tour-changed', onNeighborhoodTour);
             window.removeEventListener('global-tour-start', onTourStart);
         };
-    }, []);
+    }, [stopRotation]);
 
     // Deferred map readiness check — syncs actual map state on ready
     useEffect(() => {
@@ -138,6 +145,14 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
 
     const getMap = useCallback(() => mapRef?.current?.getMap?.(), [mapRef]);
 
+    const handleOrbitToggle = () => {
+        if (isTimeMachineOpen) {
+            window.dispatchEvent(new CustomEvent('time-machine-toggle-rotation'));
+            return;
+        }
+        setIsRotating(r => !r);
+    };
+
     const execute = (action: 'bird' | '3d' | 'north' | 'zoomIn' | 'zoomOut' | 'export') => {
         const map = getMap();
         if (!map && action !== 'export') return;
@@ -196,7 +211,15 @@ export const MapCommandCenter: React.FC<MapCommandCenterProps> = ({ mapRef, mapS
                 <span className="text-[8px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">Camera</span>
                 <Btn onClick={() => execute('bird')} title="Bird's Eye"><Bird className="w-4.5 h-4.5" /></Btn>
                 <Btn onClick={() => execute('3d')} active={is3D} title="3D Perspective"><Box className="w-4.5 h-4.5" /></Btn>
-                <Btn onClick={() => setIsRotating(r => !r)} active={isRotating || timeMachineRotating} title="Orbit"><RefreshCw className={`w-4.5 h-4.5 ${(isRotating || timeMachineRotating) ? 'animate-spin' : ''}`} style={{ animationDuration: '4s' }} /></Btn>
+                <Btn
+                    onClick={handleOrbitToggle}
+                    active={isRotating || timeMachineRotating}
+                    title={isTimeMachineOpen
+                        ? (timeMachineRotating ? 'Pause Time Machine Orbit' : 'Resume Time Machine Orbit')
+                        : (isRotating ? 'Stop Orbit' : 'Orbit')}
+                >
+                    <RefreshCw className={`w-4.5 h-4.5 ${(isRotating || timeMachineRotating) ? 'animate-spin' : ''}`} style={(isRotating || timeMachineRotating) ? { animationDuration: '4s' } : undefined} />
+                </Btn>
                 <Btn onClick={() => execute('north')} title="Reset North"><Compass className="w-4.5 h-4.5" /></Btn>
             </div>
 
