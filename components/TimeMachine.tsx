@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { X, Play, Pause, SkipBack, SkipForward, Settings, RefreshCw } from 'lucide-react';
 import { waybackYears, WaybackYear } from '../data/waybackYears';
+import { preloadProjectTimeMachine } from '../utils/timeMachinePreloader';
 
 interface TimeMachineProps {
   mapRef: React.MutableRefObject<any>;
@@ -131,6 +132,17 @@ const TimeMachine: React.FC<TimeMachineProps> = ({
       window.dispatchEvent(new CustomEvent('time-machine-rotation', { detail: { active: false } }));
     };
   }, []);
+
+  // ── On-demand tile warmup for THIS project only ────────────────────────
+  // Wait 5s for flyTo + initial layer loads to settle before firing any
+  // background tile requests. Never runs at app boot — only when the user
+  // actually opens Time Machine for a specific project.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      preloadProjectTimeMachine(lat, lng, projectName);
+    }, 5000);
+    return () => clearTimeout(t);
+  }, [lat, lng, projectName]);
 
   // ── Rotation state dispatcher ──────────────────────────────────────────
   const dispatchRotate = useCallback((active: boolean) => {
