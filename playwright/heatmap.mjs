@@ -60,6 +60,7 @@ const GRID_ROWS       = parseInt(param('--rows',    '20'), 10);
 const WAIT_MS         = parseInt(param('--wait',    '4000'), 10);
 const WAIT_FOR_SEL    = param('--wait-for',     '');
 const CLOSE_OVERLAYS  = flag('--close-overlays');
+const RESET_STATE     = flag('--reset-state');   // wipe localStorage before load (prevents restored admin/panel state)
 const PAUSE_MODE      = flag('--pause');
 const IS_HEADED       = flag('--headed') || process.env.DEBUG_MODE === 'true';
 const IS_MOBILE       = flag('--mobile');
@@ -90,6 +91,7 @@ console.log(`║  URL:  ${TARGET_URL.padEnd(52)}║`);
 console.log(`║  Grid: ${String(GRID_COLS + '×' + GRID_ROWS).padEnd(10)}  Viewport: ${String(VP_W + '×' + VP_H).padEnd(34)}║`);
 if (WAIT_FOR_SEL)   console.log(`║  ⏳ Wait for: ${WAIT_FOR_SEL.padEnd(47)}║`);
 if (CLOSE_OVERLAYS) console.log('║  🧹 Auto-close overlays: ON                               ║');
+if (RESET_STATE)    console.log('║  🔄 Reset localStorage: ON (fresh session)                ║');
 if (PAUSE_MODE)     console.log('║  ⏸  Pause mode: 8s manual setup window                    ║');
 console.log('╚═══════════════════════════════════════════════════════════╝\n');
 
@@ -109,6 +111,21 @@ const context = await browser.newContext({
 const page = await context.newPage();
 
 // ─── Navigate ─────────────────────────────────────────────────────────────────
+
+// ── Optional: reset all localStorage state before load ──────────────────────
+// This prevents the app restoring last-session state (e.g. admin panel open)
+if (RESET_STATE) {
+  console.log('🔄 Wiping localStorage before navigation (--reset-state)…');
+  // Navigate to origin first so we can call localStorage.clear()
+  await page.goto(TARGET_URL, { waitUntil: 'domcontentloaded', timeout: 15_000 });
+  await page.evaluate(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    console.log('[heatmap] localStorage/sessionStorage cleared for fresh session');
+  });
+  console.log('  ✅ Storage cleared — reloading page on clean state');
+}
+
 console.log(`⏳ Navigating to: ${TARGET_URL}`);
 await page.goto(TARGET_URL, { waitUntil: 'domcontentloaded', timeout: 30_000 });
 
@@ -130,10 +147,23 @@ if (WAIT_FOR_SEL) {
 // ── Close overlays / modals ──────
 if (CLOSE_OVERLAYS) {
   console.log('🧹 Attempting to close overlays…');
+
+  // Step 1: Use Playwright's keyboard API to press Escape (works for React event handlers)
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
+  await page.keyboard.press('Escape'); // twice to handle nested modals
+  await page.waitForTimeout(400);
+
+  // Step 2: Target visually obvious X / close buttons via DOM
   const dismissed = await page.evaluate(() => {
-    // Selectors for common modal/panel close patterns
     const closeSelectors = [
-      // Generic close buttons
+      // SVG line-based X buttons (like the Admin Dashboard close)
+      'button:has(svg line[x1="18"])',
+      'button:has(svg line[x1="6"])',
+      // Lucide icon X buttons
+      'button:has(svg[data-lucide="x"])',
+      'button:has(svg[data-lucide="X"])',
+      // Generic aria-label patterns
       'button[aria-label*="close" i]',
       'button[aria-label*="dismiss" i]',
       'button[title*="close" i]',
@@ -142,13 +172,6 @@ if (CLOSE_OVERLAYS) {
       // Common class patterns
       '.modal-close', '.close-btn', '.btn-close',
       '[class*="CloseBtn"]', '[class*="close-btn"]', '[class*="closeBtn"]',
-      // Icon buttons with X/cross SVGs that are visually the close button
-      'button:has(svg[data-lucide="x"])',
-      'button:has(svg[data-lucide="X"])',
-      // React modal backdrops — click outside fires onClose in many modal libs
-      '[class*="backdrop"]',
-      '[class*="Backdrop"]',
-      '[class*="overlay"][role="dialog"]',
     ];
     let count = 0;
     for (const sel of closeSelectors) {
@@ -156,7 +179,6 @@ if (CLOSE_OVERLAYS) {
         const els = document.querySelectorAll(sel);
         els.forEach(el => {
           const r = el.getBoundingClientRect();
-          // Only click visible, in-viewport elements
           if (r.width > 0 && r.height > 0 && r.top >= 0 && r.left >= 0) {
             el.click();
             count++;
@@ -164,12 +186,21 @@ if (CLOSE_OVERLAYS) {
         });
       } catch { /* ignore bad selectors */ }
     }
-    // Also press Escape — the universal modal-close key
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     return count;
   });
-  console.log(`  ✅ Dispatched Escape + clicked ${dismissed} close button(s)`);
-  await page.waitForTimeout(800); // let animations finish
+  console.log(`  ✅ Pressed Escape ×2 + clicked ${dismissed} close button(s)`);
+  await page.waitForTimeout(1000); // let React re-render & animations finish
+
+  // Step 3: Verify canvas is now the top element at center — if Admin is still showing, warn
+  const centerCheck = await page.evaluate(() => {
+    const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+    const top = document.elementFromPoint(cx, cy);
+    return { tag: top?.tagName, cls: (top?.className?.toString() || '').slice(0, 60) };
+  });
+  console.log(`  🔍 Center element after close: <${centerCheck.tag}> ${centerCheck.cls.split(' ')[0] || ''}`);
+  if (centerCheck.tag && !['CANVAS', 'BODY', 'HTML'].includes(centerCheck.tag)) {
+    console.warn('  ⚠️  Non-canvas element still at viewport center — try --reset-state to clear persisted UI');
+  }
 }
 
 // ── Optional pause for manual setup ─
@@ -340,13 +371,39 @@ for (let row = 0; row < GRID_ROWS; row++) {
 
 // ─── Click-event listener injection ──────────────────────────────────────────
 // We inject a global listener BEFORE probing so we can check if clicks fire.
+// We also inject a GUARD that swallows clicks on interactive non-canvas elements
+// so probe clicks don't re-open panels (admin dashboard, modals, etc.) mid-scan.
 await page.evaluate(() => {
   window.__heatmapClickLog = {};
+
+  // ── 1. Heatmap click logger ──
   window.__heatmapClickListener = (e) => {
     const key = `${Math.round(e.clientX)},${Math.round(e.clientY)}`;
     window.__heatmapClickLog[key] = (window.__heatmapClickLog[key] || 0) + 1;
   };
   document.addEventListener('click', window.__heatmapClickListener, { capture: true, passive: true });
+
+  // ── 2. Click guard — prevent scan clicks from triggering UI state changes ──
+  // Strategy: intercept clicks on BUTTON / A / [role=button] elements that are
+  // NOT part of the Mapbox canvas. This lets us measure clickability without
+  // actually triggering navigation or opening modals.
+  window.__heatmapGuard = (e) => {
+    const t = e.target;
+    if (!t) return;
+    const tag = t.tagName;
+    const isCanvas = tag === 'CANVAS';
+    const isInteractiveHost = ['BUTTON', 'A', 'INPUT', 'SELECT'].includes(tag)
+      || t.getAttribute('role') === 'button'
+      || t.getAttribute('tabindex') != null;
+    // Only suppress if it's a concrete interactive element (not canvas / body)
+    if (isInteractiveHost && !isCanvas) {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+    }
+  };
+  document.addEventListener('click', window.__heatmapGuard, { capture: true });
+  document.addEventListener('mousedown', window.__heatmapGuard, { capture: true });
+  document.addEventListener('mouseup',   window.__heatmapGuard, { capture: true });
 });
 
 // ─── Probe each grid cell ─────────────────────────────────────────────────────

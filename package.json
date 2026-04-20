@@ -14,9 +14,9 @@
     "pw:debug-session": "/opt/homebrew/bin/node playwright/run.mjs --debug --test debug-session",
     "pw:trace": "/opt/homebrew/bin/node playwright/run.mjs --trace",
     "pw:report": "/opt/homebrew/bin/node playwright/run.mjs --report",
-    "pw:heatmap": "/opt/homebrew/bin/node playwright/heatmap.mjs --path / --wait-for canvas --close-overlays",
-    "pw:heatmap:mobile": "/opt/homebrew/bin/node playwright/heatmap.mjs --path / --mobile --wait-for canvas --close-overlays",
-    "pw:heatmap:headed": "/opt/homebrew/bin/node playwright/heatmap.mjs --path / --headed --debug --close-overlays --wait-for canvas",
+    "pw:heatmap": "/opt/homebrew/bin/node playwright/heatmap.mjs --path / --reset-state --wait-for canvas --close-overlays",
+    "pw:heatmap:mobile": "/opt/homebrew/bin/node playwright/heatmap.mjs --path / --mobile --reset-state --wait-for canvas --close-overlays",
+    "pw:heatmap:headed": "/opt/homebrew/bin/node playwright/heatmap.mjs --path / --headed --debug --reset-state --close-overlays --wait-for canvas",
     "pw:heatmap:admin": "/opt/homebrew/bin/node playwright/heatmap.mjs --path /admin"
   },
   "dependencies": {
